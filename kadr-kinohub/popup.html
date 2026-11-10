@@ -45,10 +45,18 @@
 
   <main class="panel">
     <div class="themes" id="themes" role="radiogroup" aria-label="Тема"></div>
+    <div class="opt">
+      <span id="skinLabel">Новый дизайн</span>
+      <button class="switch" id="skinSwitch" type="button" role="switch" aria-checked="true" aria-labelledby="skinLabel"><i></i></button>
+    </div>
     <div class="opt only-touch">
       <span id="menuLabel">Кнопка «Тема» в шапке сайта</span>
       <button class="switch" id="menuSwitch" type="button" role="switch" aria-checked="true" aria-labelledby="menuLabel"><i></i></button>
     </div>
+    <button class="opt act" id="snapBtn" type="button">
+      <span>Снимок сайта для доработки</span>
+      <b id="snapState"></b>
+    </button>
   </main>
 
   <script src="themes.js"></script>

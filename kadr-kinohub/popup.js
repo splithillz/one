@@ -134,7 +134,9 @@
     for (var k in v) root.style.setProperty(k, v[k]);
     themeColor.content = 'rgb(' + v['--bg'].split(' ').join(',') + ')';
     // превью — сайт под этой темой: те же цвета, что получит страница
-    var L = K.siteLook(cur), hero = document.querySelector('.hero');
+    var L = K.siteLook(cur, skinOn), hero = document.querySelector('.hero');
+    hero.classList.toggle('skin', skinOn);
+    hero.style.setProperty('--k-good', L.good);
     hero.style.setProperty('--k-page', L.page);
     hero.style.setProperty('--k-panel', L.panel);
     hero.style.setProperty('--k-raised', L.raised);
@@ -145,6 +147,36 @@
     hero.style.setProperty('--k-me', L.me);
     $('heroName').textContent = K.themeName(cur);
   }
+
+  /* ---------- новый дизайн сайта ---------- */
+  var skinOn = true;
+  function renderSkin() { $('skinSwitch').setAttribute('aria-checked', String(skinOn)); }
+  $('skinSwitch').addEventListener('click', function () {
+    skinOn = !skinOn;
+    store.set({ skin: skinOn });
+    renderSkin();
+    render();
+  });
+
+  /* ---------- снимок сайта для доработки ---------- */
+  // Сам снимок делает content.js в открытой вкладке сайта; здесь только кнопка и состояние.
+  var snapTimer = 0;
+  function renderSnap(v) {
+    var t = '';
+    if (v === 'work') t = 'Собираю…';
+    else if (/^done:/.test(v)) t = 'Готово · ' + v.slice(5) + ' КБ';
+    else if (/^error:/.test(v)) t = 'Ошибка';
+    else if (v === 'none') t = 'Открой сайт';
+    $('snapState').textContent = t;
+    $('snapBtn').title = /^error:/.test(v) ? v.slice(6) : '';
+  }
+  $('snapBtn').addEventListener('click', function () {
+    renderSnap('work');
+    store.set({ snap: '', snapReq: Date.now() });
+    clearTimeout(snapTimer);
+    // ни одна вкладка сайта не откликнулась — значит, сайт не открыт или не на экране
+    snapTimer = setTimeout(function () { store.get(['snap'], function (d) { if (!d || !d.snap) renderSnap('none'); }); }, 2500);
+  });
 
   /* ---------- кнопка в шапке сайта (телефон) ---------- */
   var menuOn = true;
@@ -178,19 +210,23 @@
   }
 
   /* ---------- состояние ---------- */
-  store.get(['theme', 'seed', 'menuEntry', 'diag'], function (d) {
+  store.get(['theme', 'seed', 'skin', 'menuEntry', 'diag'], function (d) {
     d = d || {};
     diag = d.diag || '';
     cur = { theme: d.theme || K.OFF, seed: d.seed || null };
     if (/^#[0-9a-f]{6}$/i.test(d.seed || '')) pick.value = d.seed.toLowerCase();
     menuOn = d.menuEntry !== false;
+    skinOn = d.skin !== false;
     paintCustom();
     render();
     renderMenu();
+    renderSkin();
     renderDiag();
     checkPerm();
   });
   chrome.storage.onChanged.addListener(function (ch, area) {
-    if (area === 'local' && ch.diag) { diag = ch.diag.newValue || ''; renderDiag(); }
+    if (area !== 'local') return;
+    if (ch.diag) { diag = ch.diag.newValue || ''; renderDiag(); }
+    if (ch.snap && ch.snap.newValue) { clearTimeout(snapTimer); renderSnap(ch.snap.newValue); }
   });
 })();

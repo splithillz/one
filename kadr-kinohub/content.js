@@ -5,7 +5,10 @@
 //   при равной специфичности побеждает более позднее правило, то есть зеркало. !important сами не добавляем,
 //   чтобы инлайновые стили сайта работали как раньше.
 //   Читаем живые стили, а не список из расширения, поэтому новые страницы и обновления сайта подхватываются сами.
+// НОВЫЙ ДИЗАЙН. Сами правила — в skin.css (подключён манифестом); здесь его выключатель (класс kadr-rd у <html>),
+//   цвета, шрифт и две мелочи, которые CSS сам не умеет: подсветка текущего раздела в шапке и свечение от постера.
 // ТЕЛЕФОН. Кнопка «Тема» в шапке сайта открывает шторку с настройками расширения.
+// СНИМОК. По кнопке в окне расширения собирает разметку, стили и скрипты сайта в файл — для доработки.
 (function () {
   'use strict';
   if (window.__kadrHub) return; // защита от повторной инъекции
@@ -18,6 +21,8 @@
   /* ===================== ТЕМА ===================== */
   var ID = 'kadr-theme';
   var state = { theme: K.OFF, seed: null };
+  var skin = true;       // новый дизайн (storage.skin === false — выключен)
+  root.classList.add('kadr-rd'); // сразу, до ответа storage: сайт рисует себя позже, мигания не будет
   var ready = false;     // состояние из storage прочитано
   var styleEl = null;
   var active = false;    // тема включена и наш <style> должен быть в документе
@@ -188,29 +193,44 @@
     }
     if (m.content !== color) m.content = color;
   }
+  // Шрифт нового дизайна — Onest, как у kinoarc. Файлы лежат в расширении, поэтому адрес известен только здесь.
+  var FONT = '';
+  try {
+    FONT = '@font-face{font-family:Onest;font-style:normal;font-weight:400 800;font-display:swap;src:url("' +
+      chrome.runtime.getURL('fonts/onest-cyrillic.woff2') + '") format("woff2");unicode-range:U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116}' +
+      '@font-face{font-family:Onest;font-style:normal;font-weight:400 800;font-display:swap;src:url("' +
+      chrome.runtime.getURL('fonts/onest-latin.woff2') + '") format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,' +
+      'U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}';
+  } catch (e) {}
+
   function apply() {
     if (!ready) return;
+    root.classList.toggle('kadr-rd', skin);
     var theme = K.resolve(state);
-    if (!theme) {
+    if (!theme && !skin) {
       active = false;
       if (styleEl) styleEl.remove();
       setMeta(null);
       return;
     }
-    var R = K.recolor(theme);
-    var fresh = ir && ir.length ? renderList(ir, R, false) + K.touches(theme) : '';
-    var text = fresh || cached;
+    // новый дизайн: шрифт и его цвета (без темы — родные цвета сайта)
+    var text = skin ? FONT + K.skinVars(state) : '', R = null;
+    if (theme) {
+      R = K.recolor(theme, skin);
+      var fresh = ir && ir.length ? renderList(ir, R, false) + K.touches(theme) : '';
+      text += fresh || cached;
+      if (fresh && fresh !== cached) {
+        cached = fresh;
+        // не на каждое движение ползунка «своего цвета»: пишем, когда тема устоялась
+        clearTimeout(cacheTimer);
+        cacheTimer = setTimeout(function () { store.set({ cache: { theme: state.theme, seed: state.seed, skin: skin, css: cached } }); }, 400);
+      }
+    }
     if (!styleEl) { styleEl = document.createElement('style'); styleEl.id = ID; }
     if (styleEl.textContent !== text) styleEl.textContent = text;
     active = true;
     place();
-    setMeta(R.page);
-    if (fresh && fresh !== cached) {
-      cached = fresh;
-      // не на каждое движение ползунка «своего цвета»: пишем, когда тема устоялась
-      clearTimeout(cacheTimer);
-      cacheTimer = setTimeout(function () { store.set({ cache: { theme: state.theme, seed: state.seed, css: cached } }); }, 400);
-    }
+    setMeta(R && R.page);
   }
   var cacheTimer = 0;
   // Стили сайта изменились (догрузились, добавились) — разобрать заново.
@@ -271,7 +291,7 @@
     '.wrap{position:fixed;inset:0;display:flex;align-items:flex-end;justify-content:center;' +
       'font:16px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-tap-highlight-color:transparent}' +
     '.scrim{position:absolute;inset:0;background:rgb(0 0 0/.42);opacity:0;transition:opacity .3s ease}' +
-    '.panel{position:relative;display:flex;flex-direction:column;width:100%;max-width:560px;height:62vh;height:min(62dvh,560px);' +
+    '.panel{position:relative;display:flex;flex-direction:column;width:100%;max-width:560px;height:72vh;height:min(72dvh,600px);' +
       'background:rgb(var(--kb,12 13 15));border-radius:26px 26px 0 0;overflow:hidden;' +
       'box-shadow:0 -18px 48px rgb(0 0 0/.5),inset 0 1px 0 rgb(255 255 255/.07);' +
       'transform:translateY(105%);transition:transform .46s cubic-bezier(.2,.9,.24,1),background-color .35s}' +
@@ -358,29 +378,196 @@
     if (s.from && s.from.isConnected) try { s.from.focus({ preventScroll: true }); } catch (e) {}
   }
 
+  /* ===================== НОВЫЙ ДИЗАЙН: то, что CSS сам не умеет ===================== */
+  // Текущий раздел в шапке: сайт его никак не отмечает, отмечаем атрибутом (красит skin.css).
+  function markNav() {
+    var links = document.querySelectorAll('nav.header_nav > a[href]'), path = location.pathname;
+    for (var i = 0; i < links.length; i++) {
+      var p = '';
+      try { p = new URL(links[i].href).pathname; } catch (e) {}
+      var on = skin && !!p && (p === path || (p !== '/' && path.indexOf(p + '/') === 0));
+      if (links[i].hasAttribute('data-kadr-on') !== on) links[i].toggleAttribute('data-kadr-on', on);
+    }
+  }
+  // Свечение за шапкой страницы фильма — размытый постер. Адрес картинки отдаём в CSS-переменную.
+  function markPoster() {
+    var img = document.querySelector('img.movie_image'), sec = img && img.closest('.movie_section');
+    if (!sec) return;
+    var src = skin ? img.currentSrc || img.src : '';
+    var v = src ? 'url("' + src.replace(/["\\\n]/g, '') + '")' : '';
+    if (sec.style.getPropertyValue('--kd-poster') !== v) {
+      if (v) sec.style.setProperty('--kd-poster', v); else sec.style.removeProperty('--kd-poster');
+    }
+  }
+  function syncPage() {
+    syncEntry();
+    markNav();
+    markPoster();
+  }
+
+  /* ===================== СНИМОК ДЛЯ ДОРАБОТКИ ===================== */
+  // Сайт не открывается с сервера разработки, поэтому всё, чего не видно на сохранённых страницах (вкладки,
+  // списки, тайминги), можно получить только из браузера владельца. По кнопке в окне расширения собираем в один
+  // файл: разметку страницы и её вкладок, стили и скрипты сайта, список адресов, к которым он обращался.
+  // НЕ берём: куки, токены и содержимое хранилищ — только названия ключей и форму данных (типы и длины).
+  var snapBusy = false;
+  function wait(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+  function shape(v, depth) {
+    if (v === null) return 'null';
+    if (Array.isArray(v)) return v.length ? ['x' + v.length, depth > 3 ? '...' : shape(v[0], depth + 1)] : [];
+    if (typeof v === 'object') {
+      if (depth > 3) return '{...}';
+      var o = {};
+      Object.keys(v).slice(0, 40).forEach(function (k) { o[k] = shape(v[k], depth + 1); });
+      return o;
+    }
+    return typeof v === 'string' ? 'string(' + v.length + ')' : typeof v;
+  }
+  function storageShape(st) {
+    var o = {};
+    try {
+      for (var i = 0; i < st.length; i++) {
+        var k = st.key(i), raw = st.getItem(k) || '';
+        try { o[k] = shape(JSON.parse(raw), 0); } catch (e) { o[k] = 'string(' + raw.length + ')'; }
+      }
+    } catch (e) {}
+    return o;
+  }
+  function markup(el) {
+    if (!el) return '';
+    var c = el.cloneNode(true), list = c.querySelectorAll('#' + ID + ', kadr-sheet, script, noscript, [' + ENTRY + ']'), i;
+    for (i = 0; i < list.length; i++) list[i].remove();
+    list = c.querySelectorAll('[srcdoc]');
+    for (i = 0; i < list.length; i++) list[i].setAttribute('srcdoc', '');
+    return c.outerHTML.replace(/data:[a-z]+\/[a-z0-9.+-]+;base64,[A-Za-z0-9+\/=]{200,}/g, 'data:,');
+  }
+  function noQuery(u) {
+    try {
+      var x = new URL(u, location.href), keys = [];
+      x.searchParams.forEach(function (v, k) { keys.push(k); });
+      return x.origin + x.pathname + (keys.length ? '?' + keys.join('&') : '');
+    } catch (e) { return ''; }
+  }
+  function getText(url) {
+    return fetch(url, { credentials: 'omit', cache: 'force-cache' }).then(function (r) { return r.ok ? r.text() : ''; }).catch(function () { return ''; });
+  }
+  // Пройтись по состояниям страницы, которые только показывают данные: вкладки фильма, тайминги, меню профиля, поиск.
+  // Кнопки, которые что-то меняют в аккаунте («Сохранить»), не трогаем.
+  async function tour(out) {
+    var i, el;
+    var tabs = document.querySelectorAll('.tabs_header button:not(:disabled)');
+    for (i = 0; i < tabs.length; i++) {
+      tabs[i].click();
+      await wait(1500);
+      out.push({ name: 'tab: ' + tabs[i].textContent.trim(), html: markup(tabs[i].closest('section') || document.getElementById('main')) });
+    }
+    el = document.querySelector('.player_controls button[title*="айминг"]');
+    if (el) {
+      el.click();
+      await wait(1500);
+      out.push({ name: 'timings', html: markup(document.getElementById('main') || document.body) });
+      var open = document.querySelector('dialog[open]');
+      if (open && open.close) open.close(); else el.click();
+      await wait(400);
+    }
+    el = document.querySelector('.user_dropdown .dropdown_trigger');
+    if (el) {
+      el.click();
+      await wait(700);
+      out.push({ name: 'profile menu', html: markup(document.querySelector('header.header') || document.body) });
+      el.click();
+      await wait(300);
+    }
+    el = document.getElementById('show_search');
+    if (el) {
+      el.click();
+      await wait(900);
+      var dlg = document.querySelector('dialog[open]');
+      out.push({ name: 'search', html: markup(dlg) });
+      if (dlg && dlg.close) dlg.close();
+    }
+  }
+  async function snapshot() {
+    if (snapBusy) return;
+    snapBusy = true;
+    store.set({ snap: 'work' });
+    try {
+      var data = {
+        kadr: chrome.runtime.getManifest().version, when: new Date().toISOString(),
+        url: location.origin + location.pathname, ua: navigator.userAgent,
+        viewport: [innerWidth, innerHeight, devicePixelRatio], theme: state.theme, skin: skin,
+        html: markup(root), states: [], css: [], scripts: [], resources: [],
+        storage: { local: storageShape(localStorage), session: storageShape(sessionStorage) },
+        cookieNames: document.cookie.split(';').map(function (c) { return c.split('=')[0].trim(); }).filter(Boolean)
+      };
+      sheets().forEach(function (sh) {
+        var text = '';
+        try { for (var i = 0; i < sh.cssRules.length; i++) text += sh.cssRules[i].cssText + '\n'; } catch (e) { text = '/* unreadable */'; }
+        data.css.push({ href: sh.href || '', text: text });
+      });
+      // скрипты сайта: подключённые на странице и все части приложения, на которые ссылается главный файл
+      var urls = {}, queue = [], total = 0, n;
+      function add(u) {
+        try { u = new URL(u, location.href); } catch (e) { return; }
+        if (u.origin !== location.origin || !/\.m?js$/.test(u.pathname) || urls[u.href]) return;
+        urls[u.href] = 1;
+        queue.push(u.href);
+      }
+      [].forEach.call(document.querySelectorAll('script[src], link[rel="modulepreload"][href]'), function (x) { add(x.src || x.href); });
+      performance.getEntriesByType('resource').forEach(function (e) {
+        add(e.name);
+        data.resources.push({ type: e.initiatorType, url: noQuery(e.name) });
+      });
+      for (n = 0; n < queue.length && n < 120 && total < 9e6; n++) {
+        var text = await getText(queue[n]);
+        total += text.length;
+        data.scripts.push({ src: queue[n], text: text });
+        var base = queue[n], m, re = /["'`]((?:\.{0,2}\/)?(?:assets\/)?[\w.@-]+\.m?js)["'`]/g;
+        while ((m = re.exec(text))) add(new URL(m[1], m[1].charAt(0) === '.' ? base : location.origin + '/').href);
+      }
+      try { await tour(data.states); } catch (e) { data.tourError = String(e && e.message || e); }
+      var blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'kadr-kinohub-snapshot-' + data.when.slice(0, 16).replace(/[:T]/g, '-') + '.json';
+      root.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(function () { URL.revokeObjectURL(a.href); }, 60000);
+      store.set({ snap: 'done:' + Math.round(blob.size / 1024) });
+    } catch (e) {
+      store.set({ snap: 'error:' + String(e && e.message || e).slice(0, 140) });
+    }
+    snapBusy = false;
+  }
+
   /* ===================== старт и слежение ===================== */
-  store.get(['theme', 'seed', 'cache', 'menuEntry'], function (d) {
+  store.get(['theme', 'seed', 'skin', 'cache', 'menuEntry'], function (d) {
     d = d || {};
     state = { theme: d.theme || K.OFF, seed: d.seed || null };
+    skin = d.skin !== false;
     entryOn = d.menuEntry !== false;
     var c = d.cache;
-    if (c && c.css && c.theme === state.theme && (c.seed || null) === state.seed) cached = c.css;
+    if (c && c.css && c.theme === state.theme && (c.seed || null) === state.seed && (c.skin !== false) === skin) cached = c.css;
     ready = true;
     apply();
-    syncEntry();
+    syncPage();
   });
 
   // Переключение из попапа или шторки — сразу во всех открытых вкладках сайта.
   chrome.storage.onChanged.addListener(function (ch, area) {
     if (area !== 'local') return;
-    if (ch.theme || ch.seed) {
+    if (ch.theme || ch.seed || ch.skin) {
       if (ch.theme) state.theme = ch.theme.newValue || K.OFF;
       if (ch.seed) state.seed = ch.seed.newValue || null;
+      if (ch.skin) skin = ch.skin.newValue !== false;
       cached = '';
       apply();
       tintSheet();
+      if (ch.skin) syncPage();
     }
     if (ch.menuEntry) { entryOn = ch.menuEntry.newValue !== false; syncEntry(); }
+    if (ch.snapReq && ch.snapReq.newValue && document.visibilityState === 'visible') snapshot();
   });
 
   // Пока страница грузится — проверяем стили перед каждым кадром: зеркало готово раньше первой отрисовки.
@@ -393,16 +580,17 @@
   requestAnimationFrame(tick);
   window.addEventListener('load', function () {
     refresh();
-    syncEntry();
+    syncPage();
     setTimeout(function () { settled = true; }, 1500);
   });
-  document.addEventListener('DOMContentLoaded', function () { refresh(); syncEntry(); });
+  document.addEventListener('DOMContentLoaded', function () { refresh(); syncPage(); });
+  window.addEventListener('popstate', function () { later(); });
   // Догрузилась таблица стилей (события load у <link> не всплывают, ловим на погружении).
   document.addEventListener('load', function (e) { if (e.target && e.target.localName === 'link') refresh(); }, true);
 
   var timer = 0;
   function later() {
-    if (!timer) timer = setTimeout(function () { timer = 0; refresh(); syncEntry(); }, 80);
+    if (!timer) timer = setTimeout(function () { timer = 0; refresh(); syncPage(); }, 80);
   }
   new MutationObserver(function (records) {
     place();
@@ -411,10 +599,12 @@
       if (t === styleEl || t.parentNode === styleEl) continue;
       // сайт переписал текст своего <style> — правила изменились
       if (t.localName === 'style' || (r.type === 'characterData' && t.parentNode && t.parentNode.localName === 'style')) { later(); return; }
+      // сайт подставил другой постер в тот же <img> (переход на другой фильм)
+      if (r.type === 'attributes') { if (t.classList && t.classList.contains('movie_image')) { later(); return; } continue; }
       if (r.type !== 'childList') continue;
       for (j = 0; j < r.addedNodes.length; j++) if (r.addedNodes[j].nodeType === 1 && r.addedNodes[j] !== styleEl) { later(); return; }
       // сайт убрал нашу кнопку вместе с шапкой или её частью
       for (j = 0; j < r.removedNodes.length; j++) if (r.removedNodes[j].nodeType === 1 && r.removedNodes[j] !== styleEl) { later(); return; }
     }
-  }).observe(root, { childList: true, subtree: true, characterData: true });
+  }).observe(root, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ['src'] });
 })();

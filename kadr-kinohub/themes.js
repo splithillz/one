@@ -111,6 +111,15 @@
     ['#635e66', 's5'],     // их наведение, выбранный сегмент
     ['#6b6373', 's6']
   ];
+  // Под новым дизайном структура как у kinoarc: страница — самая тёмная, панели и плашки светлее её.
+  var RAMP_SKIN = [
+    ['#1d1a1f', 's2'],     // наведение на панель
+    ['#232025', 's1'],     // панели
+    ['#2f2b32', 'bg'],     // фон страницы
+    ['#4b474d', 's3'],
+    ['#635e66', 's4'],
+    ['#6b6373', 's5']
+  ];
   // Акцент сайта (выбранное, наведение на закладку). Синие кнопки сайта считаем тем же акцентом.
   var ACCENT = '#aa77bb';
   var HUE_FROM = 215, HUE_TO = 305;
@@ -121,9 +130,9 @@
   function slots(theme) {
     var p = palette(theme);
     return {
-      deep: mix(p.bg, BLACK, 0.35), bg: p.bg, s1: p.s1, s4: p.s4,
+      deep: mix(p.bg, BLACK, 0.35), bg: p.bg, s1: p.s1, s2: p.s2, s3: p.s3, s4: p.s4,
       s5: mix(p.s3, WHITE, 0.2), s6: mix(p.s3, WHITE, 0.26), top: mix(p.s3, WHITE, 0.34),
-      acc: p.acc, ink: p.ink
+      acc: p.acc, accHi: p.accHi, ink: p.ink
     };
   }
   function light(c) { return (Math.max(c[0], c[1], c[2]) + Math.min(c[0], c[1], c[2])) / 510; }
@@ -139,9 +148,10 @@
     return h >= HUE_FROM && h <= HUE_TO ? 'accent' : 'other';
   }
   // Тема → функция «цвет сайта [r,g,b] → цвет темы [r,g,b]» (null — цвет остаётся как был).
-  function mapper(theme) {
+  // skin — включён новый дизайн: поверхности раскладываются по-другому (см. RAMP_SKIN).
+  function mapper(theme, skin) {
     var S = slots(theme), pts = [[0, BLACK]];
-    RAMP.forEach(function (r) { pts.push([light(rgb(r[0])), S[r[1]]]); });
+    (skin ? RAMP_SKIN : RAMP).forEach(function (r) { pts.push([light(rgb(r[0])), S[r[1]]]); });
     pts.push([0.5, S.top]);
     var a = toHsl(S.acc), ref = light(rgb(ACCENT));
     return function (c) {
@@ -196,8 +206,8 @@
   }
 
   // Перекраска для темы: value() меняет все цвета в CSS-значении, kindOf() говорит, что за цвет в значении.
-  function recolor(theme) {
-    var map = mapper(theme), S = slots(theme), memo = {};
+  function recolor(theme, skin) {
+    var map = mapper(theme, skin), S = slots(theme), memo = {};
     function one(tok) {
       if (tok.charAt(0) === 'u' || tok.charAt(0) === 'U') return tok; // url(#id) — не цвет
       var key = tok.toLowerCase();
@@ -208,7 +218,7 @@
     }
     return {
       ink: cssColor(S.ink, 1),
-      page: cssColor(S.s1, 1),
+      page: cssColor(skin ? S.bg : S.s1, 1),
       value: function (text) { return text.indexOf('#') < 0 && text.indexOf('rgb') < 0 ? text : text.replace(TOKEN, one); },
       // значение целиком — один цвет? тогда его вид и непрозрачность
       kindOf: function (text) {
@@ -228,13 +238,29 @@
       '::selection{background-color:' + acc + ';color:' + cssColor(S.ink, 1) + '}';
   }
 
+  // Цвета для нового дизайна (skin.css) — CSS-переменные --kd-*. Без темы — родные цвета сайта:
+  // тогда панели остаются темнее страницы, как у него.
+  function skinVars(state) {
+    var t = resolve(state), S = t ? slots(t) : null;
+    var v = t ? {
+      bg: S.bg, s1: S.s1, s2: S.s2, s3: S.s3, s4: S.s4, acc: S.acc, 'acc-hi': S.accHi, ink: S.ink, link: S.acc, good: S.accHi
+    } : {
+      bg: rgb('#2f2b32'), s1: rgb('#232025'), s2: rgb('#1d1a1f'), s3: rgb('#4b474d'), s4: rgb('#635e66'),
+      acc: rgb(ACCENT), 'acc-hi': rgb('#c79bd6'), ink: rgb('#faf8ed'), link: rgb('#faf8ed'), good: rgb('#46d37a')
+    };
+    var out = '';
+    Object.keys(v).forEach(function (k) { out += '--kd-' + k + ':' + v[k].join(' ') + ';'; });
+    return ':root{' + out + '}';
+  }
+
   // Ключевые цвета сайта под темой — для превью в расширении. Без темы — родные.
-  function siteLook(state) {
-    var t = resolve(state), map = t ? mapper(t) : function () { return null; };
+  function siteLook(state, skin) {
+    var t = resolve(state), map = t ? mapper(t, skin) : function () { return null; };
     function c(h) { var v = rgb(h); return hex(map(v) || v); }
     return {
       page: c('#2f2b32'), panel: c('#232025'), raised: c('#4b474d'), hover: c('#635e66'), badge: c('#596774'),
-      rate: c('#00942c'), rateText: t ? t.ink : '#ffffff', link: t ? t.acc : '#faf8ed', me: t ? t.acc : '#c0bcb7',
+      rate: c('#00942c'), rateText: t ? t.ink : '#ffffff', link: t ? t.acc : '#faf8ed',
+      me: t ? t.acc : skin ? ACCENT : '#c0bcb7', good: t ? hex(palette(t).accHi) : '#46d37a',
       text: '#faf8ed', text2: '#c0bcb7', muted: '#939095'
     };
   }
@@ -242,6 +268,7 @@
   g.KADR = {
     HOSTS: HOSTS, OFF: OFF, THEMES: THEMES, NATIVE: NATIVE,
     palette: palette, fromAccent: fromAccent, resolve: resolve, themeName: themeName, uiVars: uiVars,
-    kind: kind, mapper: mapper, parseColor: parseColor, hasColor: hasColor, recolor: recolor, touches: touches, siteLook: siteLook
+    kind: kind, mapper: mapper, parseColor: parseColor, hasColor: hasColor, recolor: recolor, touches: touches,
+    skinVars: skinVars, siteLook: siteLook
   };
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -1,0 +1,266 @@
+/* Кадр для kinohub — новый дизайн («скин») в стилистике kinoarc.
+   Подключается манифестом на on.kinohub.vip и работает, только пока у <html> есть класс kadr-rd
+   (его ставит content.js; выключатель — «Новый дизайн» в окне расширения).
+
+   Правила здесь — только оформление и раскладка того, что известно по разметке сайта: шапка, карточки,
+   страница фильма, вкладки, блок плеера, подвал. Цвета — переменные --kd-* («r g b»), их задаёт content.js
+   из выбранной темы; без темы это родные цвета сайта.
+   Специфичность: у правил сайта вид .класс[data-v-…]; здесь тот же селектор с html.kadr-rd впереди —
+   на один тип больше, поэтому скин побеждает и сайт, и перекрашенные «зеркала» темы. */
+
+:where(html.kadr-rd) {
+  --kd-bg: 47 43 50; --kd-s1: 35 32 37; --kd-s2: 29 26 31; --kd-s3: 75 71 77; --kd-s4: 99 94 102;
+  --kd-acc: 170 119 187; --kd-acc-hi: 199 155 214; --kd-ink: 250 248 237; --kd-link: 250 248 237; --kd-good: 70 211 122;
+  --kd-tx: 250 248 237; --kd-tx2: 192 188 183; --kd-mut: 147 144 149;
+  --kd-spring: cubic-bezier(.34, 1.4, .64, 1);
+  --kd-soft: cubic-bezier(.22, 1, .36, 1);
+  --kd-out: cubic-bezier(.16, 1, .3, 1);
+  --kd-line: inset 0 0 0 1px rgb(255 255 255 / .07);
+}
+
+@keyframes kd-enter { from { opacity: 0; transform: translateY(12px) scale(.98); } }
+@keyframes kd-fade { from { opacity: 0; } }
+@keyframes kd-pop { from { opacity: 0; transform: scale(.8); } }
+
+/* ---------- основа ---------- */
+html.kadr-rd { scrollbar-color: rgb(var(--kd-s4)) transparent; -webkit-tap-highlight-color: transparent; }
+html.kadr-rd body {
+  background-color: rgb(var(--kd-bg)); color: rgb(var(--kd-tx));
+  font-size: 17px; -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility;
+}
+/* Шрифт kinoarc. Его @font-face добавляет content.js (нужен адрес файла внутри расширения). */
+html.kadr-rd body, html.kadr-rd body * { font-family: Onest, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif !important; }
+/* Значки сайта — маски; при другом размере маска должна вписываться целиком. */
+html.kadr-rd i[class^=ico_] { -webkit-mask-size: contain; mask-size: contain; -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat; -webkit-mask-position: center; mask-position: center; }
+html.kadr-rd .wrapper { padding: 0 16px; }
+/* свечение на странице фильма выходит за колонку до краёв окна; clip не даёт появиться горизонтальной прокрутке и не ломает sticky */
+html.kadr-rd body { overflow-x: clip; }
+
+/* ---------- шапка: плавающая стеклянная панель ---------- */
+/* без анимаций на самой шапке: анимация прозрачности у родителя отключает размытие фона под панелью */
+html.kadr-rd .header { position: sticky; top: 10px; z-index: 1100; margin-top: 10px; margin-bottom: 30px; }
+html.kadr-rd .header_nav {
+  gap: 2px; padding: 5px; border-radius: 20px; outline: none;
+  background: rgb(var(--kd-s1) / .8);
+  -webkit-backdrop-filter: blur(22px) saturate(1.6); backdrop-filter: blur(22px) saturate(1.6);
+  box-shadow: var(--kd-line), 0 14px 34px -14px rgb(0 0 0 / .7);
+}
+html.kadr-rd .header_nav > * {
+  padding: 11px 0; border-radius: 15px; background: transparent; color: rgb(var(--kd-tx2));
+  font-size: 15.5px; font-weight: 600;
+  transition: background-color .2s, color .2s, transform .42s var(--kd-spring);
+}
+html.kadr-rd .header_nav > *:last-child { border-radius: 15px; }
+html.kadr-rd .header_nav > *:hover { background: rgb(255 255 255 / .07); color: rgb(var(--kd-tx)); }
+html.kadr-rd .header_nav > *:active { transform: scale(.93); transition-duration: .12s; }
+html.kadr-rd .header_nav i[class^=ico_] { width: 22px; height: 22px; background-color: rgb(var(--kd-tx2)); transition: background-color .2s; }
+html.kadr-rd .header_nav > *:hover i[class^=ico_] { background-color: rgb(var(--kd-tx)); }
+/* текущий раздел (атрибут ставит content.js) и кнопка расширения */
+html.kadr-rd .header_nav > [data-kadr-on] { background: rgb(var(--kd-acc) / .14); color: rgb(var(--kd-tx)); }
+html.kadr-rd .header_nav > [data-kadr-on] i[class^=ico_],
+html.kadr-rd .header_nav > [data-kadr-entry] i[class^=ico_] { background-color: rgb(var(--kd-acc)); }
+html.kadr-rd .user_dropdown_trigger { padding: 11px 0; font-size: 15.5px; }
+@media screen and (max-width: 900px) {
+  html.kadr-rd .header_nav > * { padding: 11px 6px; gap: 3px; font-size: 12.5px; }
+  html.kadr-rd .user_dropdown_trigger { padding: 11px 6px; gap: 3px; font-size: 12.5px; }
+  html.kadr-rd .header_nav > .user_dropdown { padding: 0; }
+}
+
+/* ---------- разделы и сетка карточек ---------- */
+html.kadr-rd .section_header { margin-bottom: 20px; animation: kd-enter .46s var(--kd-spring) both; }
+html.kadr-rd .section_title { font-size: clamp(24px, 3.2vw, 30px); font-weight: 700; letter-spacing: -.02em; line-height: 1.15; }
+html.kadr-rd .section_body { gap: 28px; }
+html.kadr-rd hr { margin: 36px 0; border-top-color: rgb(255 255 255 / .06); }
+html.kadr-rd .movie_grid { gap: 28px 20px; }
+@media screen and (max-width: 900px) { html.kadr-rd .movie_grid { gap: 20px 14px; } }
+
+html.kadr-rd .card { gap: 9px; animation: kd-enter .46s var(--kd-spring) both; }
+html.kadr-rd .card:nth-child(2) { animation-delay: .024s; }
+html.kadr-rd .card:nth-child(3) { animation-delay: .048s; }
+html.kadr-rd .card:nth-child(4) { animation-delay: .072s; }
+html.kadr-rd .card:nth-child(5) { animation-delay: .096s; }
+html.kadr-rd .card:nth-child(6) { animation-delay: .12s; }
+html.kadr-rd .card:nth-child(7) { animation-delay: .144s; }
+html.kadr-rd .card:nth-child(8) { animation-delay: .168s; }
+html.kadr-rd .card:nth-child(9) { animation-delay: .192s; }
+html.kadr-rd .card:nth-child(10) { animation-delay: .216s; }
+html.kadr-rd .card:nth-child(11) { animation-delay: .24s; }
+html.kadr-rd .card:nth-child(12) { animation-delay: .264s; }
+
+html.kadr-rd .card .link {
+  display: block; border-radius: 18px; outline: none;
+  box-shadow: 0 0 0 1px rgb(255 255 255 / .06), 0 16px 30px -20px rgb(0 0 0 / .8);
+  transition: transform .42s var(--kd-spring), box-shadow .3s;
+}
+html.kadr-rd .card .link:hover {
+  border-radius: 18px; outline: none; transform: translateY(-4px) scale(1.015);
+  box-shadow: 0 0 0 1px rgb(255 255 255 / .16), 0 26px 44px -20px rgb(0 0 0 / .9);
+}
+html.kadr-rd .card .link:active { transform: scale(.97); transition-duration: .12s; }
+html.kadr-rd .card .link:hover::before { opacity: .22; }
+html.kadr-rd .card .image { border-radius: 0; background-color: rgb(var(--kd-s1)); }
+html.kadr-rd .card .title { font-size: 16px; font-weight: 600; line-height: 1.25; letter-spacing: -.005em; color: rgb(var(--kd-tx)); }
+html.kadr-rd .card .meta { gap: 5px; font-size: 13.5px; color: rgb(var(--kd-mut)); }
+html.kadr-rd .card .meta span::after { content: "·"; margin-left: 5px; color: rgb(var(--kd-mut) / .7); }
+
+/* рейтинг: тёмная плашка, у «7 и выше» число цветом акцента — как на постерах kinoarc.
+   Без размытия фона: десятки размытых областей при прокрутке — лишняя нагрузка на телефон. */
+html.kadr-rd .card .rating {
+  top: 9px; right: 9px; display: grid; place-items: center; min-width: 36px; height: 25px; padding: 0 7px;
+  border-radius: 9px; background: rgb(var(--kd-bg) / .88); color: rgb(var(--kd-tx2));
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / .09);
+  font-size: 13.5px; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: 0;
+}
+html.kadr-rd .card .rating[data-rating="7"], html.kadr-rd .card .rating[data-rating="8"],
+html.kadr-rd .card .rating[data-rating="9"], html.kadr-rd .card .rating[data-rating="10"] {
+  background: rgb(var(--kd-bg) / .88); color: rgb(var(--kd-good));
+}
+
+/* закладка на постере */
+html.kadr-rd .card .watchlist { top: 9px; left: 9px; }
+html.kadr-rd .card:hover .watchlist { animation: kd-pop .22s var(--kd-out) backwards; }
+html.kadr-rd .card .watchlist_button {
+  display: grid; place-items: center; width: 36px; height: 36px; padding: 0; border-radius: 12px;
+  background: rgb(var(--kd-bg) / .82); color: rgb(var(--kd-tx));
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / .1);
+  transition: transform .42s var(--kd-spring), background-color .2s;
+}
+html.kadr-rd .card .watchlist_button i[class^=ico_] { width: 20px; height: 20px; background-color: rgb(var(--kd-tx)); transition: background-color .2s; }
+html.kadr-rd .card .watchlist_button:hover { background: rgb(var(--kd-acc)); }
+html.kadr-rd .card .watchlist_button:hover i[class^=ico_] { background-color: rgb(var(--kd-ink)); }
+html.kadr-rd .card .watchlist_button:active { transform: scale(.86); transition-duration: .12s; }
+@media (pointer: coarse) and (hover: none) { html.kadr-rd .card .watchlist { opacity: 1; animation: none; } }
+
+/* ---------- страница фильма ---------- */
+html.kadr-rd .movie_section { position: relative; isolation: isolate; }
+/* мягкое свечение от постера за шапкой страницы (адрес картинки кладёт content.js в --kd-poster) */
+html.kadr-rd .movie_section::before {
+  content: ""; position: absolute; z-index: -1; left: calc(50% - 50vw); right: calc(50% - 50vw); top: -130px; height: 640px; pointer-events: none;
+  background: var(--kd-poster, none) center 18% / cover no-repeat;
+  filter: blur(52px) saturate(1.4); opacity: .4;
+  -webkit-mask-image: linear-gradient(#000 30%, transparent); mask-image: linear-gradient(#000 30%, transparent);
+  animation: kd-fade .9s ease-out both;
+}
+html.kadr-rd .movie_body { gap: 36px; align-items: flex-start; }
+html.kadr-rd .movie_aside { gap: 14px; animation: kd-enter .5s var(--kd-spring) both; }
+html.kadr-rd .movie_main { animation: kd-enter .5s var(--kd-spring) .06s both; }
+html.kadr-rd .movie_poster { min-width: 0; }
+html.kadr-rd .movie_image {
+  width: 260px; border-radius: 20px; background: rgb(var(--kd-s1));
+  box-shadow: 0 0 0 1px rgb(255 255 255 / .08), 0 34px 60px -30px rgb(0 0 0 / .95);
+}
+html.kadr-rd .movie_header { gap: 14px; margin-bottom: 18px; }
+html.kadr-rd .movie_title { gap: 6px; }
+html.kadr-rd .movie_title_russian { align-items: flex-start; gap: 10px; font-size: clamp(27px, 4.4vw, 42px); font-weight: 800; letter-spacing: -.028em; line-height: 1.08; }
+html.kadr-rd .movie_title_russian i[class^=ico_] { flex: none; width: 24px; height: 24px; margin-top: .2em; background-color: rgb(var(--kd-mut)); }
+html.kadr-rd .movie_title_original { font-size: 17px; color: rgb(var(--kd-mut)); }
+
+html.kadr-rd .movie_rating_list { gap: 10px; }
+html.kadr-rd .movie_rating_row { gap: 1px; padding: 11px 14px 12px; border-radius: 16px; background: rgb(var(--kd-s1)); box-shadow: var(--kd-line); color: rgb(var(--kd-mut)); }
+html.kadr-rd .movie_rating_name { font-size: 12.5px; font-weight: 600; letter-spacing: .02em; }
+html.kadr-rd .movie_rating_name a { color: inherit; }
+html.kadr-rd .movie_rating_body { flex-wrap: wrap; align-items: baseline; column-gap: 8px; }
+html.kadr-rd .movie_rating_value { font-size: 28px; font-weight: 800; letter-spacing: -.02em; line-height: 1.15; color: rgb(var(--kd-tx)); font-variant-numeric: tabular-nums; }
+html.kadr-rd .movie_rating_count { font-size: 12.5px; color: rgb(var(--kd-mut)); font-variant-numeric: tabular-nums; }
+
+html.kadr-rd .movie_favorites .watchlist_button {
+  width: auto; min-height: 46px; gap: 8px; padding: 0 18px 0 14px; border-radius: 15px;
+  background: rgb(var(--kd-s1)); color: rgb(var(--kd-tx)); font-size: 15.5px; font-weight: 600;
+  box-shadow: var(--kd-line);
+  transition: transform .42s var(--kd-spring), background-color .2s;
+}
+html.kadr-rd .movie_favorites .watchlist_button:hover { background: rgb(var(--kd-s2)); }
+html.kadr-rd .movie_favorites .watchlist_button:active { top: 0; transform: scale(.96); box-shadow: var(--kd-line); transition-duration: .12s; }
+html.kadr-rd .movie_favorites .watchlist_button i[class^=ico_] { width: 22px; height: 22px; background-color: rgb(var(--kd-acc)); }
+
+html.kadr-rd .movie_info_list { gap: 10px; margin-bottom: 20px; }
+html.kadr-rd .movie_info_item { gap: 10px; align-items: flex-start; font-size: 15.5px; line-height: 1.45; color: rgb(var(--kd-tx2)); }
+html.kadr-rd .movie_info_item i[class^=ico_] { flex: none; width: 20px; height: 20px; margin-top: 3px; background-color: rgb(var(--kd-mut)); }
+/* ряд со ссылками — плашки; запятые между ними (текст сайта) прячем */
+html.kadr-rd .movie_info_item span:has(> a) { display: flex; flex-wrap: wrap; gap: 6px; font-size: 0; }
+html.kadr-rd .movie_info_item a {
+  padding: 3px 11px 4px; border-radius: 999px; font-size: 14.5px; line-height: 1.45;
+  background: rgb(255 255 255 / .06); color: rgb(var(--kd-link));
+  transition: background-color .2s, transform .42s var(--kd-spring);
+}
+html.kadr-rd .movie_info_item a:hover { background: rgb(var(--kd-acc) / .18); }
+html.kadr-rd .movie_info_item a:active { transform: scale(.94); }
+html.kadr-rd .movie_description { max-width: 70ch; font-size: 16.5px; line-height: 1.65; color: rgb(var(--kd-tx) / .78); }
+html.kadr-rd .movie_description::before {
+  content: "Описание"; display: block; margin: 4px 0 8px;
+  font-size: 21px; font-weight: 700; letter-spacing: -.015em; line-height: 1.2; color: rgb(var(--kd-tx));
+}
+
+/* телефон: постер слева, название справа от него — как на странице фильма у kinoarc */
+@media screen and (max-width: 600px) {
+  html.kadr-rd .movie_body {
+    display: grid; grid-template-columns: 124px minmax(0, 1fr); column-gap: 16px; row-gap: 16px; align-items: end;
+    grid-template-areas: "poster title" "rating rating" "fav fav" "info info" "desc desc";
+  }
+  html.kadr-rd .movie_aside, html.kadr-rd .movie_main, html.kadr-rd .movie_header { display: contents; }
+  /* незнакомые блоки внутри (если сайт их добавит) — на всю ширину, а не в колонку постера */
+  html.kadr-rd .movie_aside > *, html.kadr-rd .movie_main > *, html.kadr-rd .movie_header > * { grid-column: 1 / -1; }
+  html.kadr-rd .movie_poster { grid-area: poster; margin: 0; animation: kd-enter .5s var(--kd-spring) both; }
+  html.kadr-rd .movie_image { width: 124px; border-radius: 14px; }
+  html.kadr-rd .movie_title { grid-area: title; min-width: 0; padding-bottom: 2px; animation: kd-enter .5s var(--kd-spring) .04s both; }
+  html.kadr-rd .movie_title_russian { font-size: 27px; gap: 7px; overflow-wrap: anywhere; }
+  html.kadr-rd .movie_title_russian i[class^=ico_] { width: 20px; height: 20px; }
+  html.kadr-rd .movie_title_original { font-size: 15px; }
+  html.kadr-rd .movie_rating { grid-area: rating; animation: kd-enter .5s var(--kd-spring) .08s both; }
+  html.kadr-rd .movie_favorites { grid-area: fav; animation: kd-enter .5s var(--kd-spring) .12s both; }
+  html.kadr-rd .movie_favorites .watchlist_button { width: 100%; }
+  html.kadr-rd .movie_info_list { grid-area: info; margin: 0; animation: kd-enter .5s var(--kd-spring) .16s both; }
+  html.kadr-rd .movie_description { grid-area: desc; animation: kd-enter .5s var(--kd-spring) .2s both; }
+}
+
+/* ---------- вкладки ---------- */
+html.kadr-rd .movie_section ~ .container { margin-top: 30px; animation: kd-enter .5s var(--kd-spring) .12s both; }
+html.kadr-rd .tabs_header {
+  gap: 4px; padding: 5px; border-radius: 18px; background: rgb(var(--kd-s1)); box-shadow: var(--kd-line);
+  scrollbar-width: none;
+}
+html.kadr-rd .tabs_header::-webkit-scrollbar { display: none; }
+html.kadr-rd .tabs_header button {
+  padding: 10px 18px; border-radius: 13px; font-size: 15.5px; font-weight: 600; color: rgb(var(--kd-mut));
+  transition: background-color .2s, color .2s, transform .42s var(--kd-spring);
+}
+html.kadr-rd .tabs_header button:hover { background: rgb(255 255 255 / .06); color: rgb(var(--kd-tx)); }
+html.kadr-rd .tabs_header button:active { transform: scale(.95); transition-duration: .12s; }
+@media screen and (max-width: 600px) { html.kadr-rd .tabs_header button { padding: 10px 12px; font-size: 14.5px; } }
+
+/* ---------- плеер ---------- */
+html.kadr-rd .player_section { margin-top: 34px; padding-top: 0; border-top: 0; animation: kd-enter .5s var(--kd-spring) .16s both; }
+html.kadr-rd .player_info { gap: 10px; margin-bottom: 12px; }
+html.kadr-rd .player_select {
+  padding: 11px 14px; border-radius: 14px; background-color: rgb(var(--kd-s1)); color: rgb(var(--kd-tx2));
+  font-size: 15px; font-weight: 600; box-shadow: var(--kd-line); transition: background-color .2s;
+}
+html.kadr-rd .player_select:hover { background-color: rgb(var(--kd-s2)); }
+html.kadr-rd .player_controls { gap: 6px; }
+html.kadr-rd .player_controls button {
+  display: grid; place-items: center; width: 44px; height: 44px; padding: 0; border-radius: 14px;
+  background: rgb(var(--kd-s1)); box-shadow: var(--kd-line);
+  transition: background-color .2s, transform .42s var(--kd-spring);
+}
+html.kadr-rd .player_controls button:hover { background: rgb(var(--kd-s2)); }
+html.kadr-rd .player_controls button:hover i[class^=ico_] { background-color: rgb(var(--kd-tx)); }
+html.kadr-rd .player_controls button:active { transform: scale(.9); transition-duration: .12s; }
+html.kadr-rd .player_controls i[class^=ico_] { width: 22px; height: 22px; background-color: rgb(var(--kd-tx2)); transition: background-color .2s; }
+html.kadr-rd .player_iframe_wrapper {
+  overflow: hidden; border-radius: 20px; background: #000;
+  box-shadow: 0 0 0 1px rgb(255 255 255 / .07), 0 40px 80px -44px rgb(0 0 0 / .95);
+}
+html.kadr-rd .player_iframe { border-radius: 0; background: #000; }
+@media screen and (max-width: 600px) { html.kadr-rd .player_iframe_wrapper { border-radius: 16px; } }
+
+/* ---------- мелочи ---------- */
+html.kadr-rd .footer { margin-top: 56px; padding-top: 20px; border-top-color: rgb(255 255 255 / .06); }
+html.kadr-rd .footer_nav a { font-size: 13.5px; color: rgb(var(--kd-mut)); transition: color .2s; }
+html.kadr-rd .footer_nav a:hover { color: rgb(var(--kd-tx)); }
+html.kadr-rd .button_refresh { padding: 6px 12px; border-radius: 10px; background: rgb(var(--kd-s1)); color: rgb(var(--kd-mut)); box-shadow: var(--kd-line); }
+html.kadr-rd #button_top { border-radius: 14px 0 0 14px; background-color: rgb(var(--kd-s3)); }
+html.kadr-rd dialog { border-radius: 22px; }
+
+@media (prefers-reduced-motion: reduce) {
+  html.kadr-rd *, html.kadr-rd *::before, html.kadr-rd *::after { animation: none !important; transition-duration: .01ms !important; }
+}
