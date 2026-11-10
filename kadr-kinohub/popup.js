@@ -13,10 +13,7 @@
   var UI = {
     external: 'M8 16 16 8M9.5 8H16v6.5',
     close: 'M6.5 6.5l11 11M17.5 6.5l-11 11',
-    check: 'M5.5 12.5l4 4 9-9.5',
-    plus: 'M12 5.5v13M5.5 12h13',
-    find: 'M10.8 17.1a6.3 6.3 0 1 0 0-12.6 6.3 6.3 0 0 0 0 12.6ZM19.5 19.5l-4.2-4.2',
-    undo: 'M5 9.5h9.2a4.8 4.8 0 0 1 0 9.6H9M5 9.5l4-4M5 9.5l4 4'
+    check: 'M5.5 12.5l4 4 9-9.5'
   };
   function el(tag, cls, text) {
     var e = document.createElement(tag);
@@ -41,9 +38,7 @@
 
   $('openSite').appendChild(ui('external'));
   $('closeSheet').appendChild(ui('close'));
-  $('heroFind').appendChild(ui('find'));
-  $('heroPlay').prepend(svg('M7 4.8v14.4c0 .8.9 1.3 1.6.9l11.2-7.2c.6-.4.6-1.4 0-1.8L8.6 3.9C7.9 3.5 7 4 7 4.8Z', true));
-  $('heroPlus').appendChild(ui('plus'));
+  $('heroSave').prepend(svg('M7 3.5h10a1 1 0 0 1 1 1v15.2a.5.5 0 0 1-.8.4L12 16.4l-5.2 3.7a.5.5 0 0 1-.8-.4V4.5a1 1 0 0 1 1-1Z', true));
 
   function closeSheet() { try { parent.postMessage('kadr:close', '*'); } catch (e) {} }
   $('closeSheet').addEventListener('click', closeSheet);
@@ -64,21 +59,19 @@
     node.style.setProperty('--t-ink', t.ink);
   }
   function check() { var c = el('span', 'th-ck'); c.appendChild(ui('check')); return c; }
-  function tile(t, cls) {
-    var b = el('button', 'th' + (cls ? ' ' + cls : ''));
+  // «Родная» (сайт как есть) и готовые палитры — одинаковые плитки.
+  [K.NATIVE].concat(K.THEMES).forEach(function (t) {
+    var b = el('button', 'th');
     b.type = 'button';
     b.setAttribute('role', 'radio');
     b.dataset.id = t.id;
     var sw = el('span', 'th-sw');
-    sw.appendChild(cls === 'native' ? ui('undo') : el('i'));
+    sw.appendChild(el('i'));
     b.append(sw, el('span', 'th-nm', t.name), check());
     themeVars(b, t);
     b.addEventListener('click', function () { setTheme(t.id); });
     box.appendChild(b);
-    return b;
-  }
-  tile(K.NEUTRAL, 'native');
-  K.THEMES.forEach(function (t) { tile(t); });
+  });
 
   // «Свой»: сама плитка — нативный выбор цвета, поверх неё прозрачный <input type="color">.
   var custom = el('label', 'th custom');
@@ -119,6 +112,7 @@
 
   function setTheme(id, seed) {
     cur.theme = id;
+    renderDiag();
     if (id === 'custom') {
       cur.seed = seed;
       store.set({ theme: 'custom', seed: seed });
@@ -139,8 +133,27 @@
     var v = K.uiVars(cur);
     for (var k in v) root.style.setProperty(k, v[k]);
     themeColor.content = 'rgb(' + v['--bg'].split(' ').join(',') + ')';
+    // превью — сайт под этой темой: те же цвета, что получит страница
+    var L = K.siteLook(cur), hero = document.querySelector('.hero');
+    hero.style.setProperty('--k-page', L.page);
+    hero.style.setProperty('--k-panel', L.panel);
+    hero.style.setProperty('--k-raised', L.raised);
+    hero.style.setProperty('--k-badge', L.badge);
+    hero.style.setProperty('--k-rate', L.rate);
+    hero.style.setProperty('--k-rate-tx', L.rateText);
+    hero.style.setProperty('--k-link', L.link);
+    hero.style.setProperty('--k-me', L.me);
     $('heroName').textContent = K.themeName(cur);
   }
+
+  /* ---------- кнопка в шапке сайта (телефон) ---------- */
+  var menuOn = true;
+  function renderMenu() { $('menuSwitch').setAttribute('aria-checked', String(menuOn)); }
+  $('menuSwitch').addEventListener('click', function () {
+    menuOn = !menuOn;
+    store.set({ menuEntry: menuOn });
+    renderMenu();
+  });
 
   /* ---------- доступ к сайту ---------- */
   // Firefox и Chrome с «доступом по клику» могут не дать расширению сайт — тогда тема не применится.
@@ -152,13 +165,32 @@
     chrome.permissions.request({ origins: K.HOSTS }, function (ok) { if (ok) $('perm').hidden = true; });
   });
 
+  /* ---------- тема не легла на сайт: причина от content.js ---------- */
+  var WHY = {
+    blocked: 'Браузер не даёт прочитать стили сайта: они лежат на другом домене.',
+    csp: 'Сайт запрещает добавлять свои стили.'
+  };
+  var diag = '';
+  function renderDiag() {
+    var why = cur.theme !== K.OFF ? WHY[diag] : '';
+    $('blocked').hidden = !why;
+    $('blockedWhy').textContent = why || '';
+  }
+
   /* ---------- состояние ---------- */
-  store.get(['theme', 'seed'], function (d) {
+  store.get(['theme', 'seed', 'menuEntry', 'diag'], function (d) {
     d = d || {};
+    diag = d.diag || '';
     cur = { theme: d.theme || K.OFF, seed: d.seed || null };
     if (/^#[0-9a-f]{6}$/i.test(d.seed || '')) pick.value = d.seed.toLowerCase();
+    menuOn = d.menuEntry !== false;
     paintCustom();
     render();
+    renderMenu();
+    renderDiag();
     checkPerm();
+  });
+  chrome.storage.onChanged.addListener(function (ch, area) {
+    if (area === 'local' && ch.diag) { diag = ch.diag.newValue || ''; renderDiag(); }
   });
 })();

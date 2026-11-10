@@ -25,29 +25,30 @@
     <button class="btn" id="permBtn" type="button">Дать доступ</button>
   </div>
 
-  <!-- Превью: мини-страница кино в цветах выбранной темы. «Фильм» называется как тема. -->
+  <div class="banner" id="blocked" hidden>
+    <p><b>Тема не применилась.</b> <span id="blockedWhy"></span></p>
+  </div>
+
+  <!-- Превью: шапка сайта, карточки и плашки фильма в цветах выбранной темы. «Фильм» называется как тема. -->
   <section class="hero" aria-hidden="true">
-    <div class="hero-bar">
-      <i class="hero-dot"></i><b>kinohub</b>
-      <span class="hero-nav"><i></i><i></i><i></i></span>
-      <span class="hero-find" id="heroFind"></span>
-    </div>
-    <div class="hero-film">
-      <span class="hero-poster"><i id="heroRate">8.4</i></span>
-      <span class="hero-info">
+    <div class="k-nav"><i></i><i></i><i></i><i></i><i></i><i class="k-me"></i><i></i></div>
+    <div class="k-body">
+      <span class="k-poster"><b>8.1</b></span>
+      <span class="k-poster k-low"><b>6.4</b></span>
+      <span class="k-info">
         <b id="heroName">Родная</b>
-        <span class="hero-tags"><i>HD</i><u></u><u></u></span>
-        <span class="hero-row">
-          <span class="hero-btn" id="heroPlay">Смотреть</span>
-          <span class="hero-ghost" id="heroPlus"></span>
-        </span>
-        <span class="hero-prog"><i></i></span>
+        <span class="k-chips"><i>2015</i><i>драма</i></span>
+        <span class="k-save" id="heroSave">Сохранить</span>
       </span>
     </div>
   </section>
 
   <main class="panel">
     <div class="themes" id="themes" role="radiogroup" aria-label="Тема"></div>
+    <div class="opt only-touch">
+      <span id="menuLabel">Кнопка «Тема» в шапке сайта</span>
+      <button class="switch" id="menuSwitch" type="button" role="switch" aria-checked="true" aria-labelledby="menuLabel"><i></i></button>
+    </div>
   </main>
 
   <script src="themes.js"></script>
