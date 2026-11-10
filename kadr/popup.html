@@ -1,94 +1,91 @@
 <!doctype html>
-<html lang="ru">
+<html lang="ru" data-mode="popup">
 <head>
 <meta charset="utf-8">
-<style>
-  :root{color-scheme:dark}
-  body{margin:0;width:276px;background:#0b0c0d;color:#e9e9ea;
-    font:13px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;padding:14px}
-  h1{margin:0 0 10px;font-size:14px;font-weight:700}
-  .tabs{display:flex;gap:4px;background:#141618;border-radius:10px;padding:3px;margin-bottom:12px;
-    box-shadow:inset 0 0 0 1px rgb(255 255 255 / .05)}
-  .tab{all:unset;flex:1;text-align:center;color:#8d8d8d;font-weight:600;font-size:12.5px;padding:6px 0;border-radius:7px;cursor:pointer}
-  .tab:hover{color:#e9e9ea}
-  .tab.on{background:#24282a;color:#fff}
-  .tab:focus-visible{box-shadow:inset 0 0 0 2px #fff}
-  .panel{display:none}
-  .panel.on{display:block}
-
-  .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
-  .sw{all:unset;box-sizing:border-box;display:flex;align-items:center;gap:9px;padding:8px 9px;
-    border-radius:11px;cursor:pointer;background:var(--s1,#141618);
-    box-shadow:inset 0 0 0 1px rgb(255 255 255 / .06);transition:box-shadow .15s,transform .15s}
-  .sw:hover{box-shadow:inset 0 0 0 1px rgb(255 255 255 / .16)}
-  .sw:active{transform:scale(.97)}
-  .sw:focus-visible{box-shadow:inset 0 0 0 2px #fff}
-  .sw.on{box-shadow:inset 0 0 0 2px var(--acc)}
-  .dot{width:16px;height:16px;border-radius:50%;flex:none;background:var(--acc);box-shadow:0 0 0 3px var(--bg)}
-  .nm{flex:1;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .sw.on .nm::after{content:"✓";margin-left:5px;color:var(--acc)}
-  .custom{margin-top:8px;width:100%}
-  .custom input{width:30px;height:24px;border:0;background:none;padding:0;cursor:pointer}
-
-  .ava-head{display:flex;align-items:center;gap:12px;margin-bottom:12px}
-  .ava{width:46px;height:46px;border-radius:50%;flex:none;display:grid;place-items:center;transition:background-color .2s,color .2s}
-  .ava svg{width:54%;height:54%}
-  .ava-head p{margin:0;color:#8d8d8d;font-size:11.5px;line-height:1.4}
-  .lbl{margin:0 0 7px;color:#8d8d8d;font-size:11.5px;font-weight:600}
-  .colors{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:12px}
-  .col{all:unset;width:26px;height:26px;border-radius:50%;cursor:pointer;display:grid;place-items:center;
-    transition:transform .12s,box-shadow .12s}
-  .col::after{content:"";width:10px;height:10px;border-radius:50%;background:var(--c)}
-  .col:hover{transform:scale(1.08)}
-  .col.on{box-shadow:0 0 0 2px #0b0c0d,0 0 0 4px var(--c)}
-  .col:focus-visible{box-shadow:0 0 0 2px #fff}
-  .icons{display:grid;grid-template-columns:repeat(6,1fr);gap:6px}
-  .ico{all:unset;box-sizing:border-box;aspect-ratio:1;display:grid;place-items:center;border-radius:10px;cursor:pointer;
-    background:#141618;color:#cfcfcf;position:relative;box-shadow:inset 0 0 0 1px rgb(255 255 255 / .05);
-    transition:background-color .12s,color .12s,box-shadow .12s}
-  .ico svg{width:56%;height:56%}
-  .ico:hover{color:#fff;box-shadow:inset 0 0 0 1px rgb(255 255 255 / .16)}
-  .ico:focus-visible{box-shadow:inset 0 0 0 2px #fff}
-  .ico.on{background:var(--bgc);color:var(--c);box-shadow:inset 0 0 0 2px var(--c)}
-  .ico.lk::after{content:"";position:absolute;top:4px;right:4px;width:5px;height:5px;border-radius:50%;background:#d8b46a}
-  .hint{grid-column:1/-1;margin:2px 0;color:#6a6a6a;font-size:11px;line-height:1.45}
-  .legend{margin:8px 0 0;color:#6a6a6a;font-size:10.5px;display:flex;align-items:center;gap:6px}
-  .legend i{width:5px;height:5px;border-radius:50%;background:#d8b46a;display:inline-block}
-  .link{all:unset;margin-top:10px;color:#8d8d8d;font-size:11.5px;text-decoration:underline;cursor:pointer}
-  .link:hover{color:#e9e9ea}
-  .note{margin:12px 0 0;color:#6a6a6a;font-size:10.5px;line-height:1.45}
-</style>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<title>Кадр — тема и аватар</title>
+<link rel="stylesheet" href="popup.css">
+<script src="env.js"></script>
 </head>
 <body>
-  <h1>Кадр</h1>
-  <div class="tabs" role="tablist">
-    <button class="tab on" data-tab="theme" role="tab" type="button">Тема</button>
-    <button class="tab" data-tab="avatar" role="tab" type="button">Аватар</button>
-  </div>
-
-  <div class="panel on" id="p-theme">
-    <div class="grid" id="grid"></div>
-    <label class="sw custom" id="custom" data-id="custom">
-      <span class="dot"></span><span class="nm">Свой цвет</span>
-      <input type="color" id="pick" value="#5ec8ff">
-    </label>
-    <p class="note">Родные палитры kinoarc, тем же способом, что и сам сайт. «Мята» — его обычный вид.</p>
-  </div>
-
-  <div class="panel" id="p-avatar">
-    <div class="ava-head">
-      <span class="ava" id="avaPreview"></span>
-      <p>Подменяет твой аватар только у тебя в браузере, на сервер ничего не уходит. Работает, когда ты вошёл в аккаунт.</p>
+  <header class="top">
+    <svg class="logo" viewBox="0 0 64 64" aria-hidden="true">
+      <rect width="64" height="64" rx="18" class="logo-bg"/>
+      <path d="M16 25v-5a4 4 0 0 1 4-4h5M39 16h5a4 4 0 0 1 4 4v5M48 39v5a4 4 0 0 1-4 4h-5M25 48h-5a4 4 0 0 1-4-4v-5" class="logo-frame"/>
+      <circle cx="32" cy="32" r="7.5" class="logo-dot"/>
+    </svg>
+    <div class="brand">
+      <b>Кадр</b>
+      <span>тема и аватар для kinoarc</span>
     </div>
-    <p class="lbl">Цвет</p>
-    <div class="colors" id="avaColors"></div>
-    <p class="lbl">Значок</p>
-    <div class="icons" id="avaIcons"><p class="hint" id="avaHint">Загружаю иконки с сайта…</p></div>
-    <p class="legend"><i></i> на сайте закрыты наградой или рангом</p>
-    <button class="link" id="resetAva" type="button">Вернуть родной аватар</button>
+    <a class="ibtn" id="openSite" href="https://kinoarc.net/" target="_blank" rel="noopener" title="Открыть kinoarc" aria-label="Открыть kinoarc"></a>
+    <button class="ibtn" id="closeSheet" type="button" title="Закрыть" aria-label="Закрыть"></button>
+  </header>
+
+  <div class="banner" id="perm" hidden>
+    <p><b>Нет доступа к kinoarc.net.</b> Без него тема и аватар не применятся.</p>
+    <button class="btn" id="permBtn" type="button">Дать доступ</button>
   </div>
 
-  <p class="note">Перекрашивает только оформление у тебя в браузере. Ничего не меняет на сервере.</p>
+  <section class="hero" aria-hidden="true">
+    <div class="hero-card">
+      <span class="ava hero-ava" id="heroAva"></span>
+      <span class="hero-tx">
+        <b id="heroName">Твой профиль</b>
+        <span id="heroSub"><i></i><em>Мята</em></span>
+      </span>
+      <span class="hero-chev"></span>
+    </div>
+    <div class="hero-row">
+      <span class="hero-btn" id="heroPlay">Смотреть</span>
+      <span class="hero-ghost" id="heroPlus"></span>
+      <span class="hero-prog"><i></i></span>
+    </div>
+  </section>
+
+  <nav class="seg" role="tablist" aria-label="Разделы" data-tab="theme">
+    <span class="seg-ind" aria-hidden="true"></span>
+    <button type="button" role="tab" id="tab-theme" data-tab="theme" aria-controls="p-theme" aria-selected="true">Тема</button>
+    <button type="button" role="tab" id="tab-avatar" data-tab="avatar" aria-controls="p-avatar" aria-selected="false" tabindex="-1">Аватар</button>
+  </nav>
+
+  <main>
+    <section class="panel" id="p-theme" role="tabpanel" aria-labelledby="tab-theme">
+      <div class="themes" id="themes" role="radiogroup" aria-label="Тема"></div>
+      <p class="hint">Родные палитры kinoarc, тем же способом, что у сайта. «Мята» — его обычный вид.</p>
+    </section>
+
+    <section class="panel" id="p-avatar" role="tabpanel" aria-labelledby="tab-avatar" hidden>
+      <div class="card ava-card">
+        <span class="ava ava-big" id="avaBig"></span>
+        <span class="ava-tx">
+          <b id="avaTitle">Твой аватар</b>
+          <span id="avaSub">Как на сайте</span>
+        </span>
+        <button class="switch" id="avaSwitch" type="button" role="switch" aria-checked="false" aria-label="Подменять мой аватар"><i></i></button>
+      </div>
+
+      <h2 class="lbl">Цвет</h2>
+      <div class="colors" id="colors" role="radiogroup" aria-label="Цвет аватара"></div>
+
+      <h2 class="lbl">Значок <small><i class="gold"></i>на сайте — за награду или ранг</small></h2>
+      <div class="icons" id="icons" role="radiogroup" aria-label="Значок аватара" aria-busy="true"></div>
+      <p class="hint" id="avaHint">Подменяет твой аватар только у тебя в браузере. Работает, когда ты вошёл в аккаунт kinoarc.</p>
+    </section>
+  </main>
+
+  <footer class="foot">
+    <div class="card opt only-touch">
+      <span class="opt-tx">
+        <b>Пункт в меню сайта</b>
+        <span>«Тема и аватар» в мобильном меню kinoarc</span>
+      </span>
+      <button class="switch" id="menuSwitch" type="button" role="switch" aria-checked="true" aria-label="Пункт «Тема и аватар» в меню сайта"><i></i></button>
+    </div>
+    <p class="note">Перекрашивает только оформление у тебя в браузере. На сервер ничего не уходит.</p>
+  </footer>
+
   <script src="themes.js"></script>
   <script src="popup.js"></script>
 </body>

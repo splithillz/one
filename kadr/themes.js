@@ -198,6 +198,16 @@
   ];
   // Иконки, которые на сайте закрыты наградой или рангом.
   var LOCKED_ICONS = ['armchair', 'film_reel', 'cassette'];
+  // Названия значков — как в русской локали сайта (settings.account.profile.icons).
+  var ICON_NAMES = {
+    clapper_board: 'Хлопушка', ticket: 'Билет', videocamera: 'Камера', popcorn: 'Попкорн', masks: 'Маска',
+    tv: 'Телевизор', couch: 'Диван', coffee: 'Кофе', headphones: 'Наушники', rising_star: 'Звезда',
+    crown: 'Корона', moon: 'Ночь', saturn: 'Планета', dragon: 'НЛО', rocket: 'Ракета', ghost: 'Призрак',
+    cat: 'Кот', fire: 'Огонь', weed: 'Лист', wand: 'Палочка', mobile: 'Телефон', user_group: 'Компания',
+    cloud_arrow_up: 'Гроза', megaphone: 'Рупор', armchair: 'Кресло', film_reel: 'Бобина', cassette: 'Кассета'
+  };
+  var DEFAULT_ICON = 'clapper_board';
+  var HOSTS = ['*://kinoarc.net/*', '*://*.kinoarc.net/*'];
 
   function normHex(c) {
     if (typeof c !== 'string' || !/^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i.test(c)) return '#3FE0A1';
@@ -233,9 +243,10 @@
       if (c && c.icons && (!bundleUrl || c.src === bundleUrl)) { cb(c.icons, c.order || Object.keys(c.icons)); return; }
       var url = bundleUrl ? Promise.resolve(bundleUrl) :
         fetch(origin + '/', { credentials: 'omit' }).then(function (r) { return r.text(); }).then(function (html) {
-          var m = html.match(/\/assets\/index-[\w-]+\.js/);
+          // Главный бандл — <script type="module" src="/assets/index-….js">; preload-списки маршрутов не трогаем.
+          var m = html.match(/<script[^>]+src="(\/assets\/index-[\w-]+\.js)"/) || html.match(/(\/assets\/index-[\w-]+\.js)/);
           if (!m) throw new Error('bundle not found');
-          return origin + m[0];
+          return origin + m[1];
         });
       url.then(function (u) {
         return fetch(u, { credentials: 'omit' }).then(function (r) { return r.text(); }).then(function (txt) {
@@ -251,15 +262,30 @@
   }
   // Выбор аватара из storage (понимает и формат прошлой версии с полем svg).
   function normAvatar(a) {
-    if (!a) return null;
+    if (!a || a.off) return null;
     var d = a.d || (String(a.svg || '').match(/\sd="([^"]+)"/) || [])[1];
     return d ? { icon: a.icon || null, color: normHex(a.color), d: d } : null;
+  }
+
+  // Название текущей темы — для пункта в меню сайта и превью в попапе.
+  function themeName(state) {
+    if (!state || !state.theme || state.theme === 'mint') return THEMES[0].name;
+    if (state.theme === 'custom') return 'Свой цвет';
+    for (var i = 0; i < THEMES.length; i++) if (THEMES[i].id === state.theme) return THEMES[i].name;
+    return THEMES[0].name;
+  }
+  // Палитра темы как CSS-переменные «r g b» — ими перекрашивается интерфейс самого расширения.
+  function uiVars(state) {
+    var p = palette(resolve(state) || THEMES[0]), out = {};
+    Object.keys(p).forEach(function (k) { out['--' + kebab(k)] = p[k].join(' '); });
+    return out;
   }
 
   g.KADR = {
     THEMES: THEMES, DEFAULT_VARS: DEFAULT_VARS, palette: palette, fromAccent: fromAccent,
     resolve: resolve, css: css, readDefaults: readDefaults,
-    AVATAR_COLORS: AVATAR_COLORS, LOCKED_ICONS: LOCKED_ICONS, avatarStyle: avatarStyle, cssRgb: cssRgb,
-    extractIcons: extractIcons, loadIcons: loadIcons, normAvatar: normAvatar
+    AVATAR_COLORS: AVATAR_COLORS, LOCKED_ICONS: LOCKED_ICONS, ICON_NAMES: ICON_NAMES, DEFAULT_ICON: DEFAULT_ICON,
+    HOSTS: HOSTS, normHex: normHex, avatarStyle: avatarStyle, cssRgb: cssRgb,
+    extractIcons: extractIcons, loadIcons: loadIcons, normAvatar: normAvatar, themeName: themeName, uiVars: uiVars
   };
 })(window);
