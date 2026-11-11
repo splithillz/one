@@ -68,6 +68,47 @@
   function closeSheet() { try { parent.postMessage('kadr:close', '*'); } catch (e) {} }
   $('closeSheet').addEventListener('click', closeSheet);
   if (SHEET) document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeSheet(); });
+  // Свайпы по шторке не должны двигать сайт под ней. Когда настройки стоят в самом верху и палец идёт вниз, двигается
+  // сама шторка (её двигает страница сайта — content.js, сюда приходят только касания) и закрывается. Когда листать
+  // внутри нечего или некуда, жест гасится здесь, иначе браузер передал бы прокрутку странице под шторкой.
+  if (SHEET) (function () {
+    var st = null;
+    function say(m) { try { parent.postMessage(m, '*'); } catch (e) {} }
+    document.addEventListener('touchstart', function (e) {
+      st = null;
+      if (e.touches.length !== 1) return;
+      var t = e.touches[0], sc = document.scrollingElement;
+      // screenY, а не clientY: шторка едет вместе с пальцем, и координаты внутри неё почти не меняются
+      st = { x: t.screenX, y: t.screenY, at: e.timeStamp, top: !sc || sc.scrollTop <= 0, end: !sc || sc.scrollTop >= sc.scrollHeight - sc.clientHeight - 1, on: false, block: false, dy: 0 };
+    }, { passive: true });
+    document.addEventListener('touchmove', function (e) {
+      if (!st) return;
+      var t = e.touches[0], dy = t.screenY - st.y, dx = t.screenX - st.x;
+      if (st.block) { if (e.cancelable) e.preventDefault(); return; }
+      if (!st.on) {
+        if (Math.abs(dx) > 8 && Math.abs(dx) > Math.abs(dy)) { st = null; return; }  // вбок — не наше
+        if (dy <= -8) {                                                             // палец вверх: листать вниз
+          if (!st.end) { st = null; return; }                                       // есть куда — обычная прокрутка
+          st.block = true;
+          if (e.cancelable) e.preventDefault();
+          return;
+        }
+        if (dy < 10) return;
+        if (!st.top) { st = null; return; }                                          // палец вниз, но настройки не в начале — обычная прокрутка
+        st.on = true;
+      }
+      if (e.cancelable) e.preventDefault();
+      st.dy = Math.max(0, dy);
+      say({ kadr: 'drag', dy: st.dy });
+    }, { passive: false });
+    function end(e) {
+      var s0 = st;
+      st = null;
+      if (s0 && s0.on) say({ kadr: 'drop', dy: s0.dy, v: s0.dy / Math.max(1, e.timeStamp - s0.at) });
+    }
+    document.addEventListener('touchend', end);
+    document.addEventListener('touchcancel', end);
+  })();
 
   /* ---------- радиогруппы: стрелки и один таб-стоп ---------- */
   function radios(group) { return [].slice.call(group.querySelectorAll('[role="radio"]')); }
