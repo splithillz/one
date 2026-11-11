@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="ru" data-mode="popup">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<title>Кадр — тема и аватар</title>
+<link rel="stylesheet" href="popup.css">
+<script src="env.js"></script>
+</head>
+<body>
+  <header class="top">
+    <svg class="logo" viewBox="0 0 64 64" aria-hidden="true">
+      <rect width="64" height="64" rx="18" class="logo-bg"/>
+      <path d="M16 25v-5a4 4 0 0 1 4-4h5M39 16h5a4 4 0 0 1 4 4v5M48 39v5a4 4 0 0 1-4 4h-5M25 48h-5a4 4 0 0 1-4-4v-5" class="logo-frame"/>
+      <circle cx="32" cy="32" r="7.5" class="logo-dot"/>
+    </svg>
+    <div class="brand">
+      <b>Кадр</b>
+      <span>тема и аватар для kinoarc</span>
+    </div>
+    <a class="ibtn" id="openSite" href="https://kinoarc.net/" target="_blank" rel="noopener" title="Открыть kinoarc" aria-label="Открыть kinoarc"></a>
+    <button class="ibtn" id="closeSheet" type="button" title="Закрыть" aria-label="Закрыть"></button>
+  </header>
+
+  <div class="banner" id="perm" hidden>
+    <p><b>Нет доступа к kinoarc.net.</b> Без него тема и аватар не применятся.</p>
+    <button class="btn" id="permBtn" type="button">Дать доступ</button>
+  </div>
+
+  <section class="hero" aria-hidden="true">
+    <div class="hero-card">
+      <span class="ava hero-ava" id="heroAva"></span>
+      <span class="hero-tx">
+        <b id="heroName">Твой профиль</b>
+        <span id="heroSub"><i></i><em>Мята</em></span>
+      </span>
+      <span class="hero-chev"></span>
+    </div>
+    <div class="hero-row">
+      <span class="hero-btn" id="heroPlay">Смотреть</span>
+      <span class="hero-ghost" id="heroPlus"></span>
+      <span class="hero-prog"><i></i></span>
+    </div>
+  </section>
+
+  <nav class="seg" role="tablist" aria-label="Разделы" data-tab="theme">
+    <span class="seg-ind" aria-hidden="true"></span>
+    <button type="button" role="tab" id="tab-theme" data-tab="theme" aria-controls="p-theme" aria-selected="true">Тема</button>
+    <button type="button" role="tab" id="tab-avatar" data-tab="avatar" aria-controls="p-avatar" aria-selected="false" tabindex="-1">Аватар</button>
+  </nav>
+
+  <main>
+    <section class="panel" id="p-theme" role="tabpanel" aria-labelledby="tab-theme">
+      <div class="themes" id="themes" role="radiogroup" aria-label="Тема"></div>
+      <p class="hint">Родные палитры kinoarc, тем же способом, что у сайта. «Мята» — его обычный вид.</p>
+    </section>
+
+    <section class="panel" id="p-avatar" role="tabpanel" aria-labelledby="tab-avatar" hidden>
+      <div class="card ava-card">
+        <span class="ava ava-big" id="avaBig"></span>
+        <span class="ava-tx">
+          <b id="avaTitle">Твой аватар</b>
+          <span id="avaSub">Как на сайте</span>
+        </span>
+        <button class="switch" id="avaSwitch" type="button" role="switch" aria-checked="false" aria-label="Подменять мой аватар"><i></i></button>
+      </div>
+
+      <h2 class="lbl">Цвет</h2>
+      <div class="colors" id="colors" role="radiogroup" aria-label="Цвет аватара"></div>
+
+      <h2 class="lbl">Значок <small><i class="gold"></i>на сайте — за награду или ранг</small></h2>
+      <div class="icons" id="icons" role="radiogroup" aria-label="Значок аватара" aria-busy="true"></div>
+      <p class="hint" id="avaHint">Подменяет твой аватар только у тебя в браузере. Работает, когда ты вошёл в аккаунт kinoarc.</p>
+    </section>
+  </main>
+
+  <footer class="foot">
+    <div class="card opt only-touch">
+      <span class="opt-tx">
+        <b>Пункт в меню сайта</b>
+        <span>«Тема и аватар» в мобильном меню kinoarc</span>
+      </span>
+      <button class="switch" id="menuSwitch" type="button" role="switch" aria-checked="true" aria-label="Пункт «Тема и аватар» в меню сайта"><i></i></button>
+    </div>
+    <p class="note">Перекрашивает только оформление у тебя в браузере. На сервер ничего не уходит.</p>
+  </footer>
+
+  <script src="themes.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>

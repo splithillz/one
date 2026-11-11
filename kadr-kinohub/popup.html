@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="ru" data-mode="popup">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<title>Кадр — темы для kinohub</title>
+<link rel="stylesheet" href="popup.css">
+<script src="env.js"></script>
+</head>
+<body>
+  <header class="top">
+    <svg class="logo" viewBox="0 0 64 64" aria-hidden="true">
+      <rect width="64" height="64" rx="18" class="logo-bg"/>
+      <path d="M16 25v-5a4 4 0 0 1 4-4h5M39 16h5a4 4 0 0 1 4 4v5M48 39v5a4 4 0 0 1-4 4h-5M25 48h-5a4 4 0 0 1-4-4v-5" class="logo-frame"/>
+      <circle cx="32" cy="32" r="7.5" class="logo-dot"/>
+    </svg>
+    <h1 class="brand">Кадр <span class="chip">kinohub</span></h1>
+    <a class="ibtn" id="openSite" href="https://on.kinohub.vip/" target="_blank" rel="noopener" title="Открыть kinohub" aria-label="Открыть kinohub"></a>
+    <button class="ibtn" id="closeSheet" type="button" title="Закрыть" aria-label="Закрыть"></button>
+  </header>
+
+  <div class="banner" id="perm" hidden>
+    <p><b>Нет доступа к on.kinohub.vip.</b> Без него тема не применится.</p>
+    <button class="btn" id="permBtn" type="button">Дать доступ</button>
+  </div>
+
+  <div class="banner" id="blocked" hidden>
+    <p><b>Тема не применилась.</b> <span id="blockedWhy"></span></p>
+  </div>
+
+  <!-- Превью: шапка сайта, карточки и плашки фильма в цветах выбранной темы. «Фильм» называется как тема. -->
+  <section class="hero" aria-hidden="true">
+    <div class="k-nav"><i></i><i></i><i></i><i></i><i></i><i class="k-me"></i><i></i></div>
+    <div class="k-body">
+      <span class="k-poster"><b>8.1</b></span>
+      <span class="k-poster k-low"><b>6.4</b></span>
+      <span class="k-info">
+        <b id="heroName">Родная</b>
+        <span class="k-chips"><i>2015</i><i>драма</i></span>
+        <span class="k-save" id="heroSave">Сохранить</span>
+      </span>
+    </div>
+  </section>
+
+  <main class="panel">
+    <div class="themes" id="themes" role="radiogroup" aria-label="Тема"></div>
+    <!-- выключатели: что расширение делает на сайте -->
+    <div class="opts">
+      <div class="opt">
+        <span id="skinLabel">Новый дизайн</span>
+        <button class="switch" id="skinSwitch" type="button" role="switch" aria-checked="true" aria-labelledby="skinLabel"><i></i></button>
+      </div>
+      <div class="opt" title="Сохранение одним нажатием и панель списков">
+        <span id="listsLabel">Закладки</span>
+        <button class="switch" id="listsSwitch" type="button" role="switch" aria-checked="true" aria-labelledby="listsLabel"><i></i></button>
+      </div>
+      <div class="opt" title="Тайминги под плеером">
+        <span id="timingsLabel">Тайминги</span>
+        <button class="switch" id="timingsSwitch" type="button" role="switch" aria-checked="true" aria-labelledby="timingsLabel"><i></i></button>
+      </div>
+      <div class="opt only-touch" title="Кнопка «Тема» в шапке сайта">
+        <span id="menuLabel">Кнопка «Тема»</span>
+        <button class="switch" id="menuSwitch" type="button" role="switch" aria-checked="true" aria-labelledby="menuLabel"><i></i></button>
+      </div>
+      <button class="opt act" id="snapBtn" type="button" title="Снимок сайта для доработки">
+        <span>Снимок сайта</span>
+        <b id="snapState"></b>
+      </button>
+    </div>
+  </main>
+
+  <script src="themes.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>
