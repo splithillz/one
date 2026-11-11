@@ -32,6 +32,10 @@ kadr-lists, kadr-toast, .kadr-tm, .kadr-tm-pill, .kadr-cast {
 :is(kadr-lists, kadr-toast, .kadr-tm, .kadr-cast) :focus-visible { outline: 2px solid rgb(var(--kd-acc)); outline-offset: 2px; }
 :where(kadr-lists, kadr-toast, .kadr-tm, .kadr-tm-pill, .kadr-cast) .k-ic { display: block; flex: none; width: 20px; height: 20px; }
 
+/* Пока открыта шторка или панель расширения (атрибут ставит kit.js, только на телефоне), сайт под ней
+   от свайпов не ездит. Место, до которого он прокручен, при этом не меняется. */
+html[data-kadr-lock] { overflow: hidden !important; overscroll-behavior: none !important; }
+
 /* ===================== шапка сайта ===================== */
 /* С кнопками расширения в шапке на узком телефоне восемь пунктов: в родном оформлении сайта они перестают
    помещаться в ряд. Чуть сужаем поля пунктов — только там и только когда кнопка «Списки» есть. */

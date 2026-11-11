@@ -113,7 +113,7 @@
     if (!lists) return;
     var u = userKey();
     if (!u) return;
-    store.set({ saved: { u: u, lists: lists.map(function (l) { return { sid: l.sid, name: l.name, count: l.count, at: l.at, pub: l.pub, ids: l.ids, dirty: l.dirty ? 1 : 0 }; }) } });
+    store.set({ saved: { u: u, lists: lists.map(function (l) { return { sid: l.sid, id: l.id, name: l.name, count: l.count, at: l.at, pub: l.pub, ids: l.ids, dirty: l.dirty ? 1 : 0 }; }) } });
   }
   function compact(m) {
     return {
@@ -148,8 +148,9 @@
         var p = prev[String(w.sid)], count = w.movieCount || 0, at = String(w.updatedAt || '');
         var same = p && p.ids && p.count === count && (p.at === at || p.dirty);
         if (!same) delete pages[String(w.sid)];
-        return { sid: String(w.sid), name: String(w.name || ''), count: count, at: at, pub: !!w.isPublic, ids: same ? p.ids : count ? null : [], dirty: false };
+        return { sid: String(w.sid), id: w.id != null ? String(w.id) : '', name: String(w.name || ''), count: count, at: at, pub: !!w.isPublic, ids: same ? p.ids : count ? null : [], dirty: false };
       });
+      X.info.lists = lists.length;
       index(); mark(); paint();
       for (var i = 0; i < lists.length; i++) {
         var l = lists[i];
@@ -178,31 +179,48 @@
   var adoptTimer = 0;
   function resyncSoon() { clearTimeout(adoptTimer); adoptTimer = setTimeout(function () { syncLists(true); }, 2500); }
 
-  // Строка из ответа «в каких списках фильм» ↔ список. У сайта там поле id, у списков — sid; совпадают ли они,
-  // по коду сайта не видно, поэтому сверяем и по id, и по имени (если оно одно такое).
+  // Строка из ответа «в каких списках фильм» ↔ список. У списка на сайте два номера: числовой id и строковый sid
+  // (в адресе страницы списка — sid, в записи фильма в список — id). В ответе «в каких списках» приходит id.
+  // Сверяем по id, потом по sid, потом по имени (если оно одно такое) — на случай, если сайт это поменяет.
+  function pickOne(arr, tests) {
+    for (var i = 0; i < tests.length; i++) {
+      var r = arr.filter(tests[i]);
+      if (r.length === 1) return r[0];
+    }
+    return null;
+  }
   function rowOf(l, rows) {
-    var r = rows.filter(function (x) { return String(x.id) === l.sid; });
-    if (r.length !== 1) r = rows.filter(function (x) { return x.name === l.name; });
-    return r.length === 1 ? r[0] : null;
+    return pickOne(rows, [
+      function (x) { return !!l.id && String(x.id) === l.id; },
+      function (x) { return String(x.id) === l.sid; },
+      function (x) { return x.name === l.name; }
+    ]);
   }
   function listOf(row) {
-    if (!lists) return null;
-    var r = lists.filter(function (l) { return l.sid === String(row.id); });
-    if (r.length !== 1) r = lists.filter(function (l) { return l.name === row.name; });
-    return r.length === 1 ? r[0] : null;
+    var id = String(row.id);
+    return lists ? pickOne(lists, [
+      function (l) { return l.id === id; },
+      function (l) { return l.sid === id; },
+      function (l) { return l.name === row.name; }
+    ]) : null;
   }
   function quickRow(rows) {
-    var r;
-    if (quick) {
-      r = rows.filter(function (x) { return String(x.id) === String(quick.id) || String(x.id) === String(quick.sid); });
-      if (r.length !== 1) r = rows.filter(function (x) { return x.name === quick.name; });
-      return r.length === 1 ? r[0] : null;
-    }
-    return rows.length === 1 ? rows[0] : null;
+    if (!quick) return rows.length === 1 ? rows[0] : null;
+    return pickOne(rows, [
+      function (x) { return quick.id != null && quick.id !== '' && String(x.id) === String(quick.id); },
+      function (x) { return !!quick.sid && String(x.id) === String(quick.sid); },
+      function (x) { return x.name === quick.name; }
+    ]);
   }
-  function isQuick(l) { return !!quick && (quick.sid === l.sid || (!quick.sid && quick.name === l.name)); }
+  function isQuick(l) {
+    if (!quick) return false;
+    if (quick.sid) return quick.sid === l.sid;
+    if (quick.id != null && quick.id !== '' && l.id) return String(quick.id) === l.id;
+    return quick.name === l.name;
+  }
   function setQuick(row, l) {
-    quick = { id: row ? row.id : (quick && l && quick.sid === l.sid ? quick.id : null), sid: l ? l.sid : listOf(row) ? listOf(row).sid : '', name: row ? row.name : l.name };
+    if (row && !l) l = listOf(row);
+    quick = { id: row ? row.id : l.id || null, sid: l ? l.sid : '', name: row ? row.name : l.name };
     store.set({ quick: quick });
   }
   // Состояние фильма в списках после записи — в память и на экран.
@@ -382,6 +400,8 @@
     host.append(scrim, box);
     host.setAttribute('data-mode', o.mode);
     root.appendChild(host);
+    X.lock('lists', true);
+    pull(box);
     panel = { host: host, box: box, mode: o.mode, movie: o.movie || 0, title: o.title || '', rows: o.rows || null, from: o.from || null, form: false, formEl: null, fresh: true };
     paint();
     void box.offsetHeight;
@@ -399,6 +419,7 @@
     if (!panel) return;
     var p = panel;
     panel = null;
+    X.lock('lists', false);
     window.removeEventListener('keydown', onKey, true);
     p.host.classList.remove('open');
     if (now) p.host.remove(); else setTimeout(function () { p.host.remove(); }, 420);
@@ -407,11 +428,46 @@
   function iconBtn(name, title, fn, cls) {
     return h('button', { type: 'button', class: 'kl-ib' + (cls ? ' ' + cls : ''), title: title, 'aria-label': title, onclick: fn }, X.icon(name));
   }
-  // Смахнуть панель вниз за «ручку» (на телефоне).
+  // Смахнуть панель вниз (на телефоне): за «ручку», за шапку — или за сам список, когда он стоит в самом верху.
+  function pull(box) {
+    var st = null;
+    function sheet() { return !matchMedia('(min-width: 760px)').matches; } // на широком экране панель сбоку, тянуть её вниз незачем
+    box.addEventListener('touchstart', function (e) {
+      st = null;
+      if (e.touches.length !== 1 || !sheet()) return;
+      var sc = box.querySelector('.kl-scroll'), t = e.touches[0];
+      if (e.target.closest && e.target.closest('input')) return;
+      st = { x: t.clientX, y: t.clientY, at: e.timeStamp, top: !sc || !sc.contains(e.target) || sc.scrollTop <= 0, on: false, dy: 0 };
+    }, { passive: true });
+    box.addEventListener('touchmove', function (e) {
+      if (!st || !st.top) return;
+      var t = e.touches[0], dy = t.clientY - st.y, dx = t.clientX - st.x;
+      if (!st.on) {
+        if (dy < -8 || (Math.abs(dx) > 8 && Math.abs(dx) > Math.abs(dy))) { st = null; return; } // вверх или вбок — обычная прокрутка
+        if (dy < 10) return;
+        st.on = true;
+        box.style.transition = 'none';
+      }
+      if (e.cancelable) e.preventDefault();
+      st.dy = Math.max(0, dy);
+      box.style.transform = 'translateY(' + st.dy + 'px)';
+    }, { passive: false });
+    function end(e) {
+      var s0 = st;
+      st = null;
+      if (!s0 || !s0.on) return;
+      box.style.transition = '';
+      box.style.transform = '';
+      if (s0.dy > 110 || (s0.dy > 24 && s0.dy / Math.max(1, e.timeStamp - s0.at) > 0.55)) closePanel();
+    }
+    box.addEventListener('touchend', end);
+    box.addEventListener('touchcancel', end);
+  }
+  // «Ручка» сверху; мышью её тоже можно потянуть (пальцем — см. pull()).
   function grab() {
     var g = h('div', { class: 'kl-grab' }, h('i')), y0 = 0, dy = 0, t0 = 0, drag = false;
     g.addEventListener('pointerdown', function (e) {
-      if (!panel) return;
+      if (!panel || e.pointerType === 'touch') return;
       drag = true; y0 = e.clientY; dy = 0; t0 = e.timeStamp;
       panel.box.style.transition = 'none';
       try { g.setPointerCapture(e.pointerId); } catch (x) {}
@@ -426,8 +482,8 @@
       drag = false;
       if (!panel) return;
       panel.box.style.transition = '';
-      var v = dy / Math.max(1, e.timeStamp - t0);
-      if (dy > 110 || (dy > 24 && v > 0.55)) { panel.box.style.transform = ''; closePanel(); } else panel.box.style.transform = '';
+      panel.box.style.transform = '';
+      if (dy > 110 || (dy > 24 && dy / Math.max(1, e.timeStamp - t0) > 0.55)) closePanel();
     }
     g.addEventListener('pointerup', end);
     g.addEventListener('pointercancel', end);
@@ -617,7 +673,7 @@
   function restore(saved) {
     if (!saved || !Array.isArray(saved.lists) || saved.u !== userKey() || !saved.u) return;
     lists = saved.lists.map(function (l) {
-      return { sid: String(l.sid), name: String(l.name || ''), count: l.count || 0, at: String(l.at || ''), pub: !!l.pub, ids: Array.isArray(l.ids) ? l.ids : null, dirty: !!l.dirty };
+      return { sid: String(l.sid), id: l.id != null ? String(l.id) : '', name: String(l.name || ''), count: l.count || 0, at: String(l.at || ''), pub: !!l.pub, ids: Array.isArray(l.ids) ? l.ids : null, dirty: !!l.dirty };
     });
     index();
   }

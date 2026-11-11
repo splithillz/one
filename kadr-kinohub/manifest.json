@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Кадр — темы для kinohub",
   "short_name": "Кадр kinohub",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Темы, новый дизайн, закладки под рукой и тайминги у плеера для on.kinohub.vip — на компьютере и на телефоне.",
   "icons": {
     "16": "icons/16.png",

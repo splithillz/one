@@ -23,6 +23,7 @@
   var clk = { t: 0, at: 0, run: false, auto: false, last: 0, dur: 0 };
   var probe = { v: 0, at: 0, good: 0, scale: 1, locked: false };
   var warned = {};
+  var tries = 0;           // неудачные попытки загрузить тайминги
 
   /* ===================== разбор ===================== */
   var T = '(\\d{1,3}:\\d{2}(?::\\d{2})?)';
@@ -219,6 +220,7 @@
   }
   function draw() {
     var e = entry(), g = group(), kids = [], dur = duration();
+    X.info.clock = clk.auto ? 'player' : probe.locked ? 'manual (player available)' : 'manual';
     ui = { time: null, play: null, cur: null, line: null, rows: [], dur: dur };
     var count = e ? e.groups.reduce(function (n, x) { return n + x.rows.length; }, 0) : 0;
     var mode = h('button', {
@@ -344,7 +346,8 @@
     if (panel) panel.remove();
     if (pill) pill.remove();
     clearInterval(ticker);
-    panel = pill = ui = null; ticker = 0; movie = 0; entries = null; frameSrc = '';
+    panel = pill = ui = null; ticker = 0; movie = 0; entries = null; frameSrc = ''; tries = 0;
+    delete X.info.timings; delete X.info.clock;
     clk = { t: 0, at: 0, run: false, auto: false, last: 0, dur: 0 };
     resetProbe();
     warned = {};
@@ -352,7 +355,14 @@
   function load(id) {
     X.pub('/timings?kinopoiskId=' + id).then(function (list) {
       if (movie !== id) return;
+      if (list == null) {
+        // сайт не ответил — пробуем ещё дважды
+        X.info.timings = 'fail×' + (++tries);
+        if (tries < 3) setTimeout(function () { if (movie === id && !entries) load(id); }, tries === 1 ? 4000 : 15000);
+        return;
+      }
       entries = parse(list);
+      X.info.timings = entries.length;
       sel = { e: 0, g: 0 };
       if (entries.length) {
         if (keep && keep.m === id && entries[keep.e] && entries[keep.e].groups[keep.g]) sel = { e: keep.e, g: keep.g };

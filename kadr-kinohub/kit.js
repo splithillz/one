@@ -15,7 +15,21 @@
     mods: [],        // модули: {sync()} — вызывается из content.js при изменениях страницы
     skin: true,      // включён ли новый дизайн (ставит content.js)
     shapes: {},      // форма ответов API (типы и длины, без значений) — попадает в «снимок»
+    fails: [],       // запросы, которые не удались: адрес без номеров и код ответа — тоже в «снимок»
+    info: {},        // что сейчас показано (число актёров, чьи часы у таймингов…) — тоже в «снимок»
     msgs: []         // образцы сообщений от плеера (см. timings.js) — тоже для «снимка»
+  };
+  // Телефон или планшет — так же, как это определяет content.js.
+  X.touch = false;
+  try { X.touch = matchMedia('(hover: none) and (pointer: coarse)').matches; } catch (e) {}
+  if (!X.touch) X.touch = /Android|iPhone|iPad|Mobile/i.test(navigator.userAgent);
+  // Пока открыта шторка или панель расширения, сайт под ней не должен ездить от свайпов.
+  // Это делает атрибут у <html> (правило — в ui.css); на компьютере не нужно: там пропала бы полоса прокрутки.
+  var locks = {};
+  X.lock = function (who, on) {
+    if (on) locks[who] = 1; else delete locks[who];
+    var want = X.touch && Object.keys(locks).length > 0;
+    if (root.hasAttribute('data-kadr-lock') !== want) root.toggleAttribute('data-kadr-lock', want);
   };
 
   /* ---------- DOM ---------- */
@@ -129,38 +143,68 @@
     try { if (typeof content === 'object' && content && typeof content.fetch === 'function') return content.fetch(url, init); } catch (e) {}
     return fetch(url, init);
   }
-  // → {ok, status, data}. Никогда не бросает.
+  // Адрес без номеров — для записей в «снимок».
+  function pattern(method, path) {
+    return method + ' ' + path.replace(/[?&]ts=\d+/, '').replace(/\d{2,}/g, ':id').replace(/\/watchlists\/(?!status\b)[^/?]+/, '/watchlists/:list');
+  }
+  // → {ok, status, data}. Никогда не бросает; ждёт ответа не дольше 15 секунд (status 0 — сеть, отказ браузера или время вышло).
   X.api = function (method, path, body, auth) {
-    var init = { method: method, headers: {} };
+    var init = { method: method, headers: {} }, timer = 0;
     if (auth) {
       var t = token();
       if (!t) return Promise.resolve({ ok: false, status: 401, data: null });
       init.headers.Authorization = 'Bearer ' + t;
     }
     if (body) { init.headers['Content-Type'] = 'application/json'; init.body = JSON.stringify(body); }
+    try {
+      var ctl = new AbortController();
+      init.signal = ctl.signal;
+      timer = setTimeout(function () { ctl.abort(); }, 15000);
+    } catch (e) {}
+    function failed(status) {
+      if (X.fails.length < 40) X.fails.push(pattern(method, path) + ' → ' + status);
+      return { ok: false, status: status, data: null };
+    }
     return pageFetch(API + path, init).then(function (r) {
       return r.text().then(function (text) {
+        clearTimeout(timer);
         var data = null;
         try { data = text ? JSON.parse(text) : null; } catch (e) {}
-        if (r.ok) X.shapes[method + ' ' + path.replace(/\d{2,}/g, ':id').replace(/\/watchlists\/(?!status\b)[^/?]+/, '/watchlists/:list')] = shape(data, 0);
-        return { ok: r.ok, status: r.status, data: data };
+        if (!r.ok) { failed(r.status); return { ok: false, status: r.status, data: data }; }
+        X.shapes[pattern(method, path)] = shape(data, 0);
+        return { ok: true, status: r.status, data: data };
       });
-    }).catch(function () { return { ok: false, status: 0, data: null }; });
+    }).catch(function () { clearTimeout(timer); return failed(0); });
   };
-  // Открытые данные (актёры, тайминги). Сначала — кэш самого сайта (sessionStorage, тот же ключ и срок, что у него),
-  // потом своя память, потом сеть.
-  var mem = {};
-  X.pub = function (path) {
-    var url = API + path;
+
+  // Открытые данные (актёры, тайминги): тот же запрос, что делает сайт, — с тем же параметром ts.
+  // Сначала — кэш самого сайта (sessionStorage, тот же ключ и срок, что у него), потом своя память, потом сеть.
+  // Запросы идут по одному, с паузой: при открытии страницы сайт и сам ходит в API, толкаться с ним незачем.
+  var TS = Math.trunc(Math.random() * 1e4);
+  var mem = {}, line = Promise.resolve();
+  function siteCache(path) {
     try {
-      var c = JSON.parse(sessionStorage.getItem('cache_' + url) || 'null');
-      if (c && Date.now() - c.timestamp < 72e5 && c.value != null) return Promise.resolve(c.value);
+      var c = JSON.parse(sessionStorage.getItem('cache_' + API + path) || 'null');
+      if (c && Date.now() - c.timestamp < 72e5 && c.value != null) return c.value;
     } catch (e) {}
+    return null;
+  }
+  // Лежит ли ответ в кэше сайта (без разбора — проверка частая)
+  X.cached = function (path) { try { return sessionStorage.getItem('cache_' + API + path) != null; } catch (e) { return false; } };
+  // → данные или null (не получилось; неудача не запоминается — можно спросить ещё раз)
+  X.pub = function (path) {
+    var hit = siteCache(path);
+    if (hit != null) return Promise.resolve(hit);
     if (mem[path] && Date.now() - mem[path].at < 6e5) return mem[path].p;
-    var p = X.api('GET', path, null, false).then(function (r) {
-      if (!r.ok) { delete mem[path]; return null; }
-      return r.data;
+    var p = line.then(function () {
+      var again = siteCache(path); // пока ждали очереди, сайт мог загрузить это сам
+      if (again != null) return again;
+      return X.api('GET', path + (path.indexOf('?') < 0 ? '?' : '&') + 'ts=' + TS, null, false).then(function (r) {
+        if (!r.ok || r.data == null) { delete mem[path]; return null; }
+        return r.data;
+      });
     });
+    line = p.then(function () { return X.wait(250); }, function () { return X.wait(250); });
     mem[path] = { at: Date.now(), p: p };
     return p;
   };

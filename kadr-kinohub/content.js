@@ -296,7 +296,7 @@
     ':host{all:initial}' +
     '.wrap{position:fixed;inset:0;display:flex;align-items:flex-end;justify-content:center;' +
       'font:16px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-tap-highlight-color:transparent}' +
-    '.scrim{position:absolute;inset:0;background:rgb(0 0 0/.42);opacity:0;transition:opacity .3s ease}' +
+    '.scrim{position:absolute;inset:0;background:rgb(0 0 0/.42);opacity:0;transition:opacity .3s ease;touch-action:none}' +
     '.panel{position:relative;display:flex;flex-direction:column;width:100%;max-width:560px;height:72vh;height:min(72dvh,600px);' +
       'background:rgb(var(--kb,12 13 15));border-radius:26px 26px 0 0;overflow:hidden;' +
       'box-shadow:0 -18px 48px rgb(0 0 0/.5),inset 0 1px 0 rgb(255 255 255/.07);' +
@@ -333,6 +333,7 @@
     shadow.append(css, wrap);
     host.style.cssText = 'position:fixed;inset:0;z-index:2147483600';
     root.appendChild(host);
+    X.lock('sheet', true); // сайт под шторкой не должен ездить от свайпов
     sheet = { host: host, wrap: wrap, panel: panel, frame: frame, from: from };
     tintSheet();
     place(); // шторка встала в конец <html> — наш <style> должен остаться последним
@@ -369,13 +370,24 @@
     e.stopPropagation();
     closeSheet();
   }
+  // Сообщения от шторки (она в iframe, касания внутри неё сюда не доходят): закрыть; тянут вниз; отпустили.
   function onSheetMsg(e) {
-    if (sheet && e.source === sheet.frame.contentWindow && e.data === 'kadr:close') closeSheet();
+    if (!sheet || e.source !== sheet.frame.contentWindow) return;
+    var d = e.data, p = sheet.panel;
+    if (d === 'kadr:close') closeSheet();
+    else if (d && d.kadr === 'drag' && d.dy >= 0) {
+      p.style.transition = 'none';
+      p.style.transform = 'translateY(' + Math.min(2000, +d.dy || 0) + 'px)';
+    } else if (d && d.kadr === 'drop') {
+      p.style.transition = '';
+      if (d.dy > 110 || (d.dy > 24 && d.v > 0.55)) closeSheet(); else p.style.transform = '';
+    }
   }
   function closeSheet() {
     if (!sheet) return;
     var s = sheet;
     sheet = null;
+    X.lock('sheet', false);
     window.removeEventListener('keydown', onSheetKey, true);
     window.removeEventListener('message', onSheetMsg);
     s.panel.style.transform = '';
@@ -435,6 +447,15 @@
     if (!el) return '';
     var c = el.cloneNode(true), list = c.querySelectorAll('#' + ID + ', kadr-sheet, script, noscript, [' + ENTRY + '], [data-kadr-ui], [data-kadr-lists]'), i;
     for (i = 0; i < list.length; i++) list[i].remove();
+    // и пометки расширения на узлах сайта: атрибуты data-kadr-* (в подписи закладки — название твоего списка),
+    // класс нового дизайна, адрес постера в стиле
+    list = [c].concat([].slice.call(c.querySelectorAll('*')));
+    for (i = 0; i < list.length; i++) {
+      var n = list[i], at = n.attributes, j;
+      for (j = at.length - 1; j >= 0; j--) if (at[j].name.indexOf('data-kadr') === 0) n.removeAttribute(at[j].name);
+      if (n.style && n.style.getPropertyValue('--kd-poster')) { n.style.removeProperty('--kd-poster'); if (!n.getAttribute('style')) n.removeAttribute('style'); }
+    }
+    if (c.classList) { c.classList.remove('kadr-rd'); if (!c.getAttribute('class')) c.removeAttribute('class'); }
     list = c.querySelectorAll('[srcdoc]');
     for (i = 0; i < list.length; i++) list[i].setAttribute('srcdoc', '');
     return c.outerHTML.replace(/data:[a-z]+\/[a-z0-9.+-]+;base64,[A-Za-z0-9+\/=]{200,}/g, 'data:,');
@@ -486,8 +507,9 @@
         url: location.origin + location.pathname, ua: navigator.userAgent,
         viewport: [innerWidth, innerHeight, devicePixelRatio], theme: state.theme, skin: skin,
         html: markup(root), states: [], css: [], scripts: [], resources: [],
-        // что ответил API сайта на запросы расширения (только форма) и какие сообщения шлёт плеер
-        api: X.shapes, player: X.msgs,
+        // что ответил API сайта на запросы расширения (только форма), что не удалось, что сейчас показано
+        // и какие сообщения шлёт плеер
+        api: X.shapes, fails: X.fails, info: X.info, player: X.msgs,
         storage: { local: storageShape(localStorage), session: storageShape(sessionStorage) },
         cookieNames: document.cookie.split(';').map(function (c) { return c.split('=')[0].trim(); }).filter(Boolean)
       };
