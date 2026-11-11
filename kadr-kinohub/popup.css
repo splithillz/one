@@ -184,32 +184,36 @@ svg { display: block; }
 .th.custom input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; padding: 0; border: 0; opacity: 0; cursor: pointer; }
 .th.custom:focus-within { outline: 2px solid rgb(var(--acc)); outline-offset: 2px; }
 
-/* ---------- настройка: кнопка в шапке сайта (только на телефоне и в шторке) ---------- */
+/* ---------- выключатели: плитки в два столбца ---------- */
+.opts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 12px; }
 .opt {
-  display: flex; align-items: center; gap: 12px; width: 100%; margin-top: 10px; padding: 11px 12px 11px 14px;
-  border-radius: 16px; background: rgb(var(--s1)); box-shadow: inset 0 0 0 1px rgb(var(--line) / .06);
-  font-weight: 600; font-size: 13.5px; transition: background-color .35s;
+  display: flex; align-items: center; gap: 8px; min-width: 0; min-height: 50px; padding: 8px 10px 8px 13px;
+  border-radius: 15px; background: rgb(var(--s1)); box-shadow: inset 0 0 0 1px rgb(var(--line) / .06);
+  font-weight: 600; font-size: 13px; line-height: 1.2; transition: background-color .35s;
 }
 .opt span { flex: 1; min-width: 0; }
-.themes + .opt { margin-top: 12px; }
 .only-touch { display: none; }
 .touch .only-touch, [data-mode="sheet"] .only-touch { display: flex; }
-/* кнопка-действие в том же ряду: справа состояние */
-.opt.act { min-height: 52px; color: inherit; transition: background-color .35s, transform .4s var(--spring); }
+/* кнопка-действие — такая же плитка: под названием состояние, справа стрелка */
+.opt.act { position: relative; flex-direction: column; align-items: flex-start; justify-content: center; gap: 2px; padding-right: 30px; color: inherit; transition: background-color .35s, transform .4s var(--spring); }
+.opt.act span { flex: none; }
 .opt.act:active { transform: scale(.97); }
-.opt.act b { flex: none; max-width: 56%; font-weight: 600; font-size: 12.5px; color: rgb(var(--acc)); text-align: right; }
-.opt.act b:empty::before { content: ""; display: block; width: 9px; height: 9px; margin-right: 4px; border: solid rgb(var(--mut)); border-width: 2px 2px 0 0; transform: rotate(45deg); }
+.opt.act b { max-width: 100%; font-weight: 600; font-size: 11.5px; color: rgb(var(--acc)); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.opt.act b:empty { display: none; }
+.opt.act::after { content: ""; position: absolute; right: 15px; top: 50%; width: 8px; height: 8px; margin-top: -5px; border: solid rgb(var(--mut)); border-width: 2px 2px 0 0; transform: rotate(45deg); }
+/* на телефоне выключателей четыре — снимок занимает строку целиком */
+.touch .opt.act, [data-mode="sheet"] .opt.act { grid-column: 1 / -1; }
 .switch {
-  position: relative; flex: none; width: 50px; height: 30px; border-radius: 99px;
+  position: relative; flex: none; width: 44px; height: 26px; border-radius: 99px;
   background: rgb(var(--s3)); box-shadow: inset 0 0 0 1px rgb(var(--line) / .08);
   transition: background-color .25s;
 }
 .switch i {
-  position: absolute; top: 3px; left: 3px; width: 24px; height: 24px; border-radius: 50%;
+  position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%;
   background: #fff; box-shadow: 0 2px 6px rgb(0 0 0 / .35); transition: transform .45s var(--spring);
 }
 .switch[aria-checked="true"] { background: rgb(var(--acc)); }
-.switch[aria-checked="true"] i { transform: translateX(20px); }
+.switch[aria-checked="true"] i { transform: translateX(18px); }
 
 /* ---------- мышь: подсветка при наведении только там, где она есть ---------- */
 @media (hover: hover) {
@@ -228,7 +232,10 @@ svg { display: block; }
 .touch .themes { gap: 9px; }
 .touch .th-sw { height: 44px; }
 .touch .th-nm { font-size: 13.5px; }
-.touch .opt { font-size: 14.5px; }
+.touch .opt { min-height: 54px; font-size: 14px; }
+.touch .switch { width: 48px; height: 28px; }
+.touch .switch i { width: 22px; height: 22px; }
+.touch .switch[aria-checked="true"] i { transform: translateX(20px); }
 
 /* ---------- шторка внутри сайта: сайт за ней и есть живое превью ---------- */
 [data-mode="sheet"] body { width: auto; max-width: none; min-width: 0; background: rgb(var(--bg)); }

@@ -158,6 +158,23 @@
     render();
   });
 
+  /* ---------- закладки и тайминги ---------- */
+  // Выключатели только пишут в storage; сами функции живут на сайте (lists.js, timings.js).
+  var flags = { lists: true, timings: true };
+  function renderFlags() {
+    $('listsSwitch').setAttribute('aria-checked', String(flags.lists));
+    $('timingsSwitch').setAttribute('aria-checked', String(flags.timings));
+  }
+  ['lists', 'timings'].forEach(function (k) {
+    $(k + 'Switch').addEventListener('click', function () {
+      flags[k] = !flags[k];
+      var o = {};
+      o[k] = flags[k];
+      store.set(o);
+      renderFlags();
+    });
+  });
+
   /* ---------- снимок сайта для доработки ---------- */
   // Сам снимок делает content.js в открытой вкладке сайта; здесь только кнопка и состояние.
   var snapTimer = 0;
@@ -210,8 +227,10 @@
   }
 
   /* ---------- состояние ---------- */
-  store.get(['theme', 'seed', 'skin', 'menuEntry', 'diag'], function (d) {
+  store.get(['theme', 'seed', 'skin', 'menuEntry', 'diag', 'lists', 'timings'], function (d) {
     d = d || {};
+    flags = { lists: d.lists !== false, timings: d.timings !== false };
+    renderFlags();
     diag = d.diag || '';
     cur = { theme: d.theme || K.OFF, seed: d.seed || null };
     if (/^#[0-9a-f]{6}$/i.test(d.seed || '')) pick.value = d.seed.toLowerCase();

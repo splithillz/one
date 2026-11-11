@@ -9,12 +9,15 @@
 //   цвета, шрифт и две мелочи, которые CSS сам не умеет: подсветка текущего раздела в шапке и свечение от постера.
 // ТЕЛЕФОН. Кнопка «Тема» в шапке сайта открывает шторку с настройками расширения.
 // СНИМОК. По кнопке в окне расширения собирает разметку, стили и скрипты сайта в файл — для доработки.
+// Закладки, тайминги и актёры — отдельные файлы (lists.js, timings.js, cast.js); общее для них — kit.js.
+// Отсюда им только сообщается, что страница изменилась (X.sync) и включён ли новый дизайн (X.skin).
 (function () {
   'use strict';
   if (window.__kadrHub) return; // защита от повторной инъекции
   window.__kadrHub = true;
 
   var K = window.KADR;
+  var X = window.KADRX;
   var store = chrome.storage.local;
   var root = document.documentElement;
 
@@ -208,13 +211,14 @@
     root.classList.toggle('kadr-rd', skin);
     var theme = K.resolve(state);
     if (!theme && !skin) {
+      // ничего своего на странице: панели расширения (списки, тайминги) берут родные цвета сайта из ui.css
       active = false;
       if (styleEl) styleEl.remove();
       setMeta(null);
       return;
     }
-    // новый дизайн: шрифт и его цвета (без темы — родные цвета сайта)
-    var text = skin ? FONT + K.skinVars(state) : '', R = null;
+    // Цвета --kd-*: ими красятся новый дизайн, панель списков, тайминги и актёры (без темы — родные цвета сайта).
+    var text = (skin ? FONT : '') + K.skinVars(state, skin), R = null;
     if (theme) {
       R = K.recolor(theme, skin);
       var fresh = ir && ir.length ? renderList(ir, R, false) + K.touches(theme) : '';
@@ -263,7 +267,7 @@
     for (i = 0; i < old.length; i++) if (!nav || old[i].parentNode !== nav) old[i].remove();
     if (!nav || nav.querySelector(':scope > [' + ENTRY + ']')) return;
     // Клонируем кнопку «Поиск»: те же классы и data-v-атрибуты, значит выглядит как родная.
-    var tpl = nav.querySelector(':scope > button');
+    var tpl = nav.querySelector(':scope > button:not([data-kadr-lists])');
     if (!tpl) return;
     var b = tpl.cloneNode(true);
     b.removeAttribute('id');
@@ -283,7 +287,9 @@
       e.preventDefault(); e.stopPropagation();
       openSheet(b);
     });
-    nav.insertBefore(b, tpl.nextSibling);
+    // порядок в шапке: «Поиск», «Списки» (lists.js), «Тема»
+    var after = nav.querySelector(':scope > [data-kadr-lists]') || tpl;
+    nav.insertBefore(b, after.nextSibling);
   }
 
   var SHEET_CSS =
@@ -403,6 +409,8 @@
     syncEntry();
     markNav();
     markPoster();
+    X.skin = skin;
+    X.sync();
   }
 
   /* ===================== СНИМОК ДЛЯ ДОРАБОТКИ ===================== */
@@ -412,17 +420,7 @@
   // НЕ берём: куки, токены и содержимое хранилищ — только названия ключей и форму данных (типы и длины).
   var snapBusy = false;
   function wait(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
-  function shape(v, depth) {
-    if (v === null) return 'null';
-    if (Array.isArray(v)) return v.length ? ['x' + v.length, depth > 3 ? '...' : shape(v[0], depth + 1)] : [];
-    if (typeof v === 'object') {
-      if (depth > 3) return '{...}';
-      var o = {};
-      Object.keys(v).slice(0, 40).forEach(function (k) { o[k] = shape(v[k], depth + 1); });
-      return o;
-    }
-    return typeof v === 'string' ? 'string(' + v.length + ')' : typeof v;
-  }
+  var shape = X.shape; // форма данных: имена полей, типы и длины — без самих значений
   function storageShape(st) {
     var o = {};
     try {
@@ -435,7 +433,7 @@
   }
   function markup(el) {
     if (!el) return '';
-    var c = el.cloneNode(true), list = c.querySelectorAll('#' + ID + ', kadr-sheet, script, noscript, [' + ENTRY + ']'), i;
+    var c = el.cloneNode(true), list = c.querySelectorAll('#' + ID + ', kadr-sheet, script, noscript, [' + ENTRY + '], [data-kadr-ui], [data-kadr-lists]'), i;
     for (i = 0; i < list.length; i++) list[i].remove();
     list = c.querySelectorAll('[srcdoc]');
     for (i = 0; i < list.length; i++) list[i].setAttribute('srcdoc', '');
@@ -451,8 +449,8 @@
   function getText(url) {
     return fetch(url, { credentials: 'omit', cache: 'force-cache' }).then(function (r) { return r.ok ? r.text() : ''; }).catch(function () { return ''; });
   }
-  // Пройтись по состояниям страницы, которые только показывают данные: вкладки фильма, тайминги, меню профиля, поиск.
-  // Кнопки, которые что-то меняют в аккаунте («Сохранить»), не трогаем.
+  // Пройтись по состояниям страницы, которые только показывают данные: вкладки фильма, меню профиля, поиск.
+  // Кнопки, которые что-то меняют в аккаунте («Сохранить») или открывают новые окна, не трогаем.
   async function tour(out) {
     var i, el;
     var tabs = document.querySelectorAll('.tabs_header button:not(:disabled)');
@@ -460,15 +458,6 @@
       tabs[i].click();
       await wait(1500);
       out.push({ name: 'tab: ' + tabs[i].textContent.trim(), html: markup(tabs[i].closest('section') || document.getElementById('main')) });
-    }
-    el = document.querySelector('.player_controls button[title*="айминг"]');
-    if (el) {
-      el.click();
-      await wait(1500);
-      out.push({ name: 'timings', html: markup(document.getElementById('main') || document.body) });
-      var open = document.querySelector('dialog[open]');
-      if (open && open.close) open.close(); else el.click();
-      await wait(400);
     }
     el = document.querySelector('.user_dropdown .dropdown_trigger');
     if (el) {
@@ -497,6 +486,8 @@
         url: location.origin + location.pathname, ua: navigator.userAgent,
         viewport: [innerWidth, innerHeight, devicePixelRatio], theme: state.theme, skin: skin,
         html: markup(root), states: [], css: [], scripts: [], resources: [],
+        // что ответил API сайта на запросы расширения (только форма) и какие сообщения шлёт плеер
+        api: X.shapes, player: X.msgs,
         storage: { local: storageShape(localStorage), session: storageShape(sessionStorage) },
         cookieNames: document.cookie.split(';').map(function (c) { return c.split('=')[0].trim(); }).filter(Boolean)
       };
@@ -505,25 +496,30 @@
         try { for (var i = 0; i < sh.cssRules.length; i++) text += sh.cssRules[i].cssText + '\n'; } catch (e) { text = '/* unreadable */'; }
         data.css.push({ href: sh.href || '', text: text });
       });
-      // скрипты сайта: подключённые на странице и все части приложения, на которые ссылается главный файл
-      var urls = {}, queue = [], total = 0, n;
-      function add(u) {
+      // скрипты сайта: подключённые на странице и все части приложения, на которые ссылается главный файл.
+      // Само приложение у сайта лежит на отдельном домене, поэтому берём и с доменов подключённых скриптов
+      // (но не со сторонних: счётчики и плеер сюда не попадают).
+      var urls = {}, hosts = {}, queue = [], total = 0, n;
+      hosts[location.origin] = 1;
+      function add(u, listed) {
         try { u = new URL(u, location.href); } catch (e) { return; }
-        if (u.origin !== location.origin || !/\.m?js$/.test(u.pathname) || urls[u.href]) return;
+        if (!/^https?:$/.test(u.protocol) || !/\.m?js$/.test(u.pathname) || urls[u.href]) return;
+        if (listed) hosts[u.origin] = 1; else if (!hosts[u.origin]) return;
         urls[u.href] = 1;
         queue.push(u.href);
       }
-      [].forEach.call(document.querySelectorAll('script[src], link[rel="modulepreload"][href]'), function (x) { add(x.src || x.href); });
+      [].forEach.call(document.querySelectorAll('script[src], link[rel="modulepreload"][href]'), function (x) { add(x.src || x.href, true); });
       performance.getEntriesByType('resource').forEach(function (e) {
-        add(e.name);
+        add(e.name, false);
         data.resources.push({ type: e.initiatorType, url: noQuery(e.name) });
       });
       for (n = 0; n < queue.length && n < 120 && total < 9e6; n++) {
         var text = await getText(queue[n]);
+        if (!text) continue; // адрес из текста скрипта, по которому ничего нет
         total += text.length;
         data.scripts.push({ src: queue[n], text: text });
         var base = queue[n], m, re = /["'`]((?:\.{0,2}\/)?(?:assets\/)?[\w.@-]+\.m?js)["'`]/g;
-        while ((m = re.exec(text))) add(new URL(m[1], m[1].charAt(0) === '.' ? base : location.origin + '/').href);
+        while ((m = re.exec(text))) add(new URL(m[1], m[1].charAt(0) === '.' ? base : new URL('/', base).href).href, false);
       }
       try { await tour(data.states); } catch (e) { data.tourError = String(e && e.message || e); }
       var blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
@@ -597,6 +593,9 @@
     for (var i = 0; i < records.length; i++) {
       var r = records[i], t = r.target, j;
       if (t === styleEl || t.parentNode === styleEl) continue;
+      // свои панели (списки, тайминги, актёры) перерисовываются сами — это не изменение страницы
+      var own = t.nodeType === 1 ? t : t.parentNode;
+      if (own && own.closest && own.closest('[data-kadr-ui]')) continue;
       // сайт переписал текст своего <style> — правила изменились
       if (t.localName === 'style' || (r.type === 'characterData' && t.parentNode && t.parentNode.localName === 'style')) { later(); return; }
       // сайт подставил другой постер в тот же <img> (переход на другой фильм)

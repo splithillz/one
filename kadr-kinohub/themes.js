@@ -238,11 +238,15 @@
       '::selection{background-color:' + acc + ';color:' + cssColor(S.ink, 1) + '}';
   }
 
-  // Цвета для нового дизайна (skin.css) — CSS-переменные --kd-*. Без темы — родные цвета сайта:
-  // тогда панели остаются темнее страницы, как у него.
-  function skinVars(state) {
+  // Цвета для нового дизайна (skin.css) и панелей расширения (ui.css) — CSS-переменные --kd-*:
+  // bg — страница, s1 — панель на ней, s2 — её наведение, s3/s4 — выше. Без темы — родные цвета сайта:
+  // тогда панели остаются темнее страницы, как у него. То же с темой, но без нового дизайна (skin === false):
+  // там страница — s1 темы, панели — bg.
+  function skinVars(state, skin) {
     var t = resolve(state), S = t ? slots(t) : null;
-    var v = t ? {
+    var v = t ? skin === false ? {
+      bg: S.s1, s1: S.bg, s2: S.deep, s3: S.s4, s4: S.s5, acc: S.acc, 'acc-hi': S.accHi, ink: S.ink, link: S.acc, good: S.accHi
+    } : {
       bg: S.bg, s1: S.s1, s2: S.s2, s3: S.s3, s4: S.s4, acc: S.acc, 'acc-hi': S.accHi, ink: S.ink, link: S.acc, good: S.accHi
     } : {
       bg: rgb('#2f2b32'), s1: rgb('#232025'), s2: rgb('#1d1a1f'), s3: rgb('#4b474d'), s4: rgb('#635e66'),

@@ -2,8 +2,8 @@
   "manifest_version": 3,
   "name": "Кадр — темы для kinohub",
   "short_name": "Кадр kinohub",
-  "version": "1.1.0",
-  "description": "Темы и новый дизайн для on.kinohub.vip — на компьютере и на телефоне.",
+  "version": "1.2.0",
+  "description": "Темы, новый дизайн, закладки под рукой и тайминги у плеера для on.kinohub.vip — на компьютере и на телефоне.",
   "icons": {
     "16": "icons/16.png",
     "32": "icons/32.png",
@@ -23,11 +23,16 @@
       ],
       "js": [
         "themes.js",
-        "content.js"
+        "kit.js",
+        "content.js",
+        "lists.js",
+        "timings.js",
+        "cast.js"
       ],
       "run_at": "document_start",
       "css": [
-        "skin.css"
+        "skin.css",
+        "ui.css"
       ]
     }
   ],

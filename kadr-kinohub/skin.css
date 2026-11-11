@@ -59,7 +59,21 @@ html.kadr-rd .header_nav > *:hover i[class^=ico_] { background-color: rgb(var(--
 html.kadr-rd .header_nav > [data-kadr-on] { background: rgb(var(--kd-acc) / .14); color: rgb(var(--kd-tx)); }
 html.kadr-rd .header_nav > [data-kadr-on] i[class^=ico_],
 html.kadr-rd .header_nav > [data-kadr-entry] i[class^=ico_] { background-color: rgb(var(--kd-acc)); }
-html.kadr-rd .user_dropdown_trigger { padding: 11px 0; font-size: 15.5px; }
+html.kadr-rd .user_dropdown_trigger { padding: 11px 0; font-size: 15.5px; transition: background-color .2s, transform .42s var(--kd-spring); }
+/* меню профиля — потомок пункта шапки: нажатие в меню не должно сжимать его вместе с пунктом */
+html.kadr-rd .header_nav > .user_dropdown:hover { background: transparent; }
+html.kadr-rd .header_nav > .user_dropdown:active { transform: none; }
+html.kadr-rd .user_dropdown_trigger:hover { background: rgb(255 255 255 / .07); border-radius: 15px; }
+html.kadr-rd .user_dropdown_trigger:active { transform: scale(.93); transition-duration: .12s; }
+html.kadr-rd .user_dropdown_trigger.active { background: rgb(255 255 255 / .1); border-radius: 15px; color: rgb(var(--kd-tx)); }
+html.kadr-rd .dropdown_menu {
+  margin-top: 10px; padding: 6px; border: 0; border-radius: 18px; background: rgb(var(--kd-s1));
+  box-shadow: var(--kd-line), 0 24px 50px -14px rgb(0 0 0 / .85);
+}
+html.kadr-rd .dropdown_item { padding: 11px 14px; border-radius: 12px; font-size: 15.5px; font-weight: 550; color: rgb(var(--kd-tx2)); }
+html.kadr-rd .dropdown_item:hover { background: rgb(255 255 255 / .07); color: rgb(var(--kd-tx)); }
+html.kadr-rd .dropdown_item:active { background: rgb(255 255 255 / .12); }
+html.kadr-rd .dropdown_divider { margin: 6px 8px; background: rgb(255 255 255 / .07); }
 @media screen and (max-width: 900px) {
   html.kadr-rd .header_nav > * { padding: 11px 6px; gap: 3px; font-size: 12.5px; }
   html.kadr-rd .user_dropdown_trigger { padding: 11px 6px; gap: 3px; font-size: 12.5px; }
@@ -226,6 +240,9 @@ html.kadr-rd .tabs_header button {
 }
 html.kadr-rd .tabs_header button:hover { background: rgb(255 255 255 / .06); color: rgb(var(--kd-tx)); }
 html.kadr-rd .tabs_header button:active { transform: scale(.95); transition-duration: .12s; }
+html.kadr-rd .tabs_header button.active { background: rgb(var(--kd-acc) / .14); color: rgb(var(--kd-tx)); box-shadow: none; }
+html.kadr-rd .tabs_header button:disabled { opacity: .38; }
+html.kadr-rd .tabs_body { margin-top: 16px; animation: kd-enter .4s var(--kd-spring) both; }
 @media screen and (max-width: 600px) { html.kadr-rd .tabs_header button { padding: 10px 12px; font-size: 14.5px; } }
 
 /* ---------- плеер ---------- */
@@ -252,6 +269,138 @@ html.kadr-rd .player_iframe_wrapper {
 }
 html.kadr-rd .player_iframe { border-radius: 0; background: #000; }
 @media screen and (max-width: 600px) { html.kadr-rd .player_iframe_wrapper { border-radius: 16px; } }
+
+/* ---------- содержимое вкладок ---------- */
+/* актёры во вкладке сайта (когда лента расширения не показана): те же карточки — фото и имя под ним */
+html.kadr-rd .person_list { grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); gap: 18px 12px; }
+html.kadr-rd .person_link { gap: 6px; outline: none; }
+html.kadr-rd .person_link:hover { border-radius: 16px; background: none; outline: none; }
+html.kadr-rd .person_link .person_photo {
+  aspect-ratio: 4 / 5; border-radius: 16px; object-position: center 18%; background: rgb(var(--kd-s1));
+  box-shadow: 0 0 0 1px rgb(255 255 255 / .07); transition: transform .42s var(--kd-spring);
+}
+html.kadr-rd .person_link:hover .person_photo { transform: translateY(-3px); }
+html.kadr-rd .person_link:active .person_photo { transform: scale(.96); }
+html.kadr-rd .person_link .person_name { font-size: 14px; font-weight: 650; line-height: 1.22; }
+/* подборки во вкладке */
+html.kadr-rd .tabs_body .collection_list { grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); gap: 18px 12px; }
+html.kadr-rd .tabs_body .collection_link { gap: 6px; outline: none; }
+html.kadr-rd .tabs_body .collection_link:hover { border-radius: 16px; background: none; outline: none; }
+html.kadr-rd .tabs_body .collection_cover { border-radius: 16px; background: rgb(var(--kd-s1)); box-shadow: 0 0 0 1px rgb(255 255 255 / .07); transition: transform .42s var(--kd-spring); }
+html.kadr-rd .tabs_body .collection_link:hover .collection_cover { transform: translateY(-3px); }
+html.kadr-rd .tabs_body .collection_name { font-size: 14px; font-weight: 600; line-height: 1.22; }
+/* лента «Похожие»: стрелки */
+html.kadr-rd .slider .track { gap: 14px; padding: 6px 2px 2px; }
+html.kadr-rd .slider .button {
+  width: 42px; height: 42px; border-radius: 14px; background: rgb(var(--kd-bg) / .86);
+  -webkit-backdrop-filter: none; backdrop-filter: none; box-shadow: inset 0 0 0 1px rgb(255 255 255 / .12), 0 10px 22px rgb(0 0 0 / .5);
+}
+html.kadr-rd .slider .button:hover { background: rgb(var(--kd-s2)); transform: translateY(-50%) scale(1.06); }
+html.kadr-rd .slider .button i[class^=ico_] { background-color: rgb(var(--kd-tx)); }
+/* тайминги во вкладке */
+html.kadr-rd .timing_controls { justify-content: flex-start; gap: 8px; margin-bottom: 12px; }
+html.kadr-rd .timing_control {
+  gap: 7px; padding: 9px 14px; border-radius: 13px; background: rgb(var(--kd-s1)); box-shadow: var(--kd-line);
+  font-size: 14.5px; color: rgb(var(--kd-tx2)); transition: background-color .2s, transform .42s var(--kd-spring);
+}
+html.kadr-rd .timing_control:hover { background: rgb(var(--kd-s2)); color: rgb(var(--kd-tx)); }
+html.kadr-rd .timing_control:active { top: 0; transform: scale(.95); box-shadow: var(--kd-line); }
+html.kadr-rd .timing_control i[class^=ico_] { width: 20px; height: 20px; background-color: rgb(var(--kd-mut)); }
+html.kadr-rd .shadow_wrapper { border-radius: 20px; }
+html.kadr-rd .shadow_wrapper::after { box-shadow: none; }
+html.kadr-rd .timing_body { padding: 10px; border-radius: 20px; background: rgb(var(--kd-s1)); box-shadow: var(--kd-line); }
+html.kadr-rd .timing_item { padding: 12px 14px; border-radius: 14px; background: rgb(255 255 255 / .04); font-size: 15px; color: rgb(var(--kd-tx2)); }
+html.kadr-rd .meta_list li { padding: 4px 10px; border-radius: 99px; background: rgb(255 255 255 / .07); font-size: 13px; }
+html.kadr-rd .timing_comment, html.kadr-rd .timing_item .range_item { font-size: 14.5px; line-height: 1.55; }
+html.kadr-rd .range_time { color: rgb(var(--kd-good)); font-variant-numeric: tabular-nums; }
+
+/* ---------- окна сайта ---------- */
+html.kadr-rd .modal_overlay { background: rgb(0 0 0 / .6); }
+html.kadr-rd .modal-container { border-radius: 24px; background: rgb(var(--kd-s1)); box-shadow: var(--kd-line), 0 30px 80px rgb(0 0 0 / .6); }
+html.kadr-rd .modal_header { padding: 18px 16px 12px 22px; border-bottom: 0; }
+html.kadr-rd .modal_title { font-size: 21px; font-weight: 800; letter-spacing: -.02em; }
+html.kadr-rd .modal_close { width: 40px; height: 40px; border-radius: 13px; background: rgb(255 255 255 / .06); transition: background-color .2s, transform .42s var(--kd-spring); }
+html.kadr-rd .modal_close:hover { background: rgb(255 255 255 / .11); }
+html.kadr-rd .modal_close:active { transform: scale(.9); }
+html.kadr-rd .modal-body { padding: 6px 16px 18px; }
+/* «Добавить в список» */
+html.kadr-rd .modal-body .watchlist_list { gap: 8px; }
+html.kadr-rd .modal-body .watchlist_item {
+  min-height: 52px; padding: 8px 14px 8px 16px; border-radius: 16px; background: rgb(255 255 255 / .05);
+  font-size: 16px; color: rgb(var(--kd-tx)); transition: background-color .2s, transform .42s var(--kd-spring);
+}
+html.kadr-rd .modal-body .watchlist_item:hover { background: rgb(255 255 255 / .09); }
+html.kadr-rd .modal-body .watchlist_item:active { transform: scale(.98); }
+html.kadr-rd .modal-body .watchlist_item i.ico_bookmark { background-color: rgb(var(--kd-acc)); }
+/* «Новый список», «Удалить список?» */
+html.kadr-rd .modal-body .input { padding: 12px 14px; border-radius: 14px; background: rgb(255 255 255 / .07); box-shadow: none; color: rgb(var(--kd-tx)); }
+html.kadr-rd .modal-body .input:focus { background: rgb(255 255 255 / .09); outline: 1.5px solid rgb(var(--kd-acc)); }
+html.kadr-rd .modal-body .form_actions { border-top-color: rgb(255 255 255 / .07); }
+html.kadr-rd .modal-body .button { width: 100%; padding: 13px 16px; border-radius: 14px; box-shadow: none; font-weight: 700; transition: transform .42s var(--kd-spring), opacity .2s; }
+html.kadr-rd .modal-body .button:active:not(:disabled) { top: 0; transform: scale(.97); }
+html.kadr-rd .modal-body .delete_button { padding: 12px; border-radius: 14px; background: rgb(255 255 255 / .07); font-size: 15px; color: rgb(var(--kd-tx)); }
+html.kadr-rd .modal-body .delete_button:hover:not(:disabled) { background: rgb(255 255 255 / .11); }
+html.kadr-rd .modal-body .delete_confirm, html.kadr-rd .modal-body .delete_confirm:hover:not(:disabled) { background: rgb(249 90 55 / .32); }
+/* настройки сайта */
+html.kadr-rd .modal-content { border-radius: 24px; background: rgb(var(--kd-s1)); box-shadow: var(--kd-line), 0 30px 80px rgb(0 0 0 / .6); }
+html.kadr-rd .modal-header { border-bottom-color: rgb(255 255 255 / .07); }
+html.kadr-rd .form-group { border-bottom-color: rgb(255 255 255 / .07); }
+/* на телефоне окно выезжает снизу, как панель списков */
+@media screen and (max-width: 600px) {
+  html.kadr-rd .modal_overlay { align-items: flex-end; padding: 0; }
+  html.kadr-rd .modal-container { max-width: none; border-radius: 26px 26px 0 0; }
+  html.kadr-rd .modal-body { padding-bottom: max(20px, env(safe-area-inset-bottom)); }
+}
+/* поиск */
+html.kadr-rd .search_modal_form { box-shadow: none; }
+html.kadr-rd .search_modal_form input {
+  padding: 15px 52px 15px 18px; border-radius: 18px; background: rgb(var(--kd-s1)); color: rgb(var(--kd-tx)); font-size: 17px;
+  box-shadow: var(--kd-line), 0 24px 50px -20px rgb(0 0 0 / .85); transition: box-shadow .2s;
+}
+html.kadr-rd .search_modal_form input:focus { box-shadow: inset 0 0 0 1.5px rgb(var(--kd-acc)), 0 24px 50px -20px rgb(0 0 0 / .85); }
+html.kadr-rd .search_modal_form button { right: 4px; }
+html.kadr-rd .search_modal_type { margin-top: 12px; padding: 5px; border-radius: 16px; background: rgb(var(--kd-s1)); box-shadow: var(--kd-line); }
+html.kadr-rd .search_modal_type label { padding: 9px 14px; border-radius: 12px; font-size: 14.5px; font-weight: 600; color: rgb(var(--kd-tx2)); }
+html.kadr-rd .search_modal_type label:hover { background: rgb(255 255 255 / .07); }
+html.kadr-rd .search_modal_type label:has(input:checked) { background: rgb(var(--kd-acc)); color: rgb(var(--kd-ink)); }
+
+/* ---------- страницы списков, разделы, перелистывание ---------- */
+html.kadr-rd .section_button, html.kadr-rd .header_button {
+  gap: 7px; padding: 9px 16px; border-radius: 13px; background: rgb(var(--kd-s1)); box-shadow: var(--kd-line);
+  font-size: 15px; color: rgb(var(--kd-tx2)); transition: background-color .2s, color .2s, transform .42s var(--kd-spring);
+}
+html.kadr-rd .section_button:hover, html.kadr-rd .header_button:hover { background: rgb(var(--kd-s2)); color: rgb(var(--kd-tx)); }
+html.kadr-rd .section_button:active, html.kadr-rd .header_button:active { top: 0; transform: scale(.95); box-shadow: var(--kd-line); }
+html.kadr-rd .section_note { padding: 14px 18px; border-radius: 16px; background: rgb(var(--kd-s1)); box-shadow: var(--kd-line); font-size: 15px; color: rgb(var(--kd-tx2)); }
+html.kadr-rd .load_button { padding: 15px; border-radius: 16px; background: rgb(var(--kd-s1)); box-shadow: var(--kd-line); color: rgb(var(--kd-tx2)); transition: background-color .2s, transform .42s var(--kd-spring); }
+html.kadr-rd .load_button:hover:not(:disabled) { background: rgb(var(--kd-s2)); }
+html.kadr-rd .load_button:active:not(:disabled) { transform: scale(.98); }
+html.kadr-rd .pagination_btn { min-width: 42px; height: 42px; border-radius: 13px; background: rgb(var(--kd-s1)); box-shadow: var(--kd-line); }
+html.kadr-rd .pagination_btn:active:not(:disabled) { top: 0; box-shadow: var(--kd-line); }
+html.kadr-rd .pagination_btn.active { background: rgb(var(--kd-acc) / .16); box-shadow: inset 0 0 0 1px rgb(var(--kd-acc) / .4); color: rgb(var(--kd-tx)); }
+html.kadr-rd .pagination_btn:disabled { background: rgb(var(--kd-s1)); box-shadow: var(--kd-line); opacity: .4; }
+html.kadr-rd .watchlists { gap: 14px; }
+html.kadr-rd .watchlists .watchlist_item { gap: 0; border-radius: 20px; background: rgb(var(--kd-s1)); box-shadow: var(--kd-line); animation: kd-enter .46s var(--kd-spring) both; }
+html.kadr-rd .watchlists .watchlist_link { padding: 16px 18px 14px; background: transparent; }
+html.kadr-rd .watchlists .watchlist_link:hover { background: rgb(255 255 255 / .04); }
+html.kadr-rd .watchlists .watchlist_link:active { top: 0; box-shadow: none; }
+html.kadr-rd .watchlists .watchlist_header { margin-bottom: 10px; }
+html.kadr-rd .watchlists .watchlist_name { font-size: 18px; font-weight: 700; letter-spacing: -.01em; color: rgb(var(--kd-tx)); }
+html.kadr-rd .watchlists .watchlist_body { gap: 5px; font-size: 13.5px; color: rgb(var(--kd-mut)); }
+html.kadr-rd .watchlists .watchlist_actions { gap: 0; border-top: 1px solid rgb(255 255 255 / .06); }
+html.kadr-rd .watchlists .watchlist_actions button { padding: 11px 8px; background: transparent; transition: background-color .2s; }
+html.kadr-rd .watchlists .watchlist_actions button:hover { background: rgb(255 255 255 / .06); }
+html.kadr-rd .watchlists .watchlist_actions button:active { top: 0; box-shadow: none; }
+html.kadr-rd .watchlists .watchlist_actions button + button { border-left: 1px solid rgb(255 255 255 / .06); }
+
+/* ---------- страница человека ---------- */
+html.kadr-rd .person_body { gap: 28px; animation: kd-enter .5s var(--kd-spring) both; }
+html.kadr-rd .person_image { border-radius: 20px; background: rgb(var(--kd-s1)); box-shadow: 0 0 0 1px rgb(255 255 255 / .08), 0 34px 60px -30px rgb(0 0 0 / .95); }
+html.kadr-rd .person_name_russian { font-size: clamp(27px, 4.4vw, 40px); font-weight: 800; letter-spacing: -.028em; line-height: 1.1; }
+html.kadr-rd .person_name_original { font-size: 17px; color: rgb(var(--kd-mut)); }
+html.kadr-rd .person_info_row { font-size: 15.5px; }
+html.kadr-rd .person_info_row > *:first-child { color: rgb(var(--kd-mut)); }
+html.kadr-rd .person_facts { font-size: 15.5px; line-height: 1.6; color: rgb(var(--kd-tx) / .8); }
 
 /* ---------- мелочи ---------- */
 html.kadr-rd .footer { margin-top: 56px; padding-top: 20px; border-top-color: rgb(255 255 255 / .06); }

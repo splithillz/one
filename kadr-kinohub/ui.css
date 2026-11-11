@@ -1,0 +1,343 @@
+/* Кадр для kinohub — оформление того, что расширение добавляет на сайт само: панель списков, отметки на закладках,
+   тайминги под плеером, лента актёров, уведомления. Подключается манифестом и не зависит от «Нового дизайна»:
+   здесь только свои элементы (kadr-*, .kadr-*, [data-kadr-*]), стили сайта не трогаются.
+   Цвета — те же переменные --kd-* («r g b»), что у нового дизайна; их задаёт content.js из выбранной темы. */
+
+:where(:root) {
+  --kd-bg: 47 43 50; --kd-s1: 35 32 37; --kd-s2: 29 26 31; --kd-s3: 75 71 77; --kd-s4: 99 94 102;
+  --kd-acc: 170 119 187; --kd-acc-hi: 199 155 214; --kd-ink: 250 248 237; --kd-link: 250 248 237; --kd-good: 70 211 122;
+  --kd-tx: 250 248 237; --kd-tx2: 192 188 183; --kd-mut: 147 144 149;
+  --kd-warn: 255 190 92; --kd-hot: 255 112 112;
+  --kd-spring: cubic-bezier(.34, 1.4, .64, 1);
+  --kd-out: cubic-bezier(.2, .9, .24, 1);
+  --kd-font: Onest, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+@keyframes kadr-pulse { 50% { opacity: .45; transform: scale(.9); } }
+@keyframes kadr-shine { to { background-position: -200% 0; } }
+@keyframes kadr-rise { from { opacity: 0; transform: translateY(10px); } }
+@keyframes kadr-dot { 0%, 80%, 100% { opacity: .25; transform: scale(.7); } 40% { opacity: 1; transform: none; } }
+
+/* общее для своих элементов */
+kadr-lists, kadr-toast, .kadr-tm, .kadr-tm-pill, .kadr-cast {
+  font-family: var(--kd-font); -webkit-font-smoothing: antialiased; -webkit-tap-highlight-color: transparent;
+  color: rgb(var(--kd-tx)); line-height: 1.35; text-align: left; letter-spacing: normal;
+}
+/* сброс — через :where (нулевая специфичность), чтобы его перекрывало любое правило ниже */
+:where(kadr-lists, kadr-toast, .kadr-tm, .kadr-cast) :where(button, input, a) { font: inherit; color: inherit; }
+:where(kadr-lists, kadr-toast, .kadr-tm, .kadr-cast) :where(button) { margin: 0; padding: 0; border: 0; background: none; cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+:where(kadr-lists, kadr-toast, .kadr-tm, .kadr-cast) :where(button:disabled) { cursor: default; }
+:where(kadr-lists, kadr-toast, .kadr-tm, .kadr-cast) :where(a) { text-decoration: none; }
+:where(kadr-lists, kadr-toast, .kadr-tm, .kadr-cast) :where(:focus) { outline: none; }
+:is(kadr-lists, kadr-toast, .kadr-tm, .kadr-cast) :focus-visible { outline: 2px solid rgb(var(--kd-acc)); outline-offset: 2px; }
+:where(kadr-lists, kadr-toast, .kadr-tm, .kadr-tm-pill, .kadr-cast) .k-ic { display: block; flex: none; width: 20px; height: 20px; }
+
+/* ===================== шапка сайта ===================== */
+/* С кнопками расширения в шапке на узком телефоне восемь пунктов: в родном оформлении сайта они перестают
+   помещаться в ряд. Чуть сужаем поля пунктов — только там и только когда кнопка «Списки» есть. */
+@media screen and (max-width: 470px) {
+  html:not(.kadr-rd) nav.header_nav:has(> [data-kadr-lists]) > *:not(.user_dropdown),
+  html:not(.kadr-rd) nav.header_nav:has(> [data-kadr-lists]) .user_dropdown_trigger { padding-left: 6px; padding-right: 6px; }
+}
+
+/* ===================== закладка: сохранено / занято ===================== */
+/* Пока сайт продлевает вход по просьбе расширения, его окно «Добавить в список» не показываем (см. lists.js). */
+html[data-kadr-quiet] .modal_overlay { display: none !important; }
+
+/* html впереди — чтобы при равной специфичности победить правила сайта (стили расширения идут в каскаде раньше них) */
+/* закладки включены (атрибут ставит lists.js): у несохранённого фильма значок-контур, у сохранённого — залитый на цвете акцента */
+html[data-kadr-bm] .watchlist_button:not([data-kadr-saved]) i.ico_bookmark {
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.2' stroke-linejoin='round'%3E%3Cpath d='M7 3.8h10a1 1 0 0 1 1 1v15.1a.4.4 0 0 1-.64.32L12 16.4l-5.36 3.82A.4.4 0 0 1 6 19.9V4.8a1 1 0 0 1 1-1Z'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.2' stroke-linejoin='round'%3E%3Cpath d='M7 3.8h10a1 1 0 0 1 1 1v15.1a.4.4 0 0 1-.64.32L12 16.4l-5.36 3.82A.4.4 0 0 1 6 19.9V4.8a1 1 0 0 1 1-1Z'/%3E%3C/svg%3E");
+  -webkit-mask-size: contain; mask-size: contain; -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat; -webkit-mask-position: center; mask-position: center;
+}
+html .card .watchlist:has(> [data-kadr-saved]) { display: block; opacity: 1; }
+html .card .watchlist_button[data-kadr-saved], html .card .watchlist_button[data-kadr-saved]:hover { background: rgb(var(--kd-acc)); }
+html .card .watchlist_button[data-kadr-saved] i[class^=ico_] { background-color: rgb(var(--kd-ink)); }
+html .watchlist_button[data-kadr-busy] { pointer-events: none; }
+html .watchlist_button[data-kadr-busy] i[class^=ico_] { animation: kadr-pulse .7s ease-in-out infinite; }
+/* на странице фильма подпись кнопки — где фильм лежит */
+html .movie_favorites .watchlist_button[data-kadr-label] span { display: none; }
+html .movie_favorites .watchlist_button[data-kadr-label]::after { content: attr(data-kadr-label); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+html .movie_favorites .watchlist_button[data-kadr-saved] { box-shadow: inset 0 0 0 1.5px rgb(var(--kd-acc) / .55); }
+html .movie_favorites .watchlist_button[data-kadr-saved] i[class^=ico_] { background-color: rgb(var(--kd-acc)); }
+
+/* ===================== уведомление ===================== */
+kadr-toast {
+  position: fixed; z-index: 2147483600; left: 50%; bottom: max(18px, env(safe-area-inset-bottom));
+  display: flex; align-items: center; gap: 4px; max-width: min(92vw, 460px); padding: 6px 6px 6px 16px; border-radius: 16px;
+  background: rgb(var(--kd-s3)); box-shadow: inset 0 0 0 1px rgb(255 255 255 / .1), 0 18px 40px -12px rgb(0 0 0 / .8);
+  font-size: 14.5px; font-weight: 600;
+  opacity: 0; transform: translate(-50%, 16px) scale(.96); transition: opacity .22s, transform .42s var(--kd-spring); pointer-events: none;
+}
+kadr-toast.on { opacity: 1; transform: translate(-50%, 0); pointer-events: auto; }
+kadr-toast span { min-width: 0; padding: 7px 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+kadr-toast button { flex: none; margin-left: 6px; padding: 7px 12px; border-radius: 11px; color: rgb(var(--kd-acc-hi)); background: rgb(var(--kd-acc) / .16); font-weight: 700; }
+kadr-toast button:active { transform: scale(.95); }
+
+/* ===================== панель списков ===================== */
+kadr-lists { position: fixed; inset: 0; z-index: 2147483500; display: flex; align-items: flex-end; justify-content: center; font-size: 15px; }
+.kl-scrim { position: absolute; inset: 0; background: rgb(0 0 0 / .55); opacity: 0; transition: opacity .3s ease; touch-action: none; }
+.kl-panel {
+  position: relative; display: flex; flex-direction: column; width: 100%; max-width: 620px; height: 88vh; height: min(88dvh, 780px);
+  border-radius: 26px 26px 0 0; overflow: hidden; background: rgb(var(--kd-s1));
+  box-shadow: 0 -18px 48px rgb(0 0 0 / .5), inset 0 1px 0 rgb(255 255 255 / .08);
+  transform: translateY(105%); transition: transform .46s var(--kd-out);
+}
+kadr-lists[data-mode="pick"] .kl-panel { height: auto; max-height: 82vh; max-height: 82dvh; }
+kadr-lists.open .kl-scrim { opacity: 1; }
+kadr-lists.open .kl-panel { transform: none; }
+.kl-grab { flex: none; height: 22px; display: grid; place-items: center; touch-action: none; cursor: grab; }
+.kl-grab i { width: 42px; height: 5px; border-radius: 9px; background: rgb(255 255 255 / .24); }
+.kl-head { flex: none; display: flex; align-items: center; gap: 12px; padding: 2px 14px 12px 20px; }
+.kl-ttl { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.kl-ttl b { font-size: 21px; font-weight: 800; letter-spacing: -.02em; line-height: 1.2; }
+.kl-ttl span { font-size: 14px; color: rgb(var(--kd-mut)); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+kadr-lists .kl-ib {
+  flex: none; display: grid; place-items: center; width: 40px; height: 40px; border-radius: 13px; color: rgb(var(--kd-tx2));
+  background: rgb(255 255 255 / .06); transition: background-color .2s, transform .4s var(--kd-spring);
+}
+kadr-lists .kl-ib:active { transform: scale(.9); }
+
+/* списки — плашки в ряд */
+.kl-chips { flex: none; display: flex; gap: 8px; padding: 0 16px 12px; overflow-x: auto; scrollbar-width: none; overscroll-behavior-x: contain; }
+.kl-chips::-webkit-scrollbar { display: none; }
+kadr-lists .kl-chip {
+  flex: none; display: flex; align-items: center; gap: 7px; height: 40px; padding: 0 14px; border-radius: 13px; max-width: 240px;
+  background: rgb(255 255 255 / .06); color: rgb(var(--kd-tx2)); font-weight: 650; white-space: nowrap;
+  transition: background-color .2s, color .2s, transform .4s var(--kd-spring);
+}
+.kl-chip span { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.kl-chip i { font-style: normal; font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums; opacity: .6; }
+.kl-chip .k-ic { width: 15px; height: 15px; color: rgb(var(--kd-acc)); }
+kadr-lists .kl-chip.on { background: rgb(var(--kd-acc)); color: rgb(var(--kd-ink)); }
+.kl-chip.on .k-ic { color: inherit; }
+kadr-lists .kl-chip:active { transform: scale(.95); }
+kadr-lists .kl-chip.kl-add { width: 40px; padding: 0; justify-content: center; color: rgb(var(--kd-tx2)); }
+.kl-chip.kl-add .k-ic { width: 20px; height: 20px; color: inherit; }
+
+.kl-scroll { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 0 16px max(18px, env(safe-area-inset-bottom)); scrollbar-width: thin; scrollbar-color: rgb(var(--kd-s4)) transparent; }
+.kl-bar { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+kadr-lists .kl-pill {
+  display: flex; align-items: center; gap: 6px; height: 34px; padding: 0 12px; border-radius: 99px;
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / .12); color: rgb(var(--kd-tx2)); font-size: 13.5px; font-weight: 600;
+  transition: background-color .2s, color .2s, box-shadow .2s;
+}
+.kl-pill .k-ic { width: 15px; height: 15px; }
+kadr-lists .kl-pill.on { color: rgb(var(--kd-acc-hi)); background: rgb(var(--kd-acc) / .14); box-shadow: inset 0 0 0 1px rgb(var(--kd-acc) / .4); }
+
+/* фильмы списка */
+.kl-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 16px 12px; }
+.kl-cell { position: relative; min-width: 0; }
+.kl-grid.in .kl-cell { animation: kadr-rise .4s var(--kd-out) both; }
+.kl-card { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.kl-poster {
+  position: relative; display: block; aspect-ratio: 2 / 3; margin-bottom: 4px; border-radius: 14px; overflow: hidden;
+  background: rgb(var(--kd-bg)); box-shadow: inset 0 0 0 1px rgb(255 255 255 / .07); transition: transform .4s var(--kd-spring);
+}
+.kl-card:active .kl-poster { transform: scale(.96); }
+.kl-poster img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.kl-poster em {
+  position: absolute; left: 6px; bottom: 6px; padding: 1px 6px; border-radius: 7px; font-style: normal; font-size: 12px; font-weight: 700;
+  font-variant-numeric: tabular-nums; background: rgb(var(--kd-bg) / .88); color: rgb(var(--kd-tx2));
+}
+.kl-poster em.hi { color: rgb(var(--kd-good)); }
+.kl-card b { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-size: 13.5px; font-weight: 600; line-height: 1.25; }
+.kl-card small { font-size: 12px; color: rgb(var(--kd-mut)); }
+kadr-lists .kl-rm {
+  position: absolute; top: 6px; right: 6px; display: grid; place-items: center; width: 30px; height: 30px; border-radius: 10px;
+  background: rgb(var(--kd-bg) / .86); color: rgb(var(--kd-tx)); box-shadow: inset 0 0 0 1px rgb(255 255 255 / .1);
+  transition: background-color .2s, transform .4s var(--kd-spring);
+}
+.kl-rm .k-ic { width: 16px; height: 16px; }
+kadr-lists .kl-rm:active { transform: scale(.88); }
+kadr-lists .kl-rm:disabled { opacity: .5; }
+
+/* выбор списков для фильма */
+.kl-line { display: flex; gap: 8px; margin-bottom: 8px; }
+kadr-lists .kl-row {
+  flex: 1; min-width: 0; display: flex; align-items: center; gap: 12px; min-height: 52px; padding: 8px 14px 8px 10px; border-radius: 16px;
+  background: rgb(255 255 255 / .05); font-size: 16px; font-weight: 600; text-align: left;
+  transition: background-color .2s, transform .4s var(--kd-spring);
+}
+kadr-lists .kl-row:active { transform: scale(.98); }
+kadr-lists .kl-row:disabled { opacity: .6; }
+.kl-ck { flex: none; display: grid; place-items: center; width: 30px; height: 30px; border-radius: 10px; box-shadow: inset 0 0 0 2px rgb(255 255 255 / .2); color: transparent; transition: background-color .2s, box-shadow .2s, color .2s; }
+.kl-ck .k-ic { width: 18px; height: 18px; stroke-width: 2.6; }
+.kl-row.on { background: rgb(var(--kd-acc) / .12); }
+.kl-row.on .kl-ck { background: rgb(var(--kd-acc)); box-shadow: none; color: rgb(var(--kd-ink)); }
+.kl-nm { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+kadr-lists .kl-q { flex: none; display: grid; place-items: center; width: 52px; border-radius: 16px; background: rgb(255 255 255 / .05); color: rgb(var(--kd-mut)); transition: background-color .2s, color .2s; }
+kadr-lists .kl-q.on { background: rgb(var(--kd-acc) / .16); color: rgb(var(--kd-acc)); }
+kadr-lists .kl-new { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 52px; padding: 8px 14px 8px 15px; border-radius: 16px; box-shadow: inset 0 0 0 1.5px rgb(255 255 255 / .12); color: rgb(var(--kd-tx2)); font-size: 16px; font-weight: 600; }
+.kl-hint { display: flex; align-items: center; gap: 8px; margin-top: 14px; font-size: 13px; color: rgb(var(--kd-mut)); }
+.kl-hint .k-ic { width: 15px; height: 15px; color: rgb(var(--kd-acc)); }
+
+.kl-form { display: flex; gap: 8px; margin-bottom: 14px; }
+kadr-lists .kl-input {
+  flex: 1; min-width: 0; height: 46px; padding: 0 14px; border: 0; border-radius: 14px; outline: none;
+  background: rgb(255 255 255 / .07); color: rgb(var(--kd-tx)); font-size: 16px; box-shadow: inset 0 0 0 1.5px transparent; transition: box-shadow .2s;
+}
+kadr-lists .kl-input:focus { box-shadow: inset 0 0 0 1.5px rgb(var(--kd-acc)); }
+.kl-input::placeholder { color: rgb(var(--kd-mut)); }
+.kl-form .kl-ib { width: 46px; height: 46px; border-radius: 14px; }
+kadr-lists .kl-btn { flex: none; height: 46px; padding: 0 18px; border-radius: 14px; background: rgb(var(--kd-acc)); color: rgb(var(--kd-ink)); font-weight: 700; transition: transform .4s var(--kd-spring), opacity .2s; }
+kadr-lists .kl-btn:active { transform: scale(.96); }
+kadr-lists .kl-btn:disabled { opacity: .5; }
+kadr-lists .kl-more { display: block; width: 100%; margin-top: 16px; background: rgb(255 255 255 / .07); color: rgb(var(--kd-tx)); }
+.kl-empty { padding: 26px 8px; text-align: center; color: rgb(var(--kd-mut)); font-size: 14.5px; }
+div.kl-empty { display: grid; justify-items: center; gap: 14px; }
+.kl-wait { display: flex; justify-content: center; gap: 7px; padding: 30px 0; }
+.kl-wait i { width: 9px; height: 9px; border-radius: 50%; background: rgb(var(--kd-acc)); animation: kadr-dot 1.1s ease-in-out infinite; }
+.kl-wait i:nth-child(2) { animation-delay: .14s; }
+.kl-wait i:nth-child(3) { animation-delay: .28s; }
+
+/* широкий экран: списки — панель справа, выбор списка — окно по центру */
+@media (min-width: 760px) {
+  kadr-lists { align-items: stretch; justify-content: flex-end; padding: 12px; }
+  .kl-panel { width: 460px; height: auto; border-radius: 26px; transform: translateX(110%); box-shadow: 0 30px 80px rgb(0 0 0 / .6), inset 0 0 0 1px rgb(255 255 255 / .08); }
+  kadr-lists[data-mode="pick"] { align-items: center; justify-content: center; }
+  kadr-lists[data-mode="pick"] .kl-panel { width: 420px; transform: translateY(24px) scale(.96); opacity: 0; transition: transform .4s var(--kd-out), opacity .25s; }
+  kadr-lists[data-mode="pick"].open .kl-panel { transform: none; opacity: 1; }
+  .kl-grab { height: 16px; cursor: default; pointer-events: none; }
+  .kl-grab i { display: none; }
+  .kl-grid { grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); }
+}
+@media (hover: hover) {
+  kadr-lists .kl-ib:hover, kadr-lists .kl-chip:not(.on):hover, kadr-lists .kl-row:not(.on):hover, kadr-lists .kl-q:not(.on):hover { background: rgb(255 255 255 / .1); color: rgb(var(--kd-tx)); }
+  kadr-lists .kl-pill:hover { color: rgb(var(--kd-tx)); box-shadow: inset 0 0 0 1px rgb(255 255 255 / .28); }
+  kadr-lists .kl-rm { opacity: 0; }
+  .kl-cell:hover .kl-rm, kadr-lists .kl-rm:focus-visible { opacity: 1; }
+  kadr-lists .kl-rm:hover { background: rgb(var(--kd-hot)); color: #1a0606; }
+  .kl-card:hover .kl-poster { transform: translateY(-3px); }
+  kadr-lists .kl-new:hover { color: rgb(var(--kd-tx)); box-shadow: inset 0 0 0 1.5px rgb(255 255 255 / .28); }
+}
+
+/* ===================== тайминги под плеером ===================== */
+.kadr-tm {
+  margin-top: 12px; padding: 6px; border-radius: 20px; background: rgb(var(--kd-s1)); box-shadow: inset 0 0 0 1px rgb(255 255 255 / .07);
+  font-size: 15px; animation: kadr-rise .45s var(--kd-out) both;
+}
+/* в «театральном» режиме сайта под плеером места нет — остаётся только предупреждение поверх него */
+html .player_theater .kadr-tm { display: none; }
+.tm-head { display: flex; align-items: center; gap: 8px; }
+.kadr-tm .tm-fold { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 10px; border-radius: 14px; text-align: left; transition: background-color .2s; }
+.tm-fold .k-ic { color: rgb(var(--kd-acc)); }
+.tm-fold b { font-size: 16.5px; font-weight: 700; letter-spacing: -.01em; }
+.tm-fold em { font-style: normal; padding: 1px 8px; border-radius: 99px; font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums; background: rgb(255 255 255 / .08); color: rgb(var(--kd-tx2)); }
+.tm-fold .tm-chev { width: 18px; height: 18px; margin-left: auto; color: rgb(var(--kd-mut)); transition: transform .35s var(--kd-out); }
+.kadr-tm.fold .tm-chev { transform: rotate(-90deg); }
+.kadr-tm .tm-mode { flex: none; display: flex; align-items: center; gap: 7px; height: 32px; margin-right: 6px; padding: 0 12px; border-radius: 99px; font-size: 13px; font-weight: 650; color: rgb(var(--kd-tx2)); background: rgb(255 255 255 / .06); }
+.tm-mode i { width: 7px; height: 7px; border-radius: 50%; background: rgb(var(--kd-mut)); }
+.tm-mode.auto { color: rgb(var(--kd-good)); background: rgb(var(--kd-good) / .12); }
+.tm-mode.auto i { background: currentColor; box-shadow: 0 0 0 3px rgb(var(--kd-good) / .2); }
+
+.tm-clock { display: flex; align-items: center; justify-content: center; gap: 8px; margin: 6px 4px 4px; padding: 8px; border-radius: 16px; background: rgb(var(--kd-bg) / .7); }
+.kadr-tm .tm-b { flex: none; display: grid; place-items: center; min-width: 46px; height: 46px; padding: 0 10px; border-radius: 14px; background: rgb(255 255 255 / .07); color: rgb(var(--kd-tx2)); font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; transition: background-color .2s, transform .4s var(--kd-spring); }
+.kadr-tm .tm-b:active { transform: scale(.9); }
+.kadr-tm .tm-play { width: 52px; background: rgb(var(--kd-acc)); color: rgb(var(--kd-ink)); }
+.tm-play .k-ic { width: 22px; height: 22px; }
+.kadr-tm .tm-time, .kadr-tm .tm-in {
+  min-width: 108px; height: 46px; padding: 0 10px; border-radius: 14px; text-align: center;
+  font-size: 26px; font-weight: 800; letter-spacing: -.02em; font-variant-numeric: tabular-nums; color: rgb(var(--kd-tx));
+}
+.kadr-tm .tm-time:not(:disabled) { background: rgb(255 255 255 / .05); }
+.kadr-tm .tm-in { width: 128px; border: 0; outline: none; background: rgb(255 255 255 / .09); box-shadow: inset 0 0 0 1.5px rgb(var(--kd-acc)); }
+.tm-dur { flex: none; font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; color: rgb(var(--kd-mut)); }
+.tm-clock.auto { justify-content: flex-start; padding: 2px 8px; background: none; }
+.tm-clock.auto .tm-time { min-width: 0; padding: 0 2px; }
+
+.tm-chips { display: flex; gap: 6px; padding: 8px 4px 2px; overflow-x: auto; scrollbar-width: none; overscroll-behavior-x: contain; }
+.tm-chips::-webkit-scrollbar { display: none; }
+.kadr-tm .tm-chip { flex: none; display: flex; align-items: center; gap: 6px; height: 34px; padding: 0 12px; border-radius: 11px; background: rgb(255 255 255 / .06); color: rgb(var(--kd-tx2)); font-size: 13.5px; font-weight: 650; white-space: nowrap; transition: background-color .2s, color .2s; }
+.tm-chip .k-ic { width: 15px; height: 15px; }
+.tm-chip i { font-style: normal; min-width: 18px; padding: 0 5px; border-radius: 99px; font-size: 11.5px; font-weight: 800; line-height: 18px; text-align: center; background: rgb(var(--kd-warn) / .18); color: rgb(var(--kd-warn)); }
+.tm-chip.clean .k-ic { color: rgb(var(--kd-good)); }
+.kadr-tm .tm-chip.on { background: rgb(var(--kd-acc)); color: rgb(var(--kd-ink)); }
+.tm-chip.on i { background: rgb(0 0 0 / .18); color: inherit; }
+.tm-chip.on .k-ic { color: inherit; }
+.tm-by { padding: 6px 10px 0; font-size: 13px; color: rgb(var(--kd-mut)); }
+
+/* полоса фильма: отмеченные сцены и текущее место */
+.tm-line { position: relative; height: 26px; margin: 8px 10px 2px; cursor: pointer; touch-action: none; }
+.tm-line::before { content: ""; position: absolute; left: 0; right: 0; top: 10px; height: 6px; border-radius: 99px; background: rgb(255 255 255 / .1); }
+.tm-line i { position: absolute; top: 8px; height: 10px; min-width: 4px; border-radius: 3px; background: rgb(var(--kd-warn)); }
+.tm-line b { position: absolute; top: 4px; left: 0; width: 4px; height: 18px; margin-left: -2px; border-radius: 3px; background: rgb(var(--kd-tx)); box-shadow: 0 0 0 3px rgb(var(--kd-s1)); }
+
+.tm-list { list-style: none; display: flex; flex-direction: column; gap: 4px; margin: 0; padding: 6px 4px 4px; }
+.tm-row { display: flex; align-items: baseline; flex-wrap: wrap; gap: 2px 10px; padding: 9px 12px; border-radius: 13px; background: rgb(255 255 255 / .04); transition: background-color .25s, opacity .25s; }
+.tm-at { flex: none; font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; color: rgb(var(--kd-warn)); }
+.tm-tx { flex: 1; min-width: 120px; font-size: 14.5px; color: rgb(var(--kd-tx) / .86); overflow-wrap: anywhere; }
+.tm-row em { flex: none; margin-left: auto; font-style: normal; font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums; color: rgb(var(--kd-mut)); }
+.tm-row em:empty { display: none; }
+.tm-row[data-st="past"] { opacity: .42; }
+.tm-row[data-st="soon"] { background: rgb(var(--kd-warn) / .14); box-shadow: inset 0 0 0 1px rgb(var(--kd-warn) / .4); }
+.tm-row[data-st="soon"] em { color: rgb(var(--kd-warn)); }
+.tm-row[data-st="now"] { background: rgb(var(--kd-hot) / .16); box-shadow: inset 0 0 0 1px rgb(var(--kd-hot) / .5); }
+.tm-row[data-st="now"] .tm-at, .tm-row[data-st="now"] em { color: rgb(var(--kd-hot)); }
+.tm-clean { display: flex; align-items: center; gap: 8px; margin: 6px 4px 4px; padding: 11px 12px; border-radius: 13px; background: rgb(var(--kd-good) / .1); color: rgb(var(--kd-good)); font-size: 14.5px; font-weight: 600; }
+.tm-note { padding: 4px 12px; font-size: 13.5px; color: rgb(var(--kd-mut)); overflow-wrap: anywhere; }
+
+/* предупреждение поверх плеера; нажатия сквозь него идут в плеер */
+.kadr-tm-pill {
+  position: absolute; z-index: 5; top: 10px; left: 10px; display: flex; align-items: center; gap: 8px; max-width: calc(100% - 20px);
+  padding: 8px 14px 8px 10px; border-radius: 14px; pointer-events: none; font-size: 14.5px;
+  background: rgb(18 14 6 / .9); color: rgb(var(--kd-warn)); box-shadow: inset 0 0 0 1.5px rgb(var(--kd-warn) / .7), 0 10px 26px rgb(0 0 0 / .5);
+  animation: kadr-rise .3s var(--kd-out) both;
+}
+.kadr-tm-pill[hidden] { display: none; }
+.kadr-tm-pill b { flex: none; font-weight: 800; font-variant-numeric: tabular-nums; }
+.kadr-tm-pill span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #fff; opacity: .88; }
+.kadr-tm-pill[data-st="now"] { background: rgb(26 6 6 / .92); color: rgb(var(--kd-hot)); box-shadow: inset 0 0 0 1.5px rgb(var(--kd-hot) / .8), 0 10px 26px rgb(0 0 0 / .5); }
+@media (hover: hover) {
+  .kadr-tm .tm-fold:hover, .kadr-tm .tm-b:not(.tm-play):hover, .kadr-tm .tm-chip:not(.on):hover { background: rgb(255 255 255 / .1); color: rgb(var(--kd-tx)); }
+}
+
+/* ===================== актёры ===================== */
+.kadr-cast { margin-top: 30px; animation: kadr-rise .5s var(--kd-out) .08s both; }
+.kc-head { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.kadr-cast .kc-title { margin: 0; font-size: 21px; font-weight: 700; letter-spacing: -.015em; line-height: 1.2; color: rgb(var(--kd-tx)); }
+.kadr-cast > .kc-title { margin-bottom: 12px; }
+.kc-head em { margin-right: auto; padding: 1px 9px; border-radius: 99px; font-style: normal; font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums; background: rgb(255 255 255 / .08); color: rgb(var(--kd-tx2)); }
+.kadr-cast .kc-nav { display: none; place-items: center; width: 38px; height: 38px; border-radius: 12px; background: rgb(var(--kd-s1)); color: rgb(var(--kd-tx2)); box-shadow: inset 0 0 0 1px rgb(255 255 255 / .07); transition: background-color .2s, opacity .2s, transform .4s var(--kd-spring); }
+.kadr-cast .kc-nav:disabled { opacity: .35; }
+.kadr-cast .kc-nav:not(:disabled):active { transform: scale(.9); }
+.kc-track {
+  display: flex; gap: 12px; margin: 0 -16px; padding: 2px 16px 10px; overflow-x: auto; overscroll-behavior-x: contain;
+  scroll-snap-type: x proximity; scroll-padding: 0 16px; scrollbar-width: none;
+}
+.kc-track::-webkit-scrollbar { display: none; }
+.kc-card { flex: none; display: flex; flex-direction: column; gap: 2px; width: 104px; scroll-snap-align: start; }
+.kc-photo {
+  position: relative; display: grid; place-items: center; aspect-ratio: 4 / 5; margin-bottom: 6px; border-radius: 16px; overflow: hidden;
+  background: rgb(var(--kd-s1)); color: rgb(var(--kd-mut)); box-shadow: inset 0 0 0 1px rgb(255 255 255 / .07); transition: transform .42s var(--kd-spring), box-shadow .3s;
+}
+.kc-photo img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center 18%; }
+.kc-photo .k-ic { width: 38px; height: 38px; opacity: .6; }
+.kc-card b { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-size: 14px; font-weight: 650; line-height: 1.22; color: rgb(var(--kd-tx)); overflow-wrap: anywhere; }
+.kc-card small { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-size: 12.5px; line-height: 1.25; color: rgb(var(--kd-mut)); overflow-wrap: anywhere; }
+.kc-card:active .kc-photo { transform: scale(.95); }
+/* пока грузится */
+.kc-wait .kc-card i, .kc-wait .kc-card b, .kc-wait .kc-card small {
+  display: block; border-radius: 16px; background: linear-gradient(100deg, rgb(255 255 255 / .05) 40%, rgb(255 255 255 / .11) 50%, rgb(255 255 255 / .05) 60%) 0 0 / 200% 100%;
+  animation: kadr-shine 1.3s linear infinite;
+}
+.kc-wait .kc-card i { aspect-ratio: 4 / 5; margin-bottom: 6px; }
+.kc-wait .kc-card b { height: 13px; width: 84%; border-radius: 6px; }
+.kc-wait .kc-card small { height: 11px; width: 56%; margin-top: 4px; border-radius: 6px; }
+.kc-wait { overflow: hidden; }
+@media (min-width: 700px) {
+  .kc-card { width: 128px; }
+  .kc-track { margin: 0; padding: 2px 0 10px; scroll-padding: 0; }
+}
+@media (hover: hover) and (pointer: fine) {
+  .kadr-cast .kc-nav { display: grid; }
+  .kadr-cast .kc-nav:not(:disabled):hover { background: rgb(var(--kd-s2)); color: rgb(var(--kd-tx)); }
+  .kc-card:hover .kc-photo { transform: translateY(-3px); box-shadow: inset 0 0 0 1px rgb(255 255 255 / .18), 0 16px 26px -16px rgb(0 0 0 / .9); }
+}
+/* лента заменяет вкладку «Актёры» */
+html .tabs_header button[data-kadr-dup] { display: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  kadr-lists *, kadr-toast, .kadr-tm, .kadr-tm *, .kadr-tm-pill, .kadr-cast, .kadr-cast * { animation: none !important; transition-duration: .01ms !important; }
+}
