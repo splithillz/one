@@ -509,7 +509,7 @@
         html: markup(root), states: [], css: [], scripts: [], resources: [],
         // что ответил API сайта на запросы расширения (только форма), что не удалось, что сейчас показано
         // и какие сообщения шлёт плеер
-        api: X.shapes, fails: X.fails, info: X.info, player: X.msgs,
+        api: X.shapes, fails: X.fails, info: X.info, player: X.msgs, frames: X.frames,
         storage: { local: storageShape(localStorage), session: storageShape(sessionStorage) },
         cookieNames: document.cookie.split(';').map(function (c) { return c.split('=')[0].trim(); }).filter(Boolean)
       };

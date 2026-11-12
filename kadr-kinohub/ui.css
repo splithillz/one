@@ -233,6 +233,11 @@ html .player_theater .kadr-tm { display: none; }
 .kadr-tm.fold .tm-chev { transform: rotate(-90deg); }
 .kadr-tm .tm-mode { flex: none; display: flex; align-items: center; gap: 7px; height: 32px; margin-right: 6px; padding: 0 12px; border-radius: 99px; font-size: 13px; font-weight: 650; color: rgb(var(--kd-tx2)); background: rgb(255 255 255 / .06); }
 .tm-mode i { width: 7px; height: 7px; border-radius: 50%; background: rgb(var(--kd-mut)); }
+/* серия, которая сейчас играет в плеере */
+.tm-ep { flex: none; display: inline-flex; align-items: center; height: 32px; padding: 0 11px; border-radius: 99px; font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; color: rgb(var(--kd-acc-hi)); background: rgb(var(--kd-acc) / .14); }
+.tm-fold { overflow: hidden; }
+.tm-fold b { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tm-none { margin: 6px 4px 4px; padding: 11px 12px; border-radius: 13px; background: rgb(255 255 255 / .04); color: rgb(var(--kd-tx2)); font-size: 14.5px; }
 .tm-mode.auto { color: rgb(var(--kd-good)); background: rgb(var(--kd-good) / .12); }
 .tm-mode.auto i { background: currentColor; box-shadow: 0 0 0 3px rgb(var(--kd-good) / .2); }
 
