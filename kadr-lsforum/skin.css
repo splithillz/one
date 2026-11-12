@@ -151,9 +151,12 @@ html.kadr-rd .focus-mobile-search #elSearchField:focus { box-shadow: inset 0 0 0
   html.kadr-rd #ipsLayout_header { order: 1; }
   html.kadr-rd .focus-header { padding: 0 6px; }
   html.kadr-rd .focus-header-align { padding: 10px 0; gap: 12px; flex-wrap: nowrap; justify-content: space-between; }
-  html.kadr-rd .focus-logo { flex: 0 0 auto; height: var(--responsive-header--height); }
-  html.kadr-rd .lsp-header-widget { flex: 1 1 auto; min-width: 0; max-width: 320px; }
+  /* как у форума: виджет сервера своей ширины и без переносов, сжимается логотип (на 360 px он узкий и у самого форума) */
+  html.kadr-rd .focus-logo { flex: 0 1 auto; min-width: 0; height: var(--responsive-header--height); }
+  html.kadr-rd .focus-logo img { max-width: 100%; object-fit: contain; }
+  html.kadr-rd .lsp-header-widget { flex: 0 0 auto; min-width: 0; max-width: 100%; }
   html.kadr-rd .lsp-server-widget { min-width: 0; gap: 8px; padding: 10px 12px; }
+  html.kadr-rd .lsp-server-widget :is(.stat-row, .lsp-join-button) { white-space: nowrap; }
 }
 
 /* поиск на телефоне — тёмное стекло вместо белого поля */
