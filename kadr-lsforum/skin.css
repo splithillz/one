@@ -1,0 +1,476 @@
+/* Кадр для форума Los Santos Project — новый дизайн в стилистике kinoarc.
+   Работает, только пока у <html> есть класс kadr-rd (его ставит content.js; выключатель — «Новый дизайн»).
+
+   Цвета — переменные самого форума (--theme-*: «r, g, b»), поэтому дизайн одинаково работает и с темами
+   расширения (они подменяют эти переменные), и с родными цветами, и со светлой схемой форума.
+   Раскладку и формы задают переменные темы Focus (радиусы, высоты, отступы) плюс правила ниже.
+   Специфичность: у правил сайта вид .класс или #id .класс; здесь тот же селектор с html.kadr-rd впереди
+   (а где у сайта #focus — с html#focus.kadr-rd), поэтому дизайн побеждает без !important. */
+
+/* ---------- переменные ---------- */
+html.kadr-rd {
+  --k-page: rgb(var(--theme-page_background));
+  --k-card: rgb(var(--theme-area_background_reset));
+  --k-card2: rgb(var(--theme-area_background_light));
+  --k-tx: rgb(var(--theme-text_dark));
+  --k-tx2: rgb(var(--theme-text_color));
+  --k-mut: rgb(var(--theme-text_light));
+  --k-line: rgba(var(--theme-text_color), .08);
+  --k-line2: rgba(var(--theme-text_color), .14);
+  --k-hover: rgba(var(--theme-text_color), .06);
+  --k-acc: rgb(var(--theme-brand_primary));
+  --k-acc-soft: rgba(var(--theme-brand_primary), .15);
+  --k-acc-line: rgba(var(--theme-brand_primary), .45);
+  --k-ink: rgb(var(--theme-primary_button_font));
+  --k-ring: inset 0 0 0 1px var(--k-line);
+  --k-shadow: 0 1px 0 rgba(255,255,255,.03) inset, 0 18px 40px -26px rgba(0,0,0,.8);
+  --k-spring: cubic-bezier(.34, 1.4, .64, 1);
+  --k-out: cubic-bezier(.16, 1, .3, 1);
+  --k-font: Onest, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+
+  /* переменные Focus и Invision: формы, радиусы, высоты */
+  --radius-1: 10px; --radius-2: 14px;
+  --box--radius: 20px; --box--border-width: 0px; --box--boxShadow: var(--k-shadow); --box--backgroundColor: var(--k-card);
+  --button--radius: 12px; --form-field--radius: 12px; --popup--radius: 18px;
+  --popup--border: 1px solid var(--k-line2); --popup--boxShadow: 0 24px 60px -18px rgba(0,0,0,.75), 0 2px 8px rgba(0,0,0,.35);
+  --form-field--borderColor: var(--k-line2); --form-field--borderHoverColor: rgba(var(--theme-text_color), .3);
+  --form-field--focusShadow: rgba(var(--theme-brand_primary), .3) 0 0 0 4px;
+  --avatar--border-radius: 50%; --avatar--box-shadow: none;
+  --header--height: 92px; --responsive-header--height: 86px;
+  --logo--height: 64%; --responsive-logo--height: 78%;
+  --primary-navigation--height: 46px;
+  --nav-bar--padding: 0px; --nav--padding: 14px; --nav--margin: 0 1px; --nav--border-radius: 12px;
+  --nav--font-size: 14.5px; --nav--font-weight: 600; --nav--color: rgba(var(--theme-main_nav_font), .72);
+  --nav-hover--background: rgba(var(--theme-main_nav_font), .07); --nav-hover--color: rgb(var(--theme-main_nav_font));
+  --nav-active--background: var(--k-acc-soft); --nav-active--color: rgb(var(--theme-main_nav_font));
+  --nav-dropdown--background: var(--k-card); --nav-dropdown--border: var(--k-line2); --nav-dropdown--offset-y: 10px;
+  --nav-dropdown--box-shadow: var(--k-line2) 0 0 0 1px, rgba(0,0,0,.6) 0 20px 44px -16px;
+  --secondary-nav--background: transparent; --secondary-nav--box-shadow: none;
+  --search--height: 40px; --search--border-radius: 14px; --search--background: rgba(var(--theme-main_nav_font), .08);
+  --breadcrumb--background: transparent; --breadcrumb--border: transparent; --breadcrumb--border-width: 0px;
+  --breadcrumb--border-radius: 12px; --breadcrumb--box-shadow: none; --breadcrumb--height: 36px;
+  --breadcrumb-angle-1: transparent; --breadcrumb-angle-2: transparent;
+  --breadcrumb-hover: transparent; --breadcrumb-active: transparent;
+  --focus-social--border-radius: 12px; --focus-social--height: 36px;
+  --sectiontitle--background: transparent; --sectiontitle--border-radius: 20px 20px 0 0; --sectiontitle--border-width: 0;
+  --sectiontitle--font-size: 18px; --sectiontitle--padding: 18px 20px 8px; --sectiontitle--text-shadow: none; --sectiontitle--box-shadow: none;
+  --widgettitle--border-width: 0; --widgettitle--font-size: 15px; --widgettitle--padding: 16px 18px 8px;
+  --forum-icon--width: 44px; --forum-icon--height: 44px; --forum-icon--mobile: 1; --forum-icon--border-radius: 14px; --forum-icon--filter: none;
+  --post-header--border-radius: 14px; --post-header--border: 0; --post--font-size: 15px; --post--larger-font-size: 16.5px; --post--line-height: 1.68;
+  --author-pane-avatar: 96px; --author-pane--spacer: 60px; --author-pane--background: transparent;
+  --itemControls--background: transparent; --itemControls--border-width: 0;
+  --commentControlButton--border-radius: 10px; --commentControlButton--height: 30px;
+  --commentControlButton--background: rgba(var(--theme-text_light), .1);
+  --mega-footer--background: transparent;
+  --sp-layout: 18px;
+  scrollbar-color: rgba(var(--theme-text_color), .25) transparent;
+  -webkit-tap-highlight-color: transparent;
+}
+
+@keyframes kd-enter { from { opacity: 0; transform: translateY(12px) scale(.985); } }
+@keyframes kd-fade { from { opacity: 0; } }
+@keyframes kd-pop { from { opacity: 0; transform: translateY(-6px) scale(.97); } }
+
+/* ---------- основа ---------- */
+html.kadr-rd body { background-color: var(--k-page); -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; overflow-x: clip; }
+html.kadr-rd body,
+html.kadr-rd :is(input, button, select, textarea),
+html.kadr-rd :is(.ipsType_pageTitle, .ipsType_sectionTitle, .ipsType_secondaryTitle, .ipsType_sectionHead, .ipsType_minorHeading, .ipsWidget_title) { font-family: var(--k-font); }
+html.kadr-rd a { transition: color .15s; }
+html.kadr-rd :focus-visible { outline: 2px solid var(--k-acc); outline-offset: 2px; }
+html.kadr-rd ::selection { background: var(--k-acc); color: var(--k-ink); }
+/* тонкая подложка на всю страницу вместо сплошного фона-картинки темы */
+html.kadr-rd .background-overlay { background: none; }
+
+/* ---------- шапка: город — атмосферной подложкой, при прокрутке остаётся только навигация ---------- */
+html.kadr-rd .header-wrap {
+  background-image: linear-gradient(180deg, rgba(var(--theme-page_background), .35), rgba(var(--theme-page_background), .78) 62%, var(--k-page)), var(--focus-bg--image);
+  background-size: cover; background-position: center 30%; box-shadow: none;
+}
+html#focus.kadr-rd.enable--sticky-header .focus-sticky-header { top: calc(-1 * var(--kd-hero, var(--header--height))); }
+html.kadr-rd .focus-header { background: transparent; }
+html.kadr-rd .focus-header-align { gap: 18px; }
+html.kadr-rd .focus-logo img { filter: drop-shadow(0 6px 18px rgba(0,0,0,.55)); }
+/* виджет сервера: стеклянная карточка */
+html.kadr-rd .lsp-server-widget {
+  border-radius: 18px; border-color: rgba(255,255,255,.09);
+  background: rgba(var(--theme-page_background), .55);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.06), 0 16px 36px -22px rgba(0,0,0,.9);
+}
+html.kadr-rd .lsp-server-widget .lsp-join-button { border-radius: 12px; font-weight: 700; letter-spacing: .02em; transition: transform .4s var(--k-spring), filter .2s; }
+html.kadr-rd .lsp-server-widget .lsp-join-button:active { transform: scale(.96); }
+html.kadr-rd .lsp-server-widget .players-progress { border-radius: 99px; overflow: hidden; }
+/* ссылки пользователя в шапке */
+html.kadr-rd #elUserNav > li > a { border-radius: 12px; font-weight: 600; transition: background-color .2s, transform .4s var(--k-spring); }
+html.kadr-rd #elUserNav > li > a:active { transform: scale(.95); }
+/* у форума: #elUserNav > li > a#elRegisterButton { color: inherit } — белый текст на светлых акцентах (Noir) пропадал */
+html.kadr-rd #elUserNav > li > a#elRegisterButton { background: var(--k-acc); color: var(--k-ink); padding: 0 16px; }
+
+/* навигация — стеклянная плашка */
+html.kadr-rd .focus-nav-bar { padding: 0 0 12px; }
+html.kadr-rd .secondary-header-align {
+  gap: 10px; padding: 5px; border-radius: 18px;
+  background: rgba(var(--theme-main_nav), .66); -webkit-backdrop-filter: blur(22px) saturate(1.5); backdrop-filter: blur(22px) saturate(1.5);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.07), 0 16px 34px -18px rgba(0,0,0,.75);
+}
+html.kadr-rd .ipsNavBar_primary > ul > li > a { border-radius: 12px; transition: background-color .2s, color .2s, transform .42s var(--k-spring); }
+html.kadr-rd .ipsNavBar_primary > ul > li > a:active { transform: scale(.94); transition-duration: .12s; }
+html.kadr-rd .ipsNavBar_primary > ul > li.ipsNavBar_active > a { background: var(--k-acc-soft); color: rgb(var(--theme-main_nav_font)); }
+html.kadr-rd .ipsNavBar_primary > ul > li.ipsNavBar_active > a .ipsNavBar_active__identifier { display: none; }
+html.kadr-rd .ipsNavBar_secondary { border-radius: 16px; padding: 6px; }
+html.kadr-rd .ipsNavBar_secondary > li > a { border-radius: 10px; }
+html.kadr-rd .focus-search #elSearchField,
+html.kadr-rd .focus-mobile-search #elSearchField { border: 0; border-radius: 14px; box-shadow: inset 0 0 0 1px var(--k-line); transition: box-shadow .2s, background-color .2s; }
+html.kadr-rd .focus-search #elSearchField:focus,
+html.kadr-rd .focus-mobile-search #elSearchField:focus { box-shadow: inset 0 0 0 1.5px var(--k-acc); }
+
+/* ---------- телефон: верхняя панель значков плавает и остаётся при прокрутке ---------- */
+@media (max-width: 767px) {
+  html.kadr-rd #ipsLayout_body { padding-left: 12px; padding-right: 12px; }
+  html.kadr-rd .ipsResponsive_pull { margin-left: 0; margin-right: 0; border-radius: var(--box--radius); }
+  html.kadr-rd .ipsBox.ipsResponsive_pull, html.kadr-rd .ipsResponsive_pull.cPost { border-radius: var(--box--radius); }
+}
+@media (max-width: 979px) {
+  html.kadr-rd .header-wrap {
+    display: flex; flex-direction: column; position: sticky; z-index: var(--z-index--sticky-header, 350);
+    top: calc(-1 * var(--kd-hero, 150px)); padding: 0 10px 10px;
+  }
+  html.kadr-rd #elMobileNav {
+    order: 2; display: flex; justify-content: space-around; align-items: center; gap: 2px; margin: 0; padding: 4px;
+    border-radius: 18px; background: rgba(var(--theme-header), .62); -webkit-backdrop-filter: blur(22px) saturate(1.5); backdrop-filter: blur(22px) saturate(1.5);
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.08), 0 14px 30px -16px rgba(0,0,0,.8);
+  }
+  html.kadr-rd #elMobileNav > li { flex: 1 1 0; float: none; margin: 0; }
+  /* #elMobileNav#elMobileNav: у форума цвет ссылок задан через #elMobileNav li:not(#elMobileBreadcrumb) a — это два id */
+  html.kadr-rd #elMobileNav#elMobileNav > li > a {
+    display: grid; place-items: center; height: 42px; padding: 0; border-radius: 13px; font-size: 18px;
+    color: rgba(var(--theme-header_text), .82); transition: background-color .2s, transform .42s var(--k-spring);
+  }
+  html.kadr-rd #elMobileNav#elMobileNav > li > a:active { transform: scale(.9); background: rgba(var(--theme-header_text), .1); }
+  html.kadr-rd #elMobileNav#elMobileNav > li[data-kadr-entry] > a { color: var(--k-acc); }
+  html.kadr-rd #ipsLayout_header { order: 1; }
+  html.kadr-rd .focus-header { padding: 0 6px; }
+  html.kadr-rd .focus-header-align { padding: 10px 0; gap: 12px; flex-wrap: nowrap; justify-content: space-between; }
+  html.kadr-rd .focus-logo { flex: 0 0 auto; height: var(--responsive-header--height); }
+  html.kadr-rd .lsp-header-widget { flex: 1 1 auto; min-width: 0; max-width: 320px; }
+  html.kadr-rd .lsp-server-widget { min-width: 0; gap: 8px; padding: 10px 12px; }
+}
+
+/* поиск на телефоне — тёмное стекло вместо белого поля */
+html.kadr-rd .focus-mobile-search { background: rgba(var(--theme-page_background), .78); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); }
+html.kadr-rd .focus-mobile-search #elSearch { background: var(--k-card); color: var(--k-tx); border-radius: 16px; box-shadow: var(--k-ring), 0 20px 40px -18px rgba(0,0,0,.8); }
+html.kadr-rd .focus-mobile-search #elSearchField { background: transparent; color: var(--k-tx); }
+html.kadr-rd .focus-mobile-search__close { border-radius: 14px; }
+
+/* ---------- телефон: нижняя панель — плавающая стеклянная ---------- */
+html.kadr-rd .focus-mobile-footer {
+  left: 10px; right: 10px; bottom: max(10px, env(safe-area-inset-bottom)); width: auto; padding: 4px; border-radius: 22px;
+  background: rgba(var(--theme-area_background_reset), .82); -webkit-backdrop-filter: blur(22px) saturate(1.5); backdrop-filter: blur(22px) saturate(1.5);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.08), 0 18px 40px -14px rgba(0,0,0,.85); border: 0;
+}
+html.kadr-rd .focus-mobile-footer ul { gap: 2px; }
+html.kadr-rd .focus-mobile-footer li > a { border-radius: 16px; padding-top: 7px; padding-bottom: 6px; transition: background-color .2s, transform .42s var(--k-spring); }
+html.kadr-rd .focus-mobile-footer li > a:active { transform: scale(.92); }
+html.kadr-rd .focus-mobile-footer li.focus-mobile-footer__active > a { background: var(--k-acc-soft); color: rgb(var(--theme-text_dark)); }
+html.kadr-rd .focus-mobile-footer li.focus-mobile-footer__active > a .fa { color: var(--k-acc); }
+html.kadr-rd .focus-mobile-footer__text { font-size: 10.5px; font-weight: 600; letter-spacing: .01em; }
+html.kadr-rd .focus-mobile-footer-spacer { height: calc(var(--kd-footer, 64px) + 20px); }
+
+/* ---------- раскладка ---------- */
+html.kadr-rd .focus-content { background: transparent; box-shadow: none; border: 0; }
+@media (min-width: 980px) { html.kadr-rd .focus-content-padding { padding: 0; } }
+html.kadr-rd #ipsLayout_body { padding-top: 6px; }
+
+/* хлебные крошки — плашки */
+html.kadr-rd .ipsBreadcrumb { margin-bottom: 14px; }
+html.kadr-rd .ipsBreadcrumb ul[data-role="breadcrumbList"] { display: flex; flex-wrap: wrap; gap: 6px; padding: 0; }
+html.kadr-rd .ipsBreadcrumb ul[data-role="breadcrumbList"] > li { float: none; display: flex; margin: 0; padding: 0; }
+html.kadr-rd .ipsBreadcrumb ul[data-role="breadcrumbList"] > li::before,
+html.kadr-rd .ipsBreadcrumb ul[data-role="breadcrumbList"] > li::after,
+html.kadr-rd .ipsBreadcrumb ul[data-role="breadcrumbList"] > li > a::before,
+html.kadr-rd .ipsBreadcrumb ul[data-role="breadcrumbList"] > li > a::after { display: none; }
+html.kadr-rd .ipsBreadcrumb ul[data-role="breadcrumbList"] > li > a,
+html.kadr-rd .ipsBreadcrumb ul[data-role="breadcrumbList"] > li > span {
+  display: inline-flex; align-items: center; height: 32px; margin: 0; padding: 0 13px; border-radius: 11px; overflow: visible;
+  background: var(--k-card); box-shadow: var(--k-ring); color: var(--k-tx2); font-size: 13px; font-weight: 600;
+  line-height: 32px; transition: background-color .2s, color .2s, transform .42s var(--k-spring);
+}
+html.kadr-rd .ipsBreadcrumb ul[data-role="breadcrumbList"] > li > a:hover { background: var(--k-card2); color: var(--k-tx); }
+html.kadr-rd .ipsBreadcrumb ul[data-role="breadcrumbList"] > li > a:active { transform: scale(.95); }
+html.kadr-rd .ipsBreadcrumb ul[data-role="breadcrumbList"] > li:last-child > a,
+html.kadr-rd .ipsBreadcrumb ul[data-role="breadcrumbList"] > li:last-child > span { background: transparent; box-shadow: none; color: var(--k-mut); }
+html.kadr-rd .ipsBreadcrumb .ipsList_inline.ipsPos_right a { border-radius: 11px; }
+html.kadr-rd .focus-social a, html.kadr-rd [class*="cShareLink_"] { border-radius: 12px; }
+
+/* ---------- карточки ---------- */
+html.kadr-rd .ipsBox, html.kadr-rd .ipsWidget.ipsWidget_vertical, html.kadr-rd .ipsWidget.ipsWidget_horizontal {
+  border: 0; border-radius: var(--box--radius); background: var(--k-card); box-shadow: var(--k-shadow), var(--k-ring);
+}
+html.kadr-rd .ipsBox { animation: kd-enter .46s var(--k-spring) both; }
+html.kadr-rd .ipsBox.ipsBox--child, html.kadr-rd .ipsBox .ipsBox { animation: none; box-shadow: var(--k-ring); }
+html.kadr-rd .ipsSpacer_bottom.ipsBox { margin-bottom: 16px; }
+html.kadr-rd .ipsBox > :first-child { border-top-left-radius: var(--box--radius); border-top-right-radius: var(--box--radius); }
+html.kadr-rd .ipsBox > :last-child { border-bottom-left-radius: var(--box--radius); border-bottom-right-radius: var(--box--radius); }
+
+/* заголовки разделов — крупный текст на самой карточке, без картинки-полосы */
+html.kadr-rd .ipsType_sectionTitle {
+  background: transparent !important; background-image: none !important; color: var(--k-tx); font-size: 18px; font-weight: 700; letter-spacing: -.01em;
+  line-height: 1.25; border: 0; text-shadow: none; box-shadow: none;
+}
+html.kadr-rd .ipsType_sectionTitle a { color: inherit; }
+html.kadr-rd .cForumToggle { display: grid; place-items: center; width: 32px; height: 32px; margin-top: -4px; border-radius: 10px; color: var(--k-mut); background: var(--k-hover); transition: background-color .2s, transform .42s var(--k-spring); }
+html.kadr-rd .cForumToggle:active { transform: scale(.9); }
+
+/* главная: заголовок раздела — крупным текстом над карточкой со списком (как полки у kinoarc) */
+html.kadr-rd .cForumList, html.kadr-rd .cForumList > .cForumRow.ipsBox { background: none; box-shadow: none; animation: none; }
+html.kadr-rd .cForumList > .cForumRow.ipsBox { margin-bottom: 26px; }
+html.kadr-rd .cForumList .ipsType_sectionTitle { padding: 2px 4px 12px; font-size: 21px; font-weight: 800; letter-spacing: -.02em; }
+html.kadr-rd .cForumList .ipsDataList {
+  border: 0; border-radius: var(--box--radius); background: var(--k-card); box-shadow: var(--k-shadow), var(--k-ring);
+  animation: kd-enter .46s var(--k-spring) both;
+}
+
+/* заголовок страницы */
+html.kadr-rd .ipsPageHeader { padding: 22px 24px; }
+html.kadr-rd .ipsType_pageTitle { font-size: clamp(22px, 3vw, 30px); font-weight: 800; letter-spacing: -.025em; line-height: 1.15; color: var(--k-tx); }
+html.kadr-rd .ipsPageHeader .ipsHr { border-color: var(--k-line); margin: 14px 0; }
+html.kadr-rd .ipsPageHeader__meta { font-size: 14px; }
+
+/* ---------- списки: разделы, темы, участники ---------- */
+html.kadr-rd .ipsDataList { border-radius: inherit; }
+html.kadr-rd .ipsDataList_zebra > .ipsDataItem:nth-child(even) { background: transparent; }
+html.kadr-rd .ipsDataItem {
+  border: 0; border-top: 1px solid var(--k-line); transition: background-color .2s;
+}
+html.kadr-rd .ipsDataList > .ipsDataItem:first-child { border-top: 0; }
+html.kadr-rd .ipsDataItem:hover { background: var(--k-hover); }
+html.kadr-rd .ipsDataList > .ipsDataItem:last-child { border-bottom-left-radius: var(--box--radius); border-bottom-right-radius: var(--box--radius); }
+html.kadr-rd .ipsDataList_large .ipsDataItem_main { padding-top: 16px; padding-bottom: 16px; }
+html.kadr-rd .ipsDataItem_title { font-size: 16px; font-weight: 650; line-height: 1.3; letter-spacing: -.005em; }
+html.kadr-rd .ipsDataItem_title a { color: var(--k-tx); }
+html.kadr-rd .ipsDataItem_title a:hover { color: var(--k-acc); }
+html.kadr-rd .ipsDataItem_meta { color: var(--k-mut); font-size: 13.5px; }
+/* значок раздела — плитка */
+html.kadr-rd .ipsDataItem_icon.ipsDataItem_category { padding-top: 16px; }
+html.kadr-rd .cForumRow img.ipsItemStatus.ipsItemStatus_custom, html.kadr-rd .cForumIcon_normal, html.kadr-rd .cForumIcon_redirect {
+  width: 44px; height: 44px; max-width: none; padding: 9px !important; border-radius: 14px; object-fit: contain;
+  background: var(--k-acc-soft); box-shadow: inset 0 0 0 1px var(--k-acc-line);
+}
+html.kadr-rd .cForumRow .ipsDataItem_icon { width: auto; padding-right: 14px !important; }
+html.kadr-rd .ipsItemStatus:not(.ipsItemStatus_custom) { border-radius: 12px; }
+/* подразделы — плашки */
+html.kadr-rd .ipsDataItem_subList { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+html[dir].kadr-rd .ipsDataItem_subList { padding-left: 0 !important; padding-right: 0 !important; }
+html.kadr-rd .ipsDataItem_subList::before { display: none; }
+html.kadr-rd .ipsDataItem_subList > li { width: auto; margin: 0 !important; padding: 0; }
+html.kadr-rd .ipsDataItem_subList > li::before, html.kadr-rd .ipsDataItem_subList > li::after,
+html.kadr-rd .ipsDataItem_subList > li > a::after { display: none; content: none; }
+html.kadr-rd .ipsDataItem_subList > li > a {
+  display: inline-block; padding: 4px 11px 5px; border-radius: 999px; font-size: 13px; font-weight: 550; line-height: 1.3;
+  background: var(--k-hover); color: var(--k-tx2); transition: background-color .2s, color .2s, transform .42s var(--k-spring);
+}
+html.kadr-rd .ipsDataItem_subList > li > a:hover { background: var(--k-acc-soft); color: var(--k-tx); }
+html.kadr-rd .ipsDataItem_subList > li > a:active { transform: scale(.94); }
+/* узкий список на компьютере (главная с боковой колонкой): счётчик и последнее сообщение — второй строкой под названием,
+   а не отдельными колонками, которые зажимали название и подразделы. На телефоне остаётся родная мобильная раскладка форума. */
+html.kadr-rd ol.ipsDataList[data-role="forums"], html.kadr-rd .cForumList > li > ol { container-type: inline-size; }
+@media (min-width: 768px) { @container (max-width: 760px) {
+  html.kadr-rd .cForumRow.ipsDataItem { flex-wrap: wrap; align-items: flex-start; }
+  html.kadr-rd .cForumRow > .ipsDataItem_icon { order: 0; }
+  html.kadr-rd .cForumRow > .ipsDataItem_main { order: 1; flex: 1 1 0; min-width: 0; padding-bottom: 6px; }
+  /* разрыв строки после названия: всё остальное — второй строкой */
+  html.kadr-rd .cForumRow.ipsDataItem::after { content: ""; display: block; order: 2; flex: 0 0 100%; height: 0; clear: none; }
+  html.kadr-rd .cForumRow > .ipsDataItem_stats, html.kadr-rd .cForumRow > .ipsDataItem_lastPoster {
+    float: none; width: auto; max-width: none; text-align: left;
+  }
+  html.kadr-rd .cForumRow > .ipsDataItem_stats { order: 3; flex: 0 0 auto; margin: 0 16px 16px 58px !important; padding: 0; }
+  html.kadr-rd .cForumRow > .ipsDataItem_stats dl { display: flex; align-items: baseline; gap: 5px; margin: 0; }
+  html.kadr-rd .cForumRow > .ipsDataItem_lastPoster {
+    order: 4; flex: 1 1 0 !important; width: auto !important; min-width: 0; margin: 0 0 16px !important; padding: 0 !important;
+  }
+  /* последнее сообщение: аватар слева на две строки, справа тема и «автор, когда» — каждая в свою строку с многоточием */
+  html.kadr-rd .cForumRow > .ipsDataItem_lastPoster.ipsDataItem_withPhoto {
+    display: grid; grid-template-columns: 36px minmax(0, 1fr); column-gap: 10px; row-gap: 1px; align-items: center; align-content: center;
+  }
+  html.kadr-rd .cForumRow > .ipsDataItem_lastPoster > li { position: static !important; margin: 0; padding: 0; min-width: 0; }
+  html.kadr-rd .cForumRow > .ipsDataItem_lastPoster.ipsDataItem_withPhoto > li { grid-column: 2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  html.kadr-rd .cForumRow > .ipsDataItem_lastPoster.ipsDataItem_withPhoto > li:first-child { grid-column: 1; grid-row: 1 / span 2; overflow: visible; }
+  /* сам аватар остаётся позиционированным: к нему привязано кольцо ::after (inset: 0), иначе оно растягивается на всю строку */
+  html.kadr-rd .cForumRow > .ipsDataItem_lastPoster > li:first-child > .ipsUserPhoto {
+    position: relative !important; top: auto !important; left: auto !important; right: auto !important; transform: none !important; margin: 0 !important;
+  }
+} }
+/* цифры */
+html.kadr-rd .ipsDataItem_stats_number { font-size: 17px; font-weight: 750; color: var(--k-tx); font-variant-numeric: tabular-nums; }
+html.kadr-rd .ipsDataItem_stats_type { font-size: 12px; color: var(--k-mut); }
+html.kadr-rd .ipsCommentCount { border-radius: 10px; font-weight: 700; padding: 4px 9px; }
+html.kadr-rd .ipsCommentCount::after { display: none; }
+html.kadr-rd .ipsDataItem_lastPoster__title a { font-weight: 600; color: var(--k-tx2); }
+html.kadr-rd .ipsDataItem_lastPoster, html.kadr-rd .ipsDataItem_lastPoster .ipsType_light { font-size: 13px; }
+
+/* префиксы, метки, значки */
+html.kadr-rd .ipsBadge { border-radius: 999px; padding: 0 9px; font-weight: 700; letter-spacing: .01em; }
+html.kadr-rd .ipsTag, html.kadr-rd .ipsTags > li > a { border-radius: 999px; }
+
+/* ---------- виджеты в боковой колонке ---------- */
+html.kadr-rd .ipsWidget { margin-bottom: 16px; overflow: hidden; }
+html.kadr-rd .ipsWidget_title { background: transparent; border: 0; color: var(--k-tx); font-size: 15px; font-weight: 700; letter-spacing: -.005em; }
+html.kadr-rd .ipsWidget_inner { border-radius: 0 0 var(--box--radius) var(--box--radius); }
+html.kadr-rd .ipsWidget .ipsTabs { margin: 0 12px; }
+
+/* ---------- кнопки ---------- */
+html.kadr-rd .ipsButton {
+  border-radius: 12px; font-weight: 650; letter-spacing: .005em; text-transform: none;
+  transition: background-color .2s, color .2s, box-shadow .2s, transform .42s var(--k-spring), filter .2s;
+}
+html.kadr-rd .ipsButton:active:not(.ipsButton_disabled) { transform: scale(.96); transition-duration: .12s; }
+html.kadr-rd .ipsButton_primary, html.kadr-rd .ipsButton_important { box-shadow: 0 12px 24px -16px rgba(var(--theme-brand_primary), .9); }
+html.kadr-rd .ipsButton_primary:hover, html.kadr-rd .ipsButton_important:hover { filter: brightness(1.08); }
+html.kadr-rd .ipsButton_light, html.kadr-rd .ipsButton_veryLight, html.kadr-rd .ipsButton_normal { box-shadow: var(--k-ring); }
+html.kadr-rd .ipsButton_large { border-radius: 14px; }
+html.kadr-rd .ipsButton_link { border-radius: 10px; }
+
+/* ---------- формы ---------- */
+html.kadr-rd :is(input[type="text"], input[type="password"], input[type="email"], input[type="search"], input[type="number"], input[type="url"], input[type="tel"], input[type="date"], select, textarea):not([class*="cke"]) {
+  border-radius: 12px; background-color: rgba(var(--theme-page_background), .55); color: var(--k-tx);
+  border: 1px solid var(--k-line2); transition: border-color .2s, box-shadow .2s, background-color .2s;
+}
+html.kadr-rd :is(input[type="text"], input[type="password"], input[type="email"], input[type="search"], input[type="number"], input[type="url"], input[type="tel"], select, textarea):focus {
+  border-color: var(--k-acc); box-shadow: 0 0 0 4px rgba(var(--theme-brand_primary), .2); outline: none;
+}
+@media (max-width: 767px) {
+  /* на телефоне поля формы — во всю ширину (у форума они упираются в 350px) */
+  html.kadr-rd .ipsFieldRow_content :is(input[type="text"], input[type="password"], input[type="email"], input[type="url"], input[type="number"], input[type="tel"], select, textarea) { max-width: none; }
+}
+html.kadr-rd .ipsFieldRow_label { font-weight: 650; color: var(--k-tx); }
+html.kadr-rd .ipsFieldRow_desc { color: var(--k-mut); }
+html.kadr-rd .ipsForm_vertical .ipsFieldRow { margin-bottom: 18px; }
+html.kadr-rd .ipsCustomInput > span { border-radius: 7px; }
+html.kadr-rd .ipsSelectTree, html.kadr-rd .ipsAutocompleteMenu { border-radius: 12px; }
+html.kadr-rd .ipsComposeArea, html.kadr-rd .ipsComposeArea_editor { border-radius: 18px; }
+html.kadr-rd .cke_chrome, html.kadr-rd .cke_top, html.kadr-rd .cke_bottom { border-radius: 14px; }
+
+/* ---------- вкладки и перелистывание ---------- */
+html.kadr-rd .ipsTabs { background: transparent; border: 0; }
+html.kadr-rd .ipsTabs_item {
+  border-radius: 12px; margin: 4px 2px; padding: 0 14px; line-height: 38px; font-weight: 650; color: var(--k-mut);
+  border: 0; transition: background-color .2s, color .2s, transform .42s var(--k-spring);
+}
+html.kadr-rd .ipsTabs_item:hover { background: var(--k-hover); color: var(--k-tx); }
+html.kadr-rd .ipsTabs_item:active { transform: scale(.95); }
+html.kadr-rd .ipsTabs_activeItem, html.kadr-rd .ipsTabs_item[aria-selected="true"] { background: var(--k-acc-soft); color: var(--k-tx); }
+html.kadr-rd .ipsTabs_activeItem::after, html.kadr-rd .ipsTabs_item[aria-selected="true"]::after { display: none; }
+html.kadr-rd .ipsTabs_panels { border: 0; background: transparent; }
+html.kadr-rd .ipsPagination > li > a, html.kadr-rd .ipsPagination > li > span { border-radius: 11px; min-width: 34px; height: 34px; line-height: 34px; padding: 0 10px; font-weight: 650; }
+html.kadr-rd .ipsPagination_active > a { background: var(--k-acc); color: var(--k-ink); }
+/* лента активности: отметки времени — тихие плашки, а не яркие полосы */
+html.kadr-rd .ipsStreamItem_time {
+  border-radius: 999px; background: var(--k-card2); color: var(--k-tx2); box-shadow: var(--k-ring);
+  font-size: 12px; font-weight: 650; letter-spacing: .02em;
+}
+@media (max-width: 767px) {
+  html.kadr-rd .ipsStream_withTimeline .ipsStreamItem_time { display: table; margin-left: auto !important; margin-right: auto !important; }
+}
+html.kadr-rd .ipsButtonBar { border-radius: 16px; background: var(--k-card); box-shadow: var(--k-ring); }
+
+/* ---------- сообщения в темах ---------- */
+html.kadr-rd .cPost { margin-bottom: 16px; overflow: hidden; }
+html.kadr-rd .cPost.ipsBox { animation: kd-enter .46s var(--k-spring) both; }
+html.kadr-rd .cAuthorPane { padding: 22px 14px; }
+html.kadr-rd .cAuthorPane_author { font-size: 16px; font-weight: 750; }
+html.kadr-rd .cAuthorPane_photo .ipsUserPhoto { border-radius: 50%; }
+html.kadr-rd .cAuthorPane_photo .ipsUserPhoto img { border-radius: 50%; box-shadow: 0 0 0 3px var(--k-card), 0 0 0 5px var(--k-line2), 0 18px 34px -18px rgba(0,0,0,.85); }
+html.kadr-rd .cAuthorPane_info [data-role="group"] span { display: inline-block; padding: 3px 10px; border-radius: 999px; background: var(--k-hover); font-size: 12.5px; font-weight: 650; }
+html.kadr-rd .cAuthorPane_badge { border-radius: 50%; }
+html.kadr-rd .ipsComment_content { padding: 18px 22px; }
+html.kadr-rd .ipsComment_meta { color: var(--k-mut); font-size: 13px; }
+html.kadr-rd .cPost .ipsType_richText { font-size: var(--post--font-size); line-height: var(--post--line-height); color: var(--k-tx2); }
+html.kadr-rd .ipsType_richText a { color: var(--k-acc); text-decoration-color: rgba(var(--theme-brand_primary), .4); }
+html.kadr-rd .ipsType_richText img { border-radius: 12px; }
+html.kadr-rd .ipsQuote { border-radius: 16px; border: 0; border-left: 3px solid var(--k-acc); background: var(--k-hover); }
+html.kadr-rd .ipsQuote_citation { border-radius: 14px 14px 0 0; background: transparent; color: var(--k-mut); }
+html.kadr-rd .ipsCode, html.kadr-rd pre.ipsCode { border-radius: 14px; border: 0; box-shadow: var(--k-ring); }
+html.kadr-rd .ipsSpoiler { border-radius: 14px; }
+html.kadr-rd .ipsItemControls { border: 0; background: transparent; }
+html.kadr-rd .ipsComment_controls > li > a { border-radius: 10px; }
+html.kadr-rd .ipsReact_reaction, html.kadr-rd .ipsReact_reactCount { border-radius: 999px; }
+html.kadr-rd .ipsReact_types, html.kadr-rd .ipsReact .ipsReact_types { border-radius: 16px; }
+html.kadr-rd .ipsReactOverview { border-radius: 999px; }
+/* телефон: автор — строкой над сообщением */
+html.kadr-rd .cAuthorPane_mobile { padding: 14px 16px 0; gap: 12px; }
+html.kadr-rd .cAuthorPane_mobile .ipsUserPhoto img { border-radius: 50%; }
+/* служебные строки темы («закрыл тему», «3 месяца спустя…») */
+html.kadr-rd .ipsComment_meta.ipsType_light, html.kadr-rd .cTopicPostArea + .ipsBox { border-radius: 14px; }
+html.kadr-rd .ipsComment_eventSeparator, html.kadr-rd .ipsTimeline > li { border-radius: 12px; }
+/* «Для публикации сообщений…» — карточка гостя */
+html.kadr-rd .cTopicPostArea, html.kadr-rd .cGuestTeaser { border-radius: var(--box--radius); }
+
+/* ---------- меню, всплывающие окна, подсказки ---------- */
+html.kadr-rd .ipsMenu { border-radius: 18px; padding: 6px; border: 1px solid var(--k-line2); animation: kd-pop .2s var(--k-out) both; }
+html.kadr-rd .ipsMenu_item > a, html.kadr-rd .ipsMenu_item > span { border-radius: 10px; }
+html.kadr-rd .ipsMenu_sep hr { border-color: var(--k-line); }
+html.kadr-rd .ipsHovercard { border-radius: 20px; overflow: hidden; }
+html.kadr-rd .ipsDialog { border-radius: 22px; overflow: hidden; }
+html.kadr-rd .ipsDialog_title { font-weight: 750; }
+html.kadr-rd #ipsTooltip { border-radius: 10px; }
+html.kadr-rd #ipsTooltip > div { border-radius: 10px; }
+html.kadr-rd .ipsMessage { border-radius: 16px; }
+/* выезжающее меню на телефоне */
+html.kadr-rd .ipsDrawer_menu { border-radius: 24px 0 0 24px; overflow: hidden; }
+/* пункты меню — одинаковые строки; у пункта с подменю ссылка лежит внутри h4.ipsDrawer_title.
+   :is(#elMobileDrawer, .ipsDrawer) — вес id: у форума отступы ссылок заданы правилом с id */
+html.kadr-rd .ipsDrawer_list { padding-left: 8px; padding-right: 8px; }
+html.kadr-rd .ipsDrawer_list > li > .ipsDrawer_title { margin: 0; padding: 0; font: inherit; border: 0; background: none; }
+html.kadr-rd :is(#elMobileDrawer, .ipsDrawer) .ipsDrawer_list > li > a,
+html.kadr-rd :is(#elMobileDrawer, .ipsDrawer) .ipsDrawer_list > li > .ipsDrawer_title > a {
+  display: flex; align-items: center; min-height: 46px; margin: 2px 0; padding: 0 14px; border-radius: 12px;
+  font-size: 15px; font-weight: 600; line-height: 1.3; color: var(--k-tx); transition: background-color .2s, transform .42s var(--k-spring);
+}
+html.kadr-rd .ipsDrawer_list > li > a:hover, html.kadr-rd .ipsDrawer_list > li > .ipsDrawer_title > a:hover { background: var(--k-hover); }
+html.kadr-rd .ipsDrawer_list > li > a:active, html.kadr-rd .ipsDrawer_list > li > .ipsDrawer_title > a:active { transform: scale(.97); background: var(--k-hover); }
+html.kadr-rd :is(#elMobileDrawer, .ipsDrawer) .ipsDrawer_list > li[data-action="back"] > a { color: var(--k-mut); font-weight: 650; }
+html.kadr-rd .ipsDrawer_close { border-radius: 12px; }
+
+/* ---------- профиль ---------- */
+/* обложка скругляется сама, а не обрезкой всей шапки: аватар заходит на полосу со статистикой и должен быть виден целиком */
+html.kadr-rd #elProfileHeader, html.kadr-rd .ipsPageHead_special { border-radius: var(--box--radius) var(--box--radius) 0 0; }
+html.kadr-rd .ipsPageHead_special .ipsCoverPhoto_container, html.kadr-rd .ipsCoverPhoto { border-radius: var(--box--radius) var(--box--radius) 0 0; overflow: hidden; }
+html.kadr-rd #elProfilePhoto img, html.kadr-rd .cProfileHeader_photo img { border-radius: 50%; }
+html.kadr-rd #elProfilePhoto .ipsUserPhoto img { box-shadow: 0 0 0 4px var(--k-card), 0 18px 36px -16px rgba(0,0,0,.85); }
+html.kadr-rd #elProfileStats { border-radius: 0 0 var(--box--radius) var(--box--radius); }
+html.kadr-rd .ipsUserPhoto, html.kadr-rd .ipsUserPhoto img { border-radius: 50%; }
+/* имя и группа на обложке — стеклянные плашки вместо чёрных прямоугольников */
+html.kadr-rd .ipsPageHead_special .ipsPageHead_barText {
+  border-radius: 12px; background: rgba(var(--theme-area_background_dark), .55); -webkit-backdrop-filter: blur(14px) saturate(1.4); backdrop-filter: blur(14px) saturate(1.4);
+  font-weight: 700; letter-spacing: -.01em;
+}
+html.kadr-rd .ipsPageHead_special .cProfileHeader_name > span > .ipsPageHead_barText { margin-top: 5px; padding: 5px 11px; border-radius: 10px; font-size: 13px; font-weight: 650; }
+/* «стал победителем дня» — мягкая карточка цвета кубка вместо сплошной жёлтой */
+html.kadr-rd .cProfileSidebarBlock.ipsLeaderboard_trophy_1 { --kd-trophy: var(--trophy-first--background, #fac746); }
+html.kadr-rd .cProfileSidebarBlock.ipsLeaderboard_trophy_2 { --kd-trophy: var(--trophy-second--background, #c0c0c0); }
+html.kadr-rd .cProfileSidebarBlock.ipsLeaderboard_trophy_3 { --kd-trophy: var(--trophy-third--background, #cd7f32); }
+html.kadr-rd .cProfileSidebarBlock[class*="ipsLeaderboard_trophy_"] {
+  border-radius: 16px; color: var(--k-tx2);
+  background: color-mix(in srgb, var(--kd-trophy) 13%, var(--k-card)); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--kd-trophy) 42%, transparent);
+}
+html.kadr-rd .cProfileSidebarBlock[class*="ipsLeaderboard_trophy_"] a { color: var(--kd-trophy); }
+
+/* ---------- подвал ---------- */
+html.kadr-rd #ipsLayout_footer { background: transparent; border: 0; }
+html.kadr-rd #ipsLayout_footer a { color: var(--k-mut); }
+html.kadr-rd #ipsLayout_footer a:hover { color: var(--k-tx); }
+
+/* ---------- появление ---------- */
+html.kadr-rd .ipsDataList > .ipsDataItem { animation: kd-enter .42s var(--k-spring) both; }
+html.kadr-rd .ipsDataList > .ipsDataItem:nth-child(2) { animation-delay: .03s; }
+html.kadr-rd .ipsDataList > .ipsDataItem:nth-child(3) { animation-delay: .06s; }
+html.kadr-rd .ipsDataList > .ipsDataItem:nth-child(4) { animation-delay: .09s; }
+html.kadr-rd .ipsDataList > .ipsDataItem:nth-child(5) { animation-delay: .12s; }
+html.kadr-rd .ipsDataList > .ipsDataItem:nth-child(6) { animation-delay: .15s; }
+html.kadr-rd .ipsDataList > .ipsDataItem:nth-child(7) { animation-delay: .18s; }
+html.kadr-rd .ipsDataList > .ipsDataItem:nth-child(8) { animation-delay: .21s; }
+html.kadr-rd .ipsDataList > .ipsDataItem:nth-child(n+9) { animation-delay: .24s; }
+
+@media (prefers-reduced-motion: reduce) {
+  html.kadr-rd *, html.kadr-rd *::before, html.kadr-rd *::after { animation: none !important; transition-duration: .01ms !important; }
+}

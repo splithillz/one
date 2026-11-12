@@ -1,0 +1,75 @@
+{
+  "manifest_version": 3,
+  "name": "Кадр — темы для форума LS Project",
+  "short_name": "Кадр LS",
+  "version": "1.0.0",
+  "description": "Темы и новый дизайн для forum.ls-project.com — на компьютере и на телефоне.",
+  "icons": {
+    "16": "icons/16.png",
+    "32": "icons/32.png",
+    "48": "icons/48.png",
+    "128": "icons/128.png"
+  },
+  "permissions": [
+    "storage"
+  ],
+  "host_permissions": [
+    "*://forum.ls-project.com/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "*://forum.ls-project.com/*"
+      ],
+      "exclude_matches": [
+        "*://forum.ls-project.com/admin/*"
+      ],
+      "js": [
+        "themes.js",
+        "content.js"
+      ],
+      "css": [
+        "skin.css"
+      ],
+      "run_at": "document_start"
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Кадр — темы для форума LS Project",
+    "default_icon": {
+      "16": "icons/16.png",
+      "32": "icons/32.png"
+    }
+  },
+  "options_ui": {
+    "page": "popup.html",
+    "open_in_tab": true
+  },
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "popup.html",
+        "fonts/onest-cyrillic.woff2",
+        "fonts/onest-latin.woff2"
+      ],
+      "matches": [
+        "*://forum.ls-project.com/*"
+      ]
+    }
+  ],
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "kadr-themes@lsforum",
+      "strict_min_version": "128.0",
+      "data_collection_permissions": {
+        "required": [
+          "none"
+        ]
+      }
+    },
+    "gecko_android": {
+      "strict_min_version": "128.0"
+    }
+  }
+}
