@@ -25,7 +25,6 @@
     <button class="btn" id="permBtn" type="button">Дать доступ</button>
   </div>
 
-  <!-- Превью: форум в цветах выбранной темы. Раздел называется как тема. -->
   <section class="hero" aria-hidden="true">
     <div class="f-nav"><i class="on"></i><i></i><i></i><i></i><span class="f-search"></span></div>
     <div class="f-card">
@@ -38,6 +37,11 @@
 
   <main class="panel">
     <div class="themes" id="themes" role="radiogroup" aria-label="Тема"></div>
+    <div class="tune" id="tune" hidden>
+      <label class="tune-row"><span>Оттенок</span><input type="range" id="tuneH" class="tune-h" min="0" max="359" step="1"></label>
+      <label class="tune-row"><span>Насыщенность</span><input type="range" id="tuneS" class="tune-s" min="20" max="100" step="1"></label>
+      <label class="tune-row"><span>Яркость</span><input type="range" id="tuneL" class="tune-l" min="35" max="80" step="1"></label>
+    </div>
     <div class="opts">
       <div class="opt">
         <span id="skinLabel">Новый дизайн</span>
@@ -46,6 +50,22 @@
       <div class="opt only-touch" title="Кнопка «Тема» в верхней панели форума">
         <span id="menuLabel">Кнопка «Тема»</span>
         <button class="switch" id="menuSwitch" type="button" role="switch" aria-checked="true" aria-labelledby="menuLabel"><i></i></button>
+      </div>
+      <div class="opt dep" title="Значки на панели редактора сообщений — цветом темы">
+        <span id="ckeLabel">Цветные иконки редактора</span>
+        <button class="switch" id="ckeSwitch" type="button" role="switch" aria-checked="true" aria-labelledby="ckeLabel"><i></i></button>
+      </div>
+      <div class="opt dep">
+        <span id="shadowLabel">Тени</span>
+        <button class="switch" id="shadowSwitch" type="button" role="switch" aria-checked="true" aria-labelledby="shadowLabel"><i></i></button>
+      </div>
+      <div class="opt wide dep">
+        <span id="fxLabel">Стиль</span>
+        <div class="seg" id="fxSeg" role="radiogroup" aria-labelledby="fxLabel">
+          <button type="button" role="radio" data-fx="plain">Обычный</button>
+          <button type="button" role="radio" data-fx="glass">Стекло</button>
+          <button type="button" role="radio" data-fx="material">Material</button>
+        </div>
       </div>
     </div>
   </main>

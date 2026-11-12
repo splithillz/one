@@ -1,13 +1,8 @@
-// Kadr (Кадр) — темы для форума Los Santos Project (forum.ls-project.com).
-// Палитры и формула те же, что в «Кадре» для kinoarc и kinohub: из шести цветов темы выводится вся палитра.
-// Форум сделан на Invision Community с темой Focus, и все его цвета — CSS-переменные (--theme-*: «r, g, b»).
-// Поэтому тема ложится просто: расширение подменяет значения этих переменных, сайт перекрашивается сам.
 (function (g) {
   'use strict';
 
   var HOSTS = ['*://forum.ls-project.com/*'];
 
-  // «Родная» — тема выключена, сайт выглядит как есть.
   var OFF = 'off';
   var THEMES = [
     { id: 'mint',   name: 'Мята',   bg: '#0b0c0d', s1: '#141618', s2: '#1c1f21', s3: '#24282a', acc: '#3fe0a1', ink: '#06281b' },
@@ -21,7 +16,6 @@
     { id: 'spark',  name: 'Spark',  bg: '#0e0c07', s1: '#1a170e', s2: '#231f14', s3: '#2e291b', acc: '#e8be5e', ink: '#2b1e05' },
     { id: 'frost',  name: 'Frost',  bg: '#091016', s1: '#101a22', s2: '#16232d', s3: '#1e2e3a', acc: '#6dd3c8', ink: '#052522' }
   ];
-  // Родной вид форума в тех же шести цветах — для плитки «Родная» и интерфейса расширения, пока тема выключена.
   var NATIVE = { id: OFF, name: 'Родная', bg: '#141414', s1: '#242424', s2: '#2c2c2c', s3: '#383838', acc: '#6c9a64', ink: '#0b1409' };
 
   var BLACK = [0, 0, 0], WHITE = [255, 255, 255];
@@ -46,7 +40,6 @@
     };
   }
 
-  // --- Свой цвет: поверхности тонируются в оттенок акцента, как у готовых тем ---
   function lum(a) {
     var c = a.map(function (v) { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); });
     return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
@@ -67,21 +60,20 @@
     return p.map(function (v) { return Math.round((v + m) * 255); });
   }
   function contrast(a, b) { var x = lum(a), y = lum(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); }
-  // Цвет текста, который форум задал прямо в разметке (ник группы, цветной текст в сообщении), на тёмной теме:
-  // если на светлейшей из поверхностей темы он читается хуже 4.5:1 — светлее ровно настолько, чтобы читался;
-  // тон и насыщенность те же. null — менять не нужно (или темы нет).
-  function liftColor(c, state) {
+  function textOn(c, bg, min) {
+    if (contrast(c, bg) >= min) return c;
+    var h = toHsl(c), x = c, step = lum(bg) > 0.4 ? -0.02 : 0.02;
+    for (var i = 0; i < 60 && contrast(x, bg) < min; i++) { h[2] = Math.max(0, Math.min(1, h[2] + step)); x = fromHsl(h[0], h[1], h[2]); }
+    return x;
+  }
+  function liftColor(c, state, light) {
     var t = resolve(state);
     if (!t || !c) return null;
-    var bg = palette(t).s2;
-    if (contrast(c, bg) >= 4.5) return null;
-    var h = toHsl(c), x = c;
-    for (var i = 0; i < 60 && contrast(x, bg) < 4.5; i++) { h[2] = Math.min(1, h[2] + 0.02); x = fromHsl(h[0], h[1], h[2]); }
-    return x;
+    var x = textOn(c, light ? WHITE : palette(t).s2, 4.5);
+    return x === c ? null : x;
   }
   function fromAccent(seed) {
     var acc = rgb(seed), hsl = toHsl(acc);
-    // Тёмный акцент осветляем по яркости, сохраняя оттенок и насыщенность, иначе он не читается на тёмном фоне.
     for (var i = 0; i < 12 && lum(acc) < 0.25; i++) {
       hsl[2] += (1 - hsl[2]) * 0.15;
       acc = fromHsl(hsl[0], hsl[1], hsl[2]);
@@ -94,7 +86,6 @@
     };
   }
 
-  // Состояние из storage → тема. null — тема выключена, сайт не трогаем.
   function resolve(state) {
     if (!state || !state.theme || state.theme === OFF) return null;
     if (state.theme === 'custom') return /^#[0-9a-f]{6}$/i.test(state.seed || '') ? fromAccent(state.seed) : null;
@@ -105,17 +96,12 @@
     var t = resolve(state);
     return t ? t.name : NATIVE.name;
   }
-  // Палитра как CSS-переменные «r g b» — ими перекрашивается интерфейс самого расширения.
   function uiVars(state) {
     var p = palette(resolve(state) || NATIVE), out = {};
     Object.keys(p).forEach(function (k) { out['--' + kebab(k)] = p[k].join(' '); });
     return out;
   }
 
-  /* ===================== Тема → переменные форума ===================== */
-  // Как переменные Invision Community (--theme-*) раскладываются по палитре. Устроено как у самого форума:
-  // страница — самая тёмная, панели светлее её, кнопки ещё светлее, акцент — на выбранном и главных кнопках.
-  // Текст — нейтрально-светлый с лёгким оттенком темы: тогда тема та же при любой схеме сайта (и светлой тоже).
   function siteVars(t) {
     var p = palette(t), deep = mix(p.bg, BLACK, 0.35);
     var text = mix([216, 216, 216], p.acc, 0.04), dark = mix([240, 240, 240], p.acc, 0.03), light = mix([166, 166, 166], p.acc, 0.1);
@@ -129,69 +115,106 @@
       selected_border: p.acc, active_input_border: p.acc, primary_button: p.acc, important_button: p.acc,
       primary_button_font: p.ink, important_button_font: p.ink,
       link: text, link_hover: p.accHi, link_button: p.accHi,
-      text_color: text, text_dark: dark, text_light: light, text_very_light: WHITE, timeline_color: p.s3, // по нему форум пишет белым
+      text_color: text, text_dark: dark, text_light: light, text_very_light: WHITE, timeline_color: p.s3,
       header_text: dark, main_nav_font: dark, main_nav_tab_font: text, widget_title_font: dark, section_title_font: dark,
       secondary_title_font: dark, footer_text: text,
       normal_button_font: WHITE, light_button_font: WHITE, very_light_button_font: WHITE, alternate_button_font: WHITE,
       comment_count_font: WHITE, tag_font: WHITE
     };
-    // фоны «сменить фон» темы Focus — в тон темы
     for (var i = 1; i <= 10; i++) v['focus_bg_' + i + '_color'] = i === 1 ? p.s2 : i === 2 ? p.s1 : i === 3 ? p.s1b : p.bg2;
     var out = '';
     Object.keys(v).forEach(function (k) { out += '--theme-' + k + ':' + v[k].join(', ') + ';'; });
     var acc = 'rgb(' + p.acc.join(', ') + ')';
-    // и несколько цветов, которые тема Focus и сам форум задают не переменными --theme-*
     out += '--toggle-active--background:' + acc + ';--editor-save--background:' + acc + ';--user-nav-cta--background:' + acc + ';' +
-      '--user-nav-cta--color:rgb(' + p.ink.join(', ') + ');--focus-bg--color:rgb(' + p.bg.join(', ') + ');';
+      '--user-nav-cta--color:rgb(' + p.ink.join(', ') + ');--focus-bg--color:rgb(' + p.bg.join(', ') + ');' +
+      '--sectiontitle--box-shadow:inset 0 0 0 1px rgba(0, 0, 0, .14);';
     return out;
   }
 
-  // Весь CSS темы — новые значения переменных форума. Селектор сильнее, чем :root и [data-focus-scheme],
-  // в которых их задаёт сайт, — поэтому побеждает при любом порядке стилей. Без темы — пусто: форум в своих цветах
-  // (новый дизайн берёт цвета из тех же переменных, ему отдельные не нужны).
+  var LIGHT_NATIVE = {
+    active_input_border: [108, 154, 100], alternate_button: [53, 53, 53], alternate_button_font: [255, 255, 255],
+    area_background: [238, 239, 239], area_background_dark: [32, 32, 32], area_background_light: [247, 247, 247], area_background_reset: [255, 255, 255],
+    brand_primary: [108, 154, 100], button_bar: [255, 255, 255], comment_count: [243, 243, 243], comment_count_font: [61, 69, 78],
+    featured: [108, 154, 100], footer_text: [53, 60, 65], header: [32, 32, 32], header_text: [255, 255, 255],
+    important_button: [108, 154, 100], important_button_font: [0, 0, 0], item_status: [61, 69, 78],
+    light_button: [242, 242, 242], light_button_font: [51, 51, 51], link: [26, 32, 44], link_button: [143, 180, 134], link_hover: [13, 15, 19],
+    main_nav: [0, 0, 0], main_nav_font: [255, 255, 255], main_nav_tab: [255, 255, 255], main_nav_tab_font: [255, 255, 255],
+    mentions: [108, 154, 100], normal_button: [53, 53, 53], normal_button_font: [255, 255, 255], notification_bubble: [108, 154, 100],
+    page_background: [255, 255, 255], pagination_active: [108, 154, 100], prefix: [61, 69, 78],
+    primary_button: [108, 154, 100], primary_button_font: [0, 0, 0], profile_header: [61, 69, 78],
+    secondary_title: [255, 255, 255], secondary_title_font: [34, 34, 34], section_title: [108, 154, 100], section_title_font: [255, 255, 255],
+    selected: [235, 244, 249], selected_border: [108, 154, 100], tab_background: [61, 69, 78], tag: [255, 244, 223], tag_font: [0, 0, 0],
+    text_color: [53, 60, 65], text_dark: [0, 0, 0], text_light: [153, 153, 153], text_very_light: [255, 255, 255], timeline_color: [61, 69, 78],
+    very_light_button: [255, 255, 255], very_light_button_font: [32, 32, 32], widget_title_bar: [255, 255, 255], widget_title_font: [26, 32, 44]
+  };
+  function siteVarsLight(t) {
+    var p = palette(t), ah = toHsl(p.acc), hue = ah[0], sat = Math.min(0.3, ah[1] * 0.3);
+    var accText = textOn(p.acc, WHITE, 4.5), v = {};
+    Object.keys(LIGHT_NATIVE).forEach(function (k) {
+      var c = LIGHT_NATIVE[k];
+      v[k] = c[0] === 108 && c[1] === 154 && c[2] === 100 ? p.acc : fromHsl(hue, sat, toHsl(c)[2]);
+    });
+    v.page_background = fromHsl(hue, sat, 0.955);
+    v.text_light = fromHsl(hue, sat * 0.5, 0.42);
+    v.link_button = accText; v.link_hover = accText;
+    v.primary_button_font = p.ink; v.important_button_font = p.ink; v.section_title_font = p.ink;
+    v.prefix = p.acc; v.tag = mix(WHITE, p.acc, 0.16); v.selected = mix(WHITE, p.acc, 0.12);
+    v.main_nav = p.bg; v.header = p.s1;
+    for (var i = 1; i <= 10; i++) v['focus_bg_' + i + '_color'] = i === 1 ? p.s2 : i === 2 ? p.s1 : i === 3 ? p.s1b : p.bg2;
+    var out = '';
+    Object.keys(v).forEach(function (k) { out += '--theme-' + k + ':' + v[k].join(', ') + ';'; });
+    return out + '--focus-bg--color:rgb(' + v.page_background.join(', ') + ');--kd-acc-text:rgb(' + accText.join(', ') + ');' +
+      '--sectiontitle--box-shadow:inset 0 0 0 1px rgba(0, 0, 0, .1);';
+  }
+  function accentText(t, light) { var p = palette(t); return light ? textOn(p.acc, WHITE, 4.5) : p.acc; }
+
   function css(state) {
     var t = resolve(state);
     if (!t) return '';
     var p = palette(t), a = p.acc.join(', ');
-    var out = 'html:root:root{' + siteVars(t) + '}';
-    // Места, где форум задал цвета не переменными, а прямо значениями (и часто с !important):
-    // заголовки разделов (#353535) и зелёные акценты виджета сервера в шапке.
+    var out = 'html:root:root{' + siteVars(t) + '--kd-acc-text:' + t.acc + ';}' +
+      'html:root:root[data-focus-scheme="light"]{' + siteVarsLight(t) + '}';
+    var D = 'html:not([data-focus-scheme="light"]) ';
     out += 'html:not(.kadr-rd) .ipsType_sectionTitle.ipsType_sectionTitle{background:rgb(var(--theme-light_button)) none !important}' +
       'html .lsp-server-widget.lsp-server-widget{--lsp-accent:' + t.acc + '}' +
       'html .lsp-server-widget .lsp-join-button.lsp-join-button{background:rgba(' + a + ', .16) !important;border-color:rgba(' + a + ', .55) !important;color:' + hex(p.accHi) + ' !important}' +
       'html .lsp-server-widget .lsp-join-button.lsp-join-button:hover{background:rgba(' + a + ', .28) !important;border-color:' + t.acc + ' !important;color:' + hex(p.acc50) + ' !important}' +
       'html .lsp-header-widget .fivem-logo.fivem-logo{background-color:' + t.acc + ' !important}' +
-      // У форума текст на фоне акцента — жёстко белый (#fff): на светлых акцентах тем он не читается (≤ 2.6:1).
-      // Здесь он цвета «чернил» темы (≥ 5:1 на любом акценте, и на своём цвете тоже).
       'html .ipsTag_prefix.ipsTag_prefix,html a[data-mentionid][data-mentionid]:not(.cContentMessage a){color:' + t.ink + ' !important}' +
       'html .ipsPagination .ipsPagination_page.ipsPagination_active a,html .ipsButtonBar .ipsPagination .ipsPagination_page.ipsPagination_active a,' +
       'html .ipsButtonRow li > a.ipsButtonRow_active,html .ipsButtonRow li > button.ipsButtonRow_active,html .ipsComment.ipsComment_popular .ipsComment_popularFlag,' +
       'html .ipsCustomInput input:checked + span,html .cContentItem_delete,html .ipsSelectTree [data-role="tokenList"] .cToken,html .ipsCommentCount_hot,' +
       'html .ipsApp .ipsNotificationCount,html .focus-mobile-footer__notification,html .ipsProgressBar_progress{color:' + t.ink + '}' +
-      // Красный и зелёный текст статусов (предупреждения, «обязательно», репутация) у форума рассчитан на светлый фон;
-      // темы тёмные — здесь светлые варианты. Сами переменные --negative-dark и т. п. не трогаются: ими же залиты
-      // кнопки и сообщения с белым текстом.
-      'html .ipsType_warning,html .ipsType_negative,html .ipsType_spammer,html .memberBlockedEmailWrap,html .ipsMenu_item.ipsType_negative a,' +
-      'html .ipsApp .ipsButton_link--negative,html .ipsApp .ipsButton_veryLight.ipsButton_veryLight--negative,html .ipsFieldRow_required.ipsFieldRow_required,' +
-      'html .ipsForm_horizontal .ipsFieldRow_required.ipsFieldRow_required::before{color:#f07070}' +
-      'html .ipsType_success,html .ipsType_positive{color:#5fd09b}' +
-      'html .ipsRepBadge_negative.ipsRepBadge_negative{color:#f07070 !important}html .ipsRepBadge_positive.ipsRepBadge_positive{color:#8bd05c !important}' +
+      [D + '.ipsType_warning', D + '.ipsType_negative', D + '.ipsType_spammer', D + '.memberBlockedEmailWrap', D + '.ipsMenu_item.ipsType_negative a',
+        D + '.ipsApp .ipsButton_link--negative', D + '.ipsApp .ipsButton_veryLight.ipsButton_veryLight--negative', D + '.ipsFieldRow_required.ipsFieldRow_required',
+        D + '.ipsForm_horizontal .ipsFieldRow_required.ipsFieldRow_required::before'].join(',') + '{color:#f07070}' +
+      D + '.ipsType_success,' + D + '.ipsType_positive{color:#5fd09b}' +
+      D + '.ipsRepBadge_negative.ipsRepBadge_negative{color:#f07070 !important}' + D + '.ipsRepBadge_positive.ipsRepBadge_positive{color:#8bd05c !important}' +
       '::selection{background-color:' + t.acc + ';color:' + t.ink + '}';
     return out;
   }
 
-  // Ключевые цвета форума под темой — для превью в окне расширения. Без темы — родные.
-  function siteLook(state) {
-    var t = resolve(state) || NATIVE, p = palette(t);
+  function siteLook(state, light) {
+    var t = resolve(state);
+    if (light) {
+      if (!t) return { page: '#ffffff', panel: '#ffffff', raised: '#f7f7f7', line: '#dfe1e2', acc: '#6c9a64', ink: '#000000', text: '#000000', text2: '#353c41', muted: '#6d7378', dark: false };
+      var lp = palette(t), ah = toHsl(lp.acc), sat = Math.min(0.3, ah[1] * 0.3);
+      return {
+        page: hex(fromHsl(ah[0], sat, 0.955)), panel: '#ffffff', raised: hex(fromHsl(ah[0], sat, 0.97)), line: hex(fromHsl(ah[0], sat, 0.88)),
+        acc: hex(lp.acc), ink: hex(lp.ink), text: hex(fromHsl(ah[0], sat, 0.08)), text2: hex(fromHsl(ah[0], sat, 0.23)), muted: hex(fromHsl(ah[0], sat * 0.5, 0.42)), dark: false
+      };
+    }
+    var p = palette(t || NATIVE);
     return {
-      page: hex(p.bg), panel: hex(t === NATIVE ? rgb('#262626') : p.s1), raised: hex(p.s1b), line: hex(p.s3),
-      acc: hex(p.acc), ink: hex(p.ink), text: '#eeeeee', text2: '#d5d5d5', muted: '#999999'
+      page: hex(p.bg), panel: hex(t ? p.s1 : rgb('#262626')), raised: hex(p.s1b), line: hex(p.s3),
+      acc: hex(p.acc), ink: hex(p.ink), text: '#eeeeee', text2: '#d5d5d5', muted: '#999999', dark: true
     };
   }
 
   g.KADR = {
     HOSTS: HOSTS, OFF: OFF, THEMES: THEMES, NATIVE: NATIVE,
     palette: palette, fromAccent: fromAccent, resolve: resolve, themeName: themeName, uiVars: uiVars,
-    siteVars: siteVars, css: css, liftColor: liftColor, siteLook: siteLook
+    siteVars: siteVars, siteVarsLight: siteVarsLight, css: css, liftColor: liftColor, accentText: accentText, textOn: textOn,
+    contrast: contrast, toHsl: toHsl, fromHsl: fromHsl, hex: hex, rgb: rgb, siteLook: siteLook
   };
 })(typeof window !== 'undefined' ? window : globalThis);

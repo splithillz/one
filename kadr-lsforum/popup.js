@@ -6,10 +6,9 @@
   var root = document.documentElement;
   var $ = function (id) { return document.getElementById(id); };
 
-  // Шторка внутри форума (iframe из content.js); режим вёрстки уже выставил env.js.
-  var SHEET = location.hash === '#sheet';
+  var SHEET = /^#sheet/.test(location.hash);
+  var siteLight = /light/.test(location.hash);
 
-  /* ---------- значки интерфейса ---------- */
   var UI = {
     external: 'M8 16 16 8M9.5 8H16v6.5',
     close: 'M6.5 6.5l11 11M17.5 6.5l-11 11',
@@ -38,17 +37,13 @@
   function closeSheet() { try { parent.postMessage('kadr:close', '*'); } catch (e) {} }
   $('closeSheet').addEventListener('click', closeSheet);
   if (SHEET) document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeSheet(); });
-  // Свайпы по шторке не должны двигать форум под ней. Когда настройки стоят в самом верху и палец идёт вниз,
-  // двигается сама шторка (её двигает страница форума — content.js, сюда приходят только касания) и закрывается.
-  // Когда листать внутри нечего или некуда, жест гасится здесь, иначе браузер передал бы прокрутку странице.
   if (SHEET) (function () {
     var st = null;
     function say(m) { try { parent.postMessage(m, '*'); } catch (e) {} }
     document.addEventListener('touchstart', function (e) {
       st = null;
-      if (e.touches.length !== 1) return;
+      if (e.touches.length !== 1 || (e.target.closest && e.target.closest('input[type="range"]'))) return;
       var t = e.touches[0], sc = document.scrollingElement;
-      // screenY, а не clientY: шторка едет вместе с пальцем, и координаты внутри неё почти не меняются
       st = { x: t.screenX, y: t.screenY, at: e.timeStamp, top: !sc || sc.scrollTop <= 0, end: !sc || sc.scrollTop >= sc.scrollHeight - sc.clientHeight - 1, on: false, block: false, dy: 0 };
     }, { passive: true });
     document.addEventListener('touchmove', function (e) {
@@ -56,15 +51,15 @@
       var t = e.touches[0], dy = t.screenY - st.y, dx = t.screenX - st.x;
       if (st.block) { if (e.cancelable) e.preventDefault(); return; }
       if (!st.on) {
-        if (Math.abs(dx) > 8 && Math.abs(dx) > Math.abs(dy)) { st = null; return; }  // вбок — не наше
-        if (dy <= -8) {                                                             // палец вверх: листать вниз
-          if (!st.end) { st = null; return; }                                       // есть куда — обычная прокрутка
+        if (Math.abs(dx) > 8 && Math.abs(dx) > Math.abs(dy)) { st = null; return; }
+        if (dy <= -8) {
+          if (!st.end) { st = null; return; }
           st.block = true;
           if (e.cancelable) e.preventDefault();
           return;
         }
         if (dy < 10) return;
-        if (!st.top) { st = null; return; }                                          // палец вниз, но настройки не в начале — обычная прокрутка
+        if (!st.top) { st = null; return; }
         st.on = true;
       }
       if (e.cancelable) e.preventDefault();
@@ -80,7 +75,6 @@
     document.addEventListener('touchcancel', end);
   })();
 
-  /* ---------- темы ---------- */
   var cur = { theme: K.OFF, seed: null };
   var box = $('themes');
   var themeColor = document.createElement('meta');
@@ -95,7 +89,6 @@
     node.style.setProperty('--t-ink', t.ink);
   }
   function check() { var c = el('span', 'th-ck'); c.appendChild(ui('check')); return c; }
-  // «Родная» (форум как есть) и готовые палитры — одинаковые плитки.
   [K.NATIVE].concat(K.THEMES).forEach(function (t) {
     var b = el('button', 'th');
     b.type = 'button';
@@ -109,31 +102,46 @@
     box.appendChild(b);
   });
 
-  // «Свой»: сама плитка — нативный выбор цвета, поверх неё прозрачный <input type="color">.
-  var custom = el('label', 'th custom');
+  var seed = '#5ec8ff';
+  var custom = el('button', 'th custom');
+  custom.type = 'button';
+  custom.setAttribute('role', 'radio');
+  custom.dataset.id = 'custom';
   var cSw = el('span', 'th-sw');
   cSw.appendChild(el('i'));
-  var pick = document.createElement('input');
-  pick.type = 'color';
-  pick.value = '#5ec8ff';
-  pick.setAttribute('aria-label', 'Свой цвет темы');
-  custom.append(cSw, el('span', 'th-nm', 'Свой'), check(), pick);
+  custom.append(cSw, el('span', 'th-nm', 'Свой'), check());
   box.appendChild(custom);
+  var tune = $('tune'), tH = $('tuneH'), tS = $('tuneS'), tL = $('tuneL');
 
   function paintCustom() {
-    themeVars(custom, K.fromAccent(pick.value));
-    custom.title = pick.value.toUpperCase();
+    themeVars(custom, K.fromAccent(seed));
+    custom.title = seed.toUpperCase();
+    var h = +tH.value, s = +tS.value, l = +tL.value;
+    tS.style.setProperty('--track', 'linear-gradient(90deg, hsl(' + h + ' 15% ' + l + '%), hsl(' + h + ' 100% ' + l + '%))');
+    tL.style.setProperty('--track', 'linear-gradient(90deg, hsl(' + h + ' ' + s + '% 30%), hsl(' + h + ' ' + s + '% 55%), hsl(' + h + ' ' + s + '% 85%))');
+    tune.style.setProperty('--knob', seed);
   }
-  var pickTimer = 0;
-  pick.addEventListener('click', function () { setTheme('custom', pick.value); });
-  pick.addEventListener('input', function () {
+  function slidersFromSeed() {
+    var hsl = K.toHsl(K.rgb(seed));
+    tH.value = Math.round(hsl[0]);
+    tS.value = Math.max(20, Math.round(hsl[1] * 100));
+    tL.value = Math.min(80, Math.max(35, Math.round(hsl[2] * 100)));
+  }
+  var tuneTimer = 0;
+  function onTune() {
+    seed = K.hex(K.fromHsl(+tH.value, +tS.value / 100, +tL.value / 100));
     paintCustom();
-    // пока тянешь ползунок — не чаще ~11 раз в секунду, вкладкам форума хватит
-    if (!pickTimer) pickTimer = setTimeout(function () { pickTimer = 0; setTheme('custom', pick.value); }, 90);
+    if (!tuneTimer) tuneTimer = setTimeout(function () { tuneTimer = 0; setTheme('custom', seed); }, 90);
+  }
+  [tH, tS, tL].forEach(function (r) {
+    r.addEventListener('input', onTune);
+    r.addEventListener('change', function () { clearTimeout(tuneTimer); tuneTimer = 0; setTheme('custom', seed); });
   });
-  pick.addEventListener('change', function () { setTheme('custom', pick.value); });
+  custom.addEventListener('click', function () {
+    if (cur.theme === 'custom') tune.hidden = !tune.hidden;
+    else { tune.hidden = false; setTheme('custom', seed); }
+  });
 
-  // Стрелки внутри группы, один таб-стоп.
   function radios() { return [].slice.call(box.querySelectorAll('[role="radio"]')); }
   box.addEventListener('keydown', function (e) {
     var k = e.key;
@@ -146,13 +154,14 @@
     next.click();
   });
 
-  function setTheme(id, seed) {
+  function setTheme(id, s) {
     cur.theme = id;
     if (id === 'custom') {
-      cur.seed = seed;
-      store.set({ theme: 'custom', seed: seed });
+      cur.seed = s;
+      store.set({ theme: 'custom', seed: s });
     } else {
-      store.set({ theme: id }); // свой цвет помним, даже когда выбрана другая тема
+      tune.hidden = true;
+      store.set({ theme: id });
     }
     render();
   }
@@ -164,43 +173,60 @@
       if (sel) on = b;
     });
     list.forEach(function (b) { b.tabIndex = b === (on || list[0]) ? 0 : -1; });
-    custom.toggleAttribute('data-on', cur.theme === 'custom');
     var v = K.uiVars(cur);
     for (var k in v) root.style.setProperty(k, v[k]);
     themeColor.content = 'rgb(' + v['--bg'].split(' ').join(',') + ')';
-    // превью — форум под этой темой: те же цвета, что получит страница
-    var L = K.siteLook(cur), hero = document.querySelector('.hero');
-    hero.classList.toggle('skin', skinOn);
-    hero.style.setProperty('--f-page', L.page);
-    hero.style.setProperty('--f-panel', L.panel);
-    hero.style.setProperty('--f-raised', L.raised);
-    hero.style.setProperty('--f-line', L.line);
-    hero.style.setProperty('--f-acc', L.acc);
-    hero.style.setProperty('--f-ink', L.ink);
+    var L = K.siteLook(cur, siteLight), hero = document.querySelector('.hero');
+    hero.classList.toggle('skin', prefs.skin);
+    hero.classList.toggle('light', siteLight);
+    [['--f-page', L.page], ['--f-panel', L.panel], ['--f-raised', L.raised], ['--f-line', L.line], ['--f-acc', L.acc], ['--f-ink', L.ink],
+      ['--f-tx', L.text], ['--f-tx2', L.text2], ['--f-mut', L.muted]].forEach(function (x) { hero.style.setProperty(x[0], x[1]); });
     $('heroName').textContent = K.themeName(cur);
   }
 
-  /* ---------- новый дизайн ---------- */
-  var skinOn = true;
-  function renderSkin() { $('skinSwitch').setAttribute('aria-checked', String(skinOn)); }
-  $('skinSwitch').addEventListener('click', function () {
-    skinOn = !skinOn;
-    store.set({ skin: skinOn });
-    renderSkin();
-    render();
+  var prefs = { skin: true, menuEntry: true, ckeTint: true, shadows: true, fx: 'plain' };
+  function renderOpts() {
+    $('skinSwitch').setAttribute('aria-checked', String(prefs.skin));
+    $('menuSwitch').setAttribute('aria-checked', String(prefs.menuEntry));
+    $('ckeSwitch').setAttribute('aria-checked', String(prefs.ckeTint));
+    $('shadowSwitch').setAttribute('aria-checked', String(prefs.shadows));
+    [].forEach.call($('fxSeg').querySelectorAll('[data-fx]'), function (b) {
+      var on = b.dataset.fx === prefs.fx;
+      b.setAttribute('aria-checked', String(on));
+      b.tabIndex = on ? 0 : -1;
+    });
+    [].forEach.call(document.querySelectorAll('.opt.dep'), function (o) { o.setAttribute('aria-disabled', String(!prefs.skin)); });
+  }
+  function toggle(id, key) {
+    $(id).addEventListener('click', function () {
+      prefs[key] = !prefs[key];
+      var d = {}; d[key] = prefs[key];
+      store.set(d);
+      renderOpts();
+      render();
+    });
+  }
+  toggle('skinSwitch', 'skin');
+  toggle('menuSwitch', 'menuEntry');
+  toggle('ckeSwitch', 'ckeTint');
+  toggle('shadowSwitch', 'shadows');
+  $('fxSeg').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-fx]');
+    if (!b) return;
+    prefs.fx = b.dataset.fx;
+    store.set({ fx: prefs.fx });
+    renderOpts();
+  });
+  $('fxSeg').addEventListener('keydown', function (e) {
+    var step = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0;
+    if (!step) return;
+    e.preventDefault();
+    var list = [].slice.call($('fxSeg').querySelectorAll('[data-fx]')), i = list.indexOf(document.activeElement);
+    var next = list[(Math.max(0, i) + step + list.length) % list.length];
+    next.focus();
+    next.click();
   });
 
-  /* ---------- кнопка в верхней панели форума (телефон) ---------- */
-  var menuOn = true;
-  function renderMenu() { $('menuSwitch').setAttribute('aria-checked', String(menuOn)); }
-  $('menuSwitch').addEventListener('click', function () {
-    menuOn = !menuOn;
-    store.set({ menuEntry: menuOn });
-    renderMenu();
-  });
-
-  /* ---------- доступ к сайту ---------- */
-  // Firefox и Chrome с «доступом по клику» могут не дать расширению форум — тогда тема не применится.
   function checkPerm() {
     if (!chrome.permissions || !chrome.permissions.contains) return;
     chrome.permissions.contains({ origins: K.HOSTS }, function (ok) { $('perm').hidden = !!ok; });
@@ -209,17 +235,20 @@
     chrome.permissions.request({ origins: K.HOSTS }, function (ok) { if (ok) $('perm').hidden = true; });
   });
 
-  /* ---------- состояние ---------- */
-  store.get(['theme', 'seed', 'skin', 'menuEntry'], function (d) {
+  store.get(['theme', 'seed', 'skin', 'menuEntry', 'ckeTint', 'shadows', 'fx', 'siteScheme'], function (d) {
     d = d || {};
     cur = { theme: d.theme || K.OFF, seed: d.seed || null };
-    if (/^#[0-9a-f]{6}$/i.test(d.seed || '')) pick.value = d.seed.toLowerCase();
-    menuOn = d.menuEntry !== false;
-    skinOn = d.skin !== false;
+    if (/^#[0-9a-f]{6}$/i.test(d.seed || '')) seed = d.seed.toLowerCase();
+    prefs.skin = d.skin !== false;
+    prefs.menuEntry = d.menuEntry !== false;
+    prefs.ckeTint = d.ckeTint !== false;
+    prefs.shadows = d.shadows !== false;
+    prefs.fx = d.fx === 'glass' || d.fx === 'material' ? d.fx : 'plain';
+    if (!SHEET && d.siteScheme === 'light') siteLight = true;
+    slidersFromSeed();
     paintCustom();
     render();
-    renderMenu();
-    renderSkin();
+    renderOpts();
     checkPerm();
   });
 })();

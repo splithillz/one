@@ -1,13 +1,6 @@
-// Kadr (Кадр) для форума Los Santos Project — контент-скрипт.
-// ТЕМА. Форум (Invision Community + тема Focus) берёт все цвета из CSS-переменных. Тема — это один <style>
-//   с новыми значениями этих переменных (themes.js → KADR.css). Он стоит последним в документе, а селектор у него
-//   сильнее, чем у сайта, так что новые значения побеждают при любом порядке стилей.
-// НОВЫЙ ДИЗАЙН. Правила — в skin.css (подключён манифестом) и работают при классе kadr-rd у <html>; здесь — его
-//   выключатель и шрифт Onest (адрес файлов шрифта известен только здесь).
-// ТЕЛЕФОН. В верхней панели форума появляется кнопка «Тема»: она открывает шторку с настройками расширения.
 (function () {
   'use strict';
-  if (window.__kadrLs) return; // защита от повторной инъекции
+  if (window.__kadrLs) return;
   window.__kadrLs = true;
 
   var K = window.KADR;
@@ -15,12 +8,13 @@
   var root = document.documentElement;
   var ID = 'kadr-theme';
   var state = { theme: K.OFF, seed: null };
-  var skin = true;              // новый дизайн (storage.skin === false — выключен)
-  root.classList.add('kadr-rd'); // сразу, до ответа storage: форум рисует себя позже, мигания не будет
+  var skin = true;
+  root.classList.add('kadr-rd');
   var ready = false;
-  var styleEl = null;
+  var styleEl = null, fontEl = null;
+  var prefs = { ckeTint: true, fx: 'plain', shadows: true, lspMin: false };
+  function isLight() { return root.getAttribute('data-focus-scheme') === 'light'; }
 
-  // Шрифт нового дизайна — Onest, как у kinoarc.
   var FONT = '';
   try {
     FONT = '@font-face{font-family:Onest;font-style:normal;font-weight:400 800;font-display:swap;src:url("' +
@@ -30,11 +24,23 @@
       'U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}';
   } catch (e) {}
 
-  // Наш <style> — последним ребёнком <html> (после <body>): позже всего, что сайт добавит в <head> и <body>.
+  function syncFont() {
+    if (skin && FONT) {
+      if (!fontEl) { fontEl = document.createElement('style'); fontEl.id = 'kadr-font'; fontEl.textContent = FONT; }
+      if (!fontEl.isConnected) (document.head || root).appendChild(fontEl);
+    } else if (fontEl && fontEl.isConnected) fontEl.remove();
+  }
+  function syncPrefs() {
+    root.classList.toggle('kadr-cke-tint', skin && prefs.ckeTint);
+    root.classList.toggle('kadr-fx-glass', skin && prefs.fx === 'glass');
+    root.classList.toggle('kadr-fx-material', skin && prefs.fx === 'material');
+    root.classList.toggle('kadr-noshadow', skin && !prefs.shadows);
+    if (skin && prefs.lspMin) root.setAttribute('data-kadr-lsp', 'min'); else root.removeAttribute('data-kadr-lsp');
+  }
+
   function place() {
     if (styleEl && styleEl.textContent && (styleEl.parentNode !== root || root.lastElementChild !== styleEl)) root.appendChild(styleEl);
   }
-  // Цвет панели браузера на телефоне — под фон страницы.
   function setMeta(color) {
     var m = document.querySelector('meta[name="theme-color"][data-kadr]');
     if (!color || !document.head) { if (m) m.remove(); return; }
@@ -57,27 +63,24 @@
   function apply() {
     if (!ready) return;
     root.classList.toggle('kadr-rd', skin);
+    syncPrefs();
+    syncFont();
     var theme = K.resolve(state);
-    if (!theme && !skin) {
-      // всё выключено — на странице не остаётся ничего своего
-      if (styleEl) styleEl.remove();
+    if (!theme) {
+      if (styleEl) { styleEl.remove(); styleEl.textContent = ''; }
       restoreMeta();
-      liftColors();
-      return;
+    } else {
+      var text = K.css(state);
+      if (!styleEl) { styleEl = document.createElement('style'); styleEl.id = ID; }
+      if (styleEl.textContent !== text) styleEl.textContent = text;
+      place();
+      setMeta(isLight() ? null : theme.bg);
     }
-    var text = (skin ? FONT : '') + K.css(state);
-    if (!styleEl) { styleEl = document.createElement('style'); styleEl.id = ID; }
-    if (styleEl.textContent !== text) styleEl.textContent = text;
-    place();
-    if (theme) setMeta(theme.bg); else restoreMeta();
     liftColors();
+    syncLsp();
+    markOwn();
   }
 
-  /* ===================== ТЕМА: цвета, заданные прямо в разметке ===================== */
-  // Ники групп и цветной текст в сообщениях форум красит прямо в разметке: <span style="color:#a30303">.
-  // Темы тёмные, и тёмные из этих цветов на них не читаются (у самого форума в тёмной схеме — тоже).
-  // Пока включена тема, такой цвет осветляется ровно до читаемости (themes.js → liftColor), тон тот же.
-  // Без темы — всё как задано: исходное значение хранится в data-kadr-color и возвращается на место.
   var LIFT = 'data-kadr-color';
   function parseColor(v) {
     var m = /rgba?\(\s*([\d.]+)[\s,]+([\d.]+)[\s,]+([\d.]+)/i.exec(v || '');
@@ -92,8 +95,8 @@
     var list = document.body.querySelectorAll('[style*="color"], [' + LIFT + ']');
     for (var i = 0; i < list.length; i++) {
       var el = list[i], orig = el.getAttribute(LIFT);
-      if (orig === null) { orig = el.style.color; if (!orig) continue; } // только цвет текста, не фона
-      var x = K.liftColor(parseColor(orig), state);
+      if (orig === null) { orig = el.style.color; if (!orig) continue; }
+      var x = K.liftColor(parseColor(orig), state, isLight());
       if (x) {
         var want = 'rgb(' + x.join(', ') + ')';
         if (el.getAttribute(LIFT) === null) el.setAttribute(LIFT, orig);
@@ -105,15 +108,57 @@
     }
   }
 
-  /* ===================== ТЕЛЕФОН: кнопка в верхней панели + шторка ===================== */
+  var LSPBTN = 'data-kadr-lsp-toggle';
+  function lspLabel(b) {
+    var t = prefs.lspMin ? 'Развернуть' : 'Свернуть';
+    b.title = t; b.setAttribute('aria-label', t); b.setAttribute('aria-expanded', String(!prefs.lspMin));
+  }
+  function syncLsp() {
+    var w = document.querySelector('.lsp-server-widget'), b = document.querySelector('[' + LSPBTN + ']');
+    if (!ready || !skin || !w) { if (b) b.remove(); return; }
+    if (b && b.parentNode === w) { lspLabel(b); return; }
+    if (b) b.remove();
+    b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'kadr-lsp-toggle';
+    b.setAttribute(LSPBTN, '');
+    b.addEventListener('click', function (e) {
+      e.preventDefault(); e.stopPropagation();
+      prefs.lspMin = !prefs.lspMin;
+      store.set({ lspMin: prefs.lspMin });
+      syncPrefs(); lspLabel(b); measureSoon();
+    });
+    lspLabel(b);
+    w.appendChild(b);
+  }
+
+  var me = null;
+  function myId() {
+    if (me) return me;
+    var a = document.querySelector('#elUserLink_menu a[href*="/profile/"], #elMobileDrawer a[href*="/profile/"]');
+    var m = a && /\/profile\/(\d+)-/.exec(a.href);
+    if (m) me = m[1];
+    return me;
+  }
+  function markOwn() {
+    var v = document.getElementById('elMessageViewer');
+    var marked = document.querySelectorAll('[data-kadr-own]');
+    if (!v || !skin) { for (var j = 0; j < marked.length; j++) marked[j].removeAttribute('data-kadr-own'); return; }
+    var uid = myId(), list = v.querySelectorAll('article.ipsComment');
+    for (var i = 0; i < list.length; i++) {
+      var d = list[i].querySelector('[data-quotedata]'), own = false;
+      if (uid && d) { try { own = String(JSON.parse(d.getAttribute('data-quotedata')).userid) === uid; } catch (e) {} }
+      list[i].toggleAttribute('data-kadr-own', own);
+    }
+  }
+
   var ENTRY = 'data-kadr-entry';
   var TOUCH = false;
   try { TOUCH = matchMedia('(hover: none) and (pointer: coarse)').matches; } catch (e) {}
   if (!TOUCH) TOUCH = /Android|iPhone|iPad|Mobile/i.test(navigator.userAgent);
-  var entryOn = true;   // storage.menuEntry === false — кнопка выключена
+  var entryOn = true;
   var sheet = null;
 
-  // Значок «кадр» маской: цвет берётся из currentColor, как у значков-шрифтов форума.
   var ICON = "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' " +
     "stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 8.6V6.6A2.6 2.6 0 0 1 6.6 4h2M15.4 4h2A2.6 2.6 0 0 1 20 6.6v2" +
     "M20 15.4v2a2.6 2.6 0 0 1-2.6 2.6h-2M8.6 20h-2A2.6 2.6 0 0 1 4 17.4v-2'/%3E%3Ccircle cx='12' cy='12' r='3.4' fill='%23000' stroke='none'/%3E%3C/svg%3E\")";
@@ -142,8 +187,6 @@
       openSheet(a);
     });
     li.appendChild(a);
-    // перед кнопкой меню, чтобы меню оставалось с краю. Выдвижек в панели может быть несколько
-    // (у вошедшего ещё «+» — меню «Создать»), поэтому сначала ищем именно главное меню.
     var drawers = nav.querySelectorAll(':scope > [data-ipsdrawer]');
     var menu = nav.querySelector(':scope > [data-ipsdrawer-drawerelem="#elMobileDrawer"]') || drawers[drawers.length - 1];
     nav.insertBefore(li, menu || null);
@@ -166,8 +209,6 @@
     '@media (min-width:600px){.panel{border-radius:26px;margin-bottom:16px}}' +
     '@media (prefers-reduced-motion:reduce){.scrim,.panel{transition:none}}';
 
-  // Пока шторка открыта, страница под ней не должна ездить от свайпов. Место, до которого она прокручена,
-  // при этом не меняется; после закрытия всё как было.
   var lockWas = null;
   function lockPage(on) {
     var st = root.style;
@@ -183,7 +224,7 @@
   function openSheet(from) {
     if (sheet) return;
     var url;
-    try { url = chrome.runtime.getURL('popup.html') + '#sheet'; } catch (e) { return; } // расширение обновили — страница устарела
+    try { url = chrome.runtime.getURL('popup.html') + '#sheet' + (isLight() ? '-light' : ''); } catch (e) { return; }
     var host = document.createElement('kadr-sheet');
     var shadow = host.attachShadow({ mode: 'closed' });
     var css = document.createElement('style');
@@ -206,12 +247,11 @@
     lockPage(true);
     sheet = { host: host, wrap: wrap, panel: panel, frame: frame, from: from };
     tintSheet();
-    place(); // шторка встала в конец <html> — наш <style> должен остаться последним
-    void panel.offsetHeight; // зафиксировать стартовую позицию, чтобы анимация сработала
+    place();
+    void panel.offsetHeight;
     wrap.classList.add('open');
 
     scrim.addEventListener('click', closeSheet);
-    // Смахнуть вниз за «ручку» — закрыть (мышью; пальцем — с любого места шторки, см. popup.js).
     var y0 = 0, dy = 0, t0 = 0, drag = false;
     grab.addEventListener('pointerdown', function (e) {
       drag = true; y0 = e.clientY; dy = 0; t0 = e.timeStamp;
@@ -240,7 +280,6 @@
     e.stopPropagation();
     closeSheet();
   }
-  // Сообщения от шторки (она в iframe, касания внутри неё сюда не доходят): закрыть; тянут вниз; отпустили.
   function onSheetMsg(e) {
     if (!sheet || e.source !== sheet.frame.contentWindow) return;
     var d = e.data, p = sheet.panel;
@@ -266,9 +305,6 @@
     if (s.from && s.from.isConnected) try { s.from.focus({ preventScroll: true }); } catch (e) {}
   }
 
-  /* ===================== НОВЫЙ ДИЗАЙН: размеры шапки ===================== */
-  // При прокрутке от шапки остаётся только строка навигации (на телефоне — панель значков): шапка «прилипает»
-  // со сдвигом вверх ровно на высоту верхней части. Эту высоту CSS сам не знает — меряем.
   function measure() {
     if (!skin) return;
     var hero = document.querySelector('#ipsLayout_header .focus-header'), foot = document.querySelector('.focus-mobile-footer');
@@ -281,19 +317,30 @@
   function measureSoon() { clearTimeout(measureTimer); measureTimer = setTimeout(measure, 60); }
   window.addEventListener('resize', measureSoon);
 
-  /* ===================== старт и слежение ===================== */
-  store.get(['theme', 'seed', 'skin', 'menuEntry'], function (d) {
+  function readPrefs(d) {
+    if ('ckeTint' in d) prefs.ckeTint = d.ckeTint !== false;
+    if ('fx' in d) prefs.fx = d.fx === 'glass' || d.fx === 'material' ? d.fx : 'plain';
+    if ('shadows' in d) prefs.shadows = d.shadows !== false;
+    if ('lspMin' in d) prefs.lspMin = d.lspMin === true;
+  }
+  var siteScheme = null;
+  function noteScheme() {
+    var sc = isLight() ? 'light' : 'dark';
+    if (ready && siteScheme !== sc) { siteScheme = sc; store.set({ siteScheme: sc }); }
+  }
+  store.get(['theme', 'seed', 'skin', 'menuEntry', 'ckeTint', 'fx', 'shadows', 'lspMin', 'siteScheme'], function (d) {
     d = d || {};
     state = { theme: d.theme || K.OFF, seed: d.seed || null };
     skin = d.skin !== false;
     entryOn = d.menuEntry !== false;
+    readPrefs(d);
+    siteScheme = d.siteScheme || null;
     ready = true;
     apply();
     syncEntry();
     measureSoon();
   });
 
-  // Переключение из окна расширения или шторки — сразу во всех открытых вкладках форума.
   chrome.storage.onChanged.addListener(function (ch, area) {
     if (area !== 'local') return;
     if (ch.theme || ch.seed || ch.skin) {
@@ -305,21 +352,26 @@
       measureSoon();
     }
     if (ch.menuEntry) { entryOn = ch.menuEntry.newValue !== false; syncEntry(); }
+    if (ch.ckeTint || ch.fx || ch.shadows || ch.lspMin) {
+      var d = {};
+      ['ckeTint', 'fx', 'shadows', 'lspMin'].forEach(function (k) { if (ch[k]) d[k] = ch[k].newValue; });
+      readPrefs(d);
+      syncPrefs(); syncLsp(); measureSoon();
+    }
   });
 
-  // Пока страница грузится, держим свой <style> последним; потом — только по изменениям страницы.
   var settled = false;
   function tick() {
     place();
     if (!settled) requestAnimationFrame(tick);
   }
   requestAnimationFrame(tick);
-  window.addEventListener('load', function () { place(); syncEntry(); measure(); liftColors(); setTimeout(function () { settled = true; measure(); }, 1500); });
-  document.addEventListener('DOMContentLoaded', function () { place(); syncEntry(); measure(); liftColors(); });
+  window.addEventListener('load', function () { place(); syncEntry(); measure(); liftColors(); syncLsp(); markOwn(); noteScheme(); setTimeout(function () { settled = true; measure(); }, 1500); });
+  document.addEventListener('DOMContentLoaded', function () { place(); syncEntry(); measure(); liftColors(); syncLsp(); markOwn(); noteScheme(); });
 
   var timer = 0;
   function later() {
-    if (!timer) timer = setTimeout(function () { timer = 0; place(); syncEntry(); measure(); liftColors(); }, 120);
+    if (!timer) timer = setTimeout(function () { timer = 0; place(); syncEntry(); measure(); liftColors(); syncLsp(); markOwn(); }, 120);
   }
   new MutationObserver(function (records) {
     for (var i = 0; i < records.length; i++) {
