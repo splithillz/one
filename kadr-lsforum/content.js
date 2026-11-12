@@ -1,4 +1,4 @@
-// Кадр для форума Los Santos Project — контент-скрипт.
+// Kadr (Кадр) для форума Los Santos Project — контент-скрипт.
 // ТЕМА. Форум (Invision Community + тема Focus) берёт все цвета из CSS-переменных. Тема — это один <style>
 //   с новыми значениями этих переменных (themes.js → KADR.css). Он стоит последним в документе, а селектор у него
 //   сильнее, чем у сайта, так что новые значения побеждают при любом порядке стилей.
@@ -62,6 +62,7 @@
       // всё выключено — на странице не остаётся ничего своего
       if (styleEl) styleEl.remove();
       restoreMeta();
+      liftColors();
       return;
     }
     var text = (skin ? FONT : '') + K.css(state);
@@ -69,6 +70,39 @@
     if (styleEl.textContent !== text) styleEl.textContent = text;
     place();
     if (theme) setMeta(theme.bg); else restoreMeta();
+    liftColors();
+  }
+
+  /* ===================== ТЕМА: цвета, заданные прямо в разметке ===================== */
+  // Ники групп и цветной текст в сообщениях форум красит прямо в разметке: <span style="color:#a30303">.
+  // Темы тёмные, и тёмные из этих цветов на них не читаются (у самого форума в тёмной схеме — тоже).
+  // Пока включена тема, такой цвет осветляется ровно до читаемости (themes.js → liftColor), тон тот же.
+  // Без темы — всё как задано: исходное значение хранится в data-kadr-color и возвращается на место.
+  var LIFT = 'data-kadr-color';
+  function parseColor(v) {
+    var m = /rgba?\(\s*([\d.]+)[\s,]+([\d.]+)[\s,]+([\d.]+)/i.exec(v || '');
+    if (m) return [+m[1], +m[2], +m[3]].map(Math.round);
+    m = /^\s*#([0-9a-f]{3}|[0-9a-f]{6})\s*$/i.exec(v || '');
+    if (!m) return null;
+    var h = m[1].length === 3 ? m[1].replace(/./g, '$&$&') : m[1], n = parseInt(h, 16);
+    return [n >> 16 & 255, n >> 8 & 255, n & 255];
+  }
+  function liftColors() {
+    if (!ready || !document.body) return;
+    var list = document.body.querySelectorAll('[style*="color"], [' + LIFT + ']');
+    for (var i = 0; i < list.length; i++) {
+      var el = list[i], orig = el.getAttribute(LIFT);
+      if (orig === null) { orig = el.style.color; if (!orig) continue; } // только цвет текста, не фона
+      var x = K.liftColor(parseColor(orig), state);
+      if (x) {
+        var want = 'rgb(' + x.join(', ') + ')';
+        if (el.getAttribute(LIFT) === null) el.setAttribute(LIFT, orig);
+        if (el.style.getPropertyValue('color') !== want || !el.style.getPropertyPriority('color')) el.style.setProperty('color', want, 'important');
+      } else if (el.getAttribute(LIFT) !== null) {
+        el.style.setProperty('color', orig);
+        el.removeAttribute(LIFT);
+      }
+    }
   }
 
   /* ===================== ТЕЛЕФОН: кнопка в верхней панели + шторка ===================== */
@@ -108,8 +142,10 @@
       openSheet(a);
     });
     li.appendChild(a);
-    // перед кнопкой меню (последняя в панели), чтобы меню оставалось с краю
-    var menu = nav.querySelector(':scope > [data-ipsdrawer]');
+    // перед кнопкой меню, чтобы меню оставалось с краю. Выдвижек в панели может быть несколько
+    // (у вошедшего ещё «+» — меню «Создать»), поэтому сначала ищем именно главное меню.
+    var drawers = nav.querySelectorAll(':scope > [data-ipsdrawer]');
+    var menu = nav.querySelector(':scope > [data-ipsdrawer-drawerelem="#elMobileDrawer"]') || drawers[drawers.length - 1];
     nav.insertBefore(li, menu || null);
   }
 
@@ -155,11 +191,11 @@
     var wrap = document.createElement('div'); wrap.className = 'wrap';
     var scrim = document.createElement('div'); scrim.className = 'scrim';
     var panel = document.createElement('div'); panel.className = 'panel';
-    panel.setAttribute('role', 'dialog'); panel.setAttribute('aria-modal', 'true'); panel.setAttribute('aria-label', 'Кадр — тема оформления');
+    panel.setAttribute('role', 'dialog'); panel.setAttribute('aria-modal', 'true'); panel.setAttribute('aria-label', 'Kadr — тема оформления');
     var grab = document.createElement('div'); grab.className = 'grab';
     grab.appendChild(document.createElement('i'));
     var frame = document.createElement('iframe');
-    frame.title = 'Кадр — тема оформления';
+    frame.title = 'Kadr — тема оформления';
     frame.addEventListener('load', function () { frame.classList.add('ready'); try { frame.focus(); } catch (e) {} });
     frame.src = url;
     panel.append(grab, frame);
@@ -278,12 +314,12 @@
     if (!settled) requestAnimationFrame(tick);
   }
   requestAnimationFrame(tick);
-  window.addEventListener('load', function () { place(); syncEntry(); measure(); setTimeout(function () { settled = true; measure(); }, 1500); });
-  document.addEventListener('DOMContentLoaded', function () { place(); syncEntry(); measure(); });
+  window.addEventListener('load', function () { place(); syncEntry(); measure(); liftColors(); setTimeout(function () { settled = true; measure(); }, 1500); });
+  document.addEventListener('DOMContentLoaded', function () { place(); syncEntry(); measure(); liftColors(); });
 
   var timer = 0;
   function later() {
-    if (!timer) timer = setTimeout(function () { timer = 0; place(); syncEntry(); measure(); }, 120);
+    if (!timer) timer = setTimeout(function () { timer = 0; place(); syncEntry(); measure(); liftColors(); }, 120);
   }
   new MutationObserver(function (records) {
     for (var i = 0; i < records.length; i++) {

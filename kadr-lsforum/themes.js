@@ -1,4 +1,4 @@
-// Кадр — темы для форума Los Santos Project (forum.ls-project.com).
+// Kadr (Кадр) — темы для форума Los Santos Project (forum.ls-project.com).
 // Палитры и формула те же, что в «Кадре» для kinoarc и kinohub: из шести цветов темы выводится вся палитра.
 // Форум сделан на Invision Community с темой Focus, и все его цвета — CSS-переменные (--theme-*: «r, g, b»).
 // Поэтому тема ложится просто: расширение подменяет значения этих переменных, сайт перекрашивается сам.
@@ -66,6 +66,19 @@
     var p = h < 60 ? [c, x, 0] : h < 120 ? [x, c, 0] : h < 180 ? [0, c, x] : h < 240 ? [0, x, c] : h < 300 ? [x, 0, c] : [c, 0, x];
     return p.map(function (v) { return Math.round((v + m) * 255); });
   }
+  function contrast(a, b) { var x = lum(a), y = lum(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); }
+  // Цвет текста, который форум задал прямо в разметке (ник группы, цветной текст в сообщении), на тёмной теме:
+  // если на светлейшей из поверхностей темы он читается хуже 4.5:1 — светлее ровно настолько, чтобы читался;
+  // тон и насыщенность те же. null — менять не нужно (или темы нет).
+  function liftColor(c, state) {
+    var t = resolve(state);
+    if (!t || !c) return null;
+    var bg = palette(t).s2;
+    if (contrast(c, bg) >= 4.5) return null;
+    var h = toHsl(c), x = c;
+    for (var i = 0; i < 60 && contrast(x, bg) < 4.5; i++) { h[2] = Math.min(1, h[2] + 0.02); x = fromHsl(h[0], h[1], h[2]); }
+    return x;
+  }
   function fromAccent(seed) {
     var acc = rgb(seed), hsl = toHsl(acc);
     // Тёмный акцент осветляем по яркости, сохраняя оттенок и насыщенность, иначе он не читается на тёмном фоне.
@@ -105,7 +118,7 @@
   // Текст — нейтрально-светлый с лёгким оттенком темы: тогда тема та же при любой схеме сайта (и светлой тоже).
   function siteVars(t) {
     var p = palette(t), deep = mix(p.bg, BLACK, 0.35);
-    var text = mix([216, 216, 216], p.acc, 0.04), dark = mix([240, 240, 240], p.acc, 0.03), light = mix([150, 150, 150], p.acc, 0.1);
+    var text = mix([216, 216, 216], p.acc, 0.04), dark = mix([240, 240, 240], p.acc, 0.03), light = mix([166, 166, 166], p.acc, 0.1);
     var v = {
       page_background: p.bg, area_background: p.s1, area_background_reset: p.s1, area_background_light: p.s1b, area_background_dark: p.bg2,
       header: deep, main_nav: p.bg2, main_nav_tab: p.s1,
@@ -116,7 +129,7 @@
       selected_border: p.acc, active_input_border: p.acc, primary_button: p.acc, important_button: p.acc,
       primary_button_font: p.ink, important_button_font: p.ink,
       link: text, link_hover: p.accHi, link_button: p.accHi,
-      text_color: text, text_dark: dark, text_light: light, text_very_light: WHITE, timeline_color: light,
+      text_color: text, text_dark: dark, text_light: light, text_very_light: WHITE, timeline_color: p.s3, // по нему форум пишет белым
       header_text: dark, main_nav_font: dark, main_nav_tab_font: text, widget_title_font: dark, section_title_font: dark,
       secondary_title_font: dark, footer_text: text,
       normal_button_font: WHITE, light_button_font: WHITE, very_light_button_font: WHITE, alternate_button_font: WHITE,
@@ -148,6 +161,21 @@
       'html .lsp-server-widget .lsp-join-button.lsp-join-button{background:rgba(' + a + ', .16) !important;border-color:rgba(' + a + ', .55) !important;color:' + hex(p.accHi) + ' !important}' +
       'html .lsp-server-widget .lsp-join-button.lsp-join-button:hover{background:rgba(' + a + ', .28) !important;border-color:' + t.acc + ' !important;color:' + hex(p.acc50) + ' !important}' +
       'html .lsp-header-widget .fivem-logo.fivem-logo{background-color:' + t.acc + ' !important}' +
+      // У форума текст на фоне акцента — жёстко белый (#fff): на светлых акцентах тем он не читается (≤ 2.6:1).
+      // Здесь он цвета «чернил» темы (≥ 5:1 на любом акценте, и на своём цвете тоже).
+      'html .ipsTag_prefix.ipsTag_prefix,html a[data-mentionid][data-mentionid]:not(.cContentMessage a){color:' + t.ink + ' !important}' +
+      'html .ipsPagination .ipsPagination_page.ipsPagination_active a,html .ipsButtonBar .ipsPagination .ipsPagination_page.ipsPagination_active a,' +
+      'html .ipsButtonRow li > a.ipsButtonRow_active,html .ipsButtonRow li > button.ipsButtonRow_active,html .ipsComment.ipsComment_popular .ipsComment_popularFlag,' +
+      'html .ipsCustomInput input:checked + span,html .cContentItem_delete,html .ipsSelectTree [data-role="tokenList"] .cToken,html .ipsCommentCount_hot,' +
+      'html .ipsApp .ipsNotificationCount,html .focus-mobile-footer__notification,html .ipsProgressBar_progress{color:' + t.ink + '}' +
+      // Красный и зелёный текст статусов (предупреждения, «обязательно», репутация) у форума рассчитан на светлый фон;
+      // темы тёмные — здесь светлые варианты. Сами переменные --negative-dark и т. п. не трогаются: ими же залиты
+      // кнопки и сообщения с белым текстом.
+      'html .ipsType_warning,html .ipsType_negative,html .ipsType_spammer,html .memberBlockedEmailWrap,html .ipsMenu_item.ipsType_negative a,' +
+      'html .ipsApp .ipsButton_link--negative,html .ipsApp .ipsButton_veryLight.ipsButton_veryLight--negative,html .ipsFieldRow_required.ipsFieldRow_required,' +
+      'html .ipsForm_horizontal .ipsFieldRow_required.ipsFieldRow_required::before{color:#f07070}' +
+      'html .ipsType_success,html .ipsType_positive{color:#5fd09b}' +
+      'html .ipsRepBadge_negative.ipsRepBadge_negative{color:#f07070 !important}html .ipsRepBadge_positive.ipsRepBadge_positive{color:#8bd05c !important}' +
       '::selection{background-color:' + t.acc + ';color:' + t.ink + '}';
     return out;
   }
@@ -164,6 +192,6 @@
   g.KADR = {
     HOSTS: HOSTS, OFF: OFF, THEMES: THEMES, NATIVE: NATIVE,
     palette: palette, fromAccent: fromAccent, resolve: resolve, themeName: themeName, uiVars: uiVars,
-    siteVars: siteVars, css: css, siteLook: siteLook
+    siteVars: siteVars, css: css, liftColor: liftColor, siteLook: siteLook
   };
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -1,9 +1,9 @@
 {
   "manifest_version": 3,
-  "name": "Кадр — темы для форума LS Project",
-  "short_name": "Кадр LS",
-  "version": "1.0.0",
-  "description": "Темы и новый дизайн для forum.ls-project.com — на компьютере и на телефоне.",
+  "name": "Kadr — LS Project Forum Themes",
+  "short_name": "Kadr LS",
+  "version": "1.1.0",
+  "description": "Themes and a full redesign for forum.ls-project.com — on desktop and on the phone.",
   "icons": {
     "16": "icons/16.png",
     "32": "icons/32.png",
@@ -36,7 +36,7 @@
   ],
   "action": {
     "default_popup": "popup.html",
-    "default_title": "Кадр — темы для форума LS Project",
+    "default_title": "Kadr — LS Project Forum Themes",
     "default_icon": {
       "16": "icons/16.png",
       "32": "icons/32.png"

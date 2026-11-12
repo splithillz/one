@@ -1,4 +1,4 @@
-/* Кадр для форума Los Santos Project — новый дизайн в стилистике kinoarc.
+/* Kadr (Кадр) для форума Los Santos Project — новый дизайн в стилистике kinoarc.
    Работает, только пока у <html> есть класс kadr-rd (его ставит content.js; выключатель — «Новый дизайн»).
 
    Цвета — переменные самого форума (--theme-*: «r, g, b»), поэтому дизайн одинаково работает и с темами
@@ -14,7 +14,7 @@ html.kadr-rd {
   --k-card2: rgb(var(--theme-area_background_light));
   --k-tx: rgb(var(--theme-text_dark));
   --k-tx2: rgb(var(--theme-text_color));
-  --k-mut: rgb(var(--theme-text_light));
+  --k-mut: rgba(var(--theme-text_color), .78); /* не text_light: на светлой схеме форума тот даёт 2.8:1 на белом */
   --k-line: rgba(var(--theme-text_color), .08);
   --k-line2: rgba(var(--theme-text_color), .14);
   --k-hover: rgba(var(--theme-text_color), .06);
@@ -36,8 +36,7 @@ html.kadr-rd {
   --form-field--borderColor: var(--k-line2); --form-field--borderHoverColor: rgba(var(--theme-text_color), .3);
   --form-field--focusShadow: rgba(var(--theme-brand_primary), .3) 0 0 0 4px;
   --avatar--border-radius: 50%; --avatar--box-shadow: none;
-  --header--height: 92px; --responsive-header--height: 86px;
-  --logo--height: 64%; --responsive-logo--height: 78%;
+  /* высоты шапки и логотипа — родные (200px, 70%): город в шапке виден так же, как у форума */
   --primary-navigation--height: 46px;
   --nav-bar--padding: 0px; --nav--padding: 14px; --nav--margin: 0 1px; --nav--border-radius: 12px;
   --nav--font-size: 14.5px; --nav--font-weight: 600; --nav--color: rgba(var(--theme-main_nav_font), .72);
@@ -82,15 +81,23 @@ html.kadr-rd ::selection { background: var(--k-acc); color: var(--k-ink); }
 /* тонкая подложка на всю страницу вместо сплошного фона-картинки темы */
 html.kadr-rd .background-overlay { background: none; }
 
-/* ---------- шапка: город — атмосферной подложкой, при прокрутке остаётся только навигация ---------- */
+/* ---------- шапка: город виден целиком, как у форума; при прокрутке остаётся только навигация ---------- */
+/* картинку не затемняем — только низ, под навигацией, плавно уходит в цвет страницы */
 html.kadr-rd .header-wrap {
-  background-image: linear-gradient(180deg, rgba(var(--theme-page_background), .35), rgba(var(--theme-page_background), .78) 62%, var(--k-page)), var(--focus-bg--image);
-  background-size: cover; background-position: center 30%; box-shadow: none;
+  background-image: linear-gradient(180deg, transparent 0, transparent 76%, rgba(var(--theme-page_background), .5) 90%, var(--k-page) 100%), var(--focus-bg--image);
+  background-size: cover; background-position: 50% 50%; box-shadow: none;
 }
 html#focus.kadr-rd.enable--sticky-header .focus-sticky-header { top: calc(-1 * var(--kd-hero, var(--header--height))); }
 html.kadr-rd .focus-header { background: transparent; }
 html.kadr-rd .focus-header-align { gap: 18px; }
 html.kadr-rd .focus-logo img { filter: drop-shadow(0 6px 18px rgba(0,0,0,.55)); }
+/* Логотип родного размера. Меню пользователя, как и у форума, может выходить за ширину контента вправо;
+   уже 1260 px оно вылезло бы за экран (у самого форума на 1024 страница уезжает вбок) — там уступает логотип. */
+@media (min-width: 980px) and (max-width: 1259px) {
+  html.kadr-rd .focus-header-align { min-width: 0; }
+  html.kadr-rd .focus-logo { flex: 0 1 auto; min-width: 0; }
+  html.kadr-rd .focus-logo img { max-width: 100%; object-fit: contain; object-position: left center; }
+}
 /* виджет сервера: стеклянная карточка */
 html.kadr-rd .lsp-server-widget {
   border-radius: 18px; border-color: rgba(255,255,255,.09);
@@ -176,7 +183,10 @@ html.kadr-rd .focus-mobile-footer li > a { border-radius: 16px; padding-top: 7px
 html.kadr-rd .focus-mobile-footer li > a:active { transform: scale(.92); }
 html.kadr-rd .focus-mobile-footer li.focus-mobile-footer__active > a { background: var(--k-acc-soft); color: rgb(var(--theme-text_dark)); }
 html.kadr-rd .focus-mobile-footer li.focus-mobile-footer__active > a .fa { color: var(--k-acc); }
-html.kadr-rd .focus-mobile-footer__text { font-size: 10.5px; font-weight: 600; letter-spacing: .01em; }
+html.kadr-rd .focus-mobile-footer li { flex: 1 1 auto; min-width: 0; }
+html.kadr-rd .focus-mobile-footer li > a { padding-left: 4px; padding-right: 4px; }
+html.kadr-rd .focus-mobile-footer__text { display: block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 10px; font-weight: 600; letter-spacing: -.01em; }
+@media (max-width: 400px) { html.kadr-rd .focus-mobile-footer__text { font-size: 9.5px; font-weight: 550; } }
 html.kadr-rd .focus-mobile-footer-spacer { height: calc(var(--kd-footer, 64px) + 20px); }
 
 /* ---------- раскладка ---------- */
@@ -201,7 +211,7 @@ html.kadr-rd .ipsBreadcrumb ul[data-role="breadcrumbList"] > li > span {
 html.kadr-rd .ipsBreadcrumb ul[data-role="breadcrumbList"] > li > a:hover { background: var(--k-card2); color: var(--k-tx); }
 html.kadr-rd .ipsBreadcrumb ul[data-role="breadcrumbList"] > li > a:active { transform: scale(.95); }
 html.kadr-rd .ipsBreadcrumb ul[data-role="breadcrumbList"] > li:last-child > a,
-html.kadr-rd .ipsBreadcrumb ul[data-role="breadcrumbList"] > li:last-child > span { background: transparent; box-shadow: none; color: var(--k-mut); }
+html.kadr-rd .ipsBreadcrumb ul[data-role="breadcrumbList"] > li:last-child > span { background: transparent; box-shadow: none; color: var(--k-tx2); }
 html.kadr-rd .ipsBreadcrumb .ipsList_inline.ipsPos_right a { border-radius: 11px; }
 html.kadr-rd .focus-social a, html.kadr-rd [class*="cShareLink_"] { border-radius: 12px; }
 
@@ -237,6 +247,7 @@ html.kadr-rd .cForumList .ipsDataList {
 html.kadr-rd .ipsPageHeader { padding: 22px 24px; }
 html.kadr-rd .ipsType_pageTitle { font-size: clamp(22px, 3vw, 30px); font-weight: 800; letter-spacing: -.025em; line-height: 1.15; color: var(--k-tx); }
 html.kadr-rd .ipsPageHeader .ipsHr { border-color: var(--k-line); margin: 14px 0; }
+html.kadr-rd hr:not([class]) { border: 0; border-top: 1px solid var(--k-line2); }
 html.kadr-rd .ipsPageHeader__meta { font-size: 14px; }
 
 /* ---------- списки: разделы, темы, участники ---------- */
@@ -388,7 +399,8 @@ html.kadr-rd .cAuthorPane_badge { border-radius: 50%; }
 html.kadr-rd .ipsComment_content { padding: 18px 22px; }
 html.kadr-rd .ipsComment_meta { color: var(--k-mut); font-size: 13px; }
 html.kadr-rd .cPost .ipsType_richText { font-size: var(--post--font-size); line-height: var(--post--line-height); color: var(--k-tx2); }
-html.kadr-rd .ipsType_richText a { color: var(--k-acc); text-decoration-color: rgba(var(--theme-brand_primary), .4); }
+/* ссылки в тексте — акцент с подмесом цвета текста: читаются на любой теме (на тёмной — светлее, на светлой схеме — темнее) */
+html.kadr-rd .ipsType_richText a:not([class*="cke_"], .cke a) { color: color-mix(in srgb, var(--k-acc) 78%, var(--k-tx)); text-decoration-color: rgba(var(--theme-brand_primary), .4); }
 html.kadr-rd .ipsType_richText img { border-radius: 12px; }
 html.kadr-rd .ipsQuote { border-radius: 16px; border: 0; border-left: 3px solid var(--k-acc); background: var(--k-hover); }
 html.kadr-rd .ipsQuote_citation { border-radius: 14px 14px 0 0; background: transparent; color: var(--k-mut); }
@@ -444,10 +456,10 @@ html.kadr-rd #elProfileStats { border-radius: 0 0 var(--box--radius) var(--box--
 html.kadr-rd .ipsUserPhoto, html.kadr-rd .ipsUserPhoto img { border-radius: 50%; }
 /* имя и группа на обложке — стеклянные плашки вместо чёрных прямоугольников */
 html.kadr-rd .ipsPageHead_special .ipsPageHead_barText {
-  border-radius: 12px; background: rgba(var(--theme-area_background_dark), .55); -webkit-backdrop-filter: blur(14px) saturate(1.4); backdrop-filter: blur(14px) saturate(1.4);
+  border-radius: 12px; background: rgba(var(--theme-area_background_dark), .62); -webkit-backdrop-filter: blur(14px) saturate(1.4); backdrop-filter: blur(14px) saturate(1.4);
   font-weight: 700; letter-spacing: -.01em;
 }
-html.kadr-rd .ipsPageHead_special .cProfileHeader_name > span > .ipsPageHead_barText { margin-top: 5px; padding: 5px 11px; border-radius: 10px; font-size: 13px; font-weight: 650; }
+html.kadr-rd .ipsPageHead_special .cProfileHeader_name > span > .ipsPageHead_barText { margin-top: 5px; padding: 5px 11px; border-radius: 10px; font-size: 13px; font-weight: 650; background: rgba(0, 0, 0, .74); } /* цвет группы свой (часто тёмный) — плашка почти чёрная, как у форума */
 /* «стал победителем дня» — мягкая карточка цвета кубка вместо сплошной жёлтой */
 html.kadr-rd .cProfileSidebarBlock.ipsLeaderboard_trophy_1 { --kd-trophy: var(--trophy-first--background, #fac746); }
 html.kadr-rd .cProfileSidebarBlock.ipsLeaderboard_trophy_2 { --kd-trophy: var(--trophy-second--background, #c0c0c0); }
@@ -456,11 +468,10 @@ html.kadr-rd .cProfileSidebarBlock[class*="ipsLeaderboard_trophy_"] {
   border-radius: 16px; color: var(--k-tx2);
   background: color-mix(in srgb, var(--kd-trophy) 13%, var(--k-card)); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--kd-trophy) 42%, transparent);
 }
-html.kadr-rd .cProfileSidebarBlock[class*="ipsLeaderboard_trophy_"] a { color: var(--kd-trophy); }
+html.kadr-rd .cProfileSidebarBlock[class*="ipsLeaderboard_trophy_"] a { color: color-mix(in srgb, var(--kd-trophy) 55%, var(--k-tx)); } /* на светлой схеме — темнее, на тёмной — светлее */
 
 /* ---------- подвал ---------- */
 html.kadr-rd #ipsLayout_footer { background: transparent; border: 0; }
-html.kadr-rd #ipsLayout_footer a { color: var(--k-mut); }
 html.kadr-rd #ipsLayout_footer a:hover { color: var(--k-tx); }
 
 /* ---------- появление ---------- */
