@@ -157,6 +157,9 @@
       init.headers.Authorization = 'Bearer ' + t;
     }
     if (body) { init.headers['Content-Type'] = 'application/json'; init.body = JSON.stringify(body); }
+    // ответы про списки всегда свежие: «в каких списках фильм» из кэша браузера сохранило бы фильм повторно,
+    // вместо того чтобы убрать его
+    if (auth) init.cache = 'no-store';
     try {
       var ctl = new AbortController();
       init.signal = ctl.signal;
@@ -228,6 +231,7 @@
     if (action) {
       el.append(X.h('button', { type: 'button', text: action, onclick: function () { hide(); fn(); } }));
     }
+    el.addEventListener('click', function (e) { if (!e.target.closest('button')) hide(); }); // тап по сообщению — убрать его
     function hide() {
       if (toastEl !== el) return;
       toastEl = null;

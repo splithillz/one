@@ -20,9 +20,11 @@
   var on = true;            // storage.lists !== false
   var ready = false;
   var quick = null;         // {id, sid, name} — быстрый список
+  var quickOff = false;     // быстрый список выключили сами (storage.quick === false): закладка каждый раз спрашивает
   var lists = null;         // [{sid, name, count, at, pub, ids: [id…] | null, dirty}] — что известно о списках
   var where = {};           // id фильма → сколько списков его содержат
   var local = {};           // id фильма → {v, at}: состояние сразу после нажатия (пока списки не сверены)
+  var mine = {};            // 'фильм:список' → {has, at}: что сделали мы сами — на случай, если сервер ответит устаревшим
   var pages = {};           // sid → {items, next, done} — загруженные страницы списка (для панели)
   var cur = '';             // список, открытый в панели в прошлый раз
   var busy = {};
@@ -205,7 +207,7 @@
     ]) : null;
   }
   function quickRow(rows) {
-    if (!quick) return rows.length === 1 ? rows[0] : null;
+    if (!quick) return quickOff ? null : rows.length === 1 ? rows[0] : null;
     return pickOne(rows, [
       function (x) { return quick.id != null && quick.id !== '' && String(x.id) === String(quick.id); },
       function (x) { return !!quick.sid && String(x.id) === String(quick.sid); },
@@ -221,11 +223,31 @@
   function setQuick(row, l) {
     if (row && !l) l = listOf(row);
     quick = { id: row ? row.id : l.id || null, sid: l ? l.sid : '', name: row ? row.name : l.name };
+    quickOff = false;
     store.set({ quick: quick });
+  }
+  // Выключить быстрый список: закладка будет каждый раз спрашивать, куда сохранить, пока его не включат снова (⚡).
+  function clearQuick() {
+    quick = null;
+    quickOff = true;
+    store.set({ quick: false });
+    X.toast('Быстрый список выключен — закладка будет спрашивать, куда сохранить');
+  }
+  // Ответ «в каких списках фильм» сервер может отдать устаревшим (из своего кэша) — тогда второе нажатие сохранило бы
+  // фильм ещё раз вместо того, чтобы убрать. Несколько минут после своего нажатия верим ему, а не такому ответу.
+  var TRUST = 300000;
+  function rowsOf(data, movie) {
+    var out = data.filter(function (x) { return x && x.id != null; }), now = Date.now();
+    out.forEach(function (x) {
+      var m = mine[movie + ':' + x.id];
+      if (m && now - m.at < TRUST) x.hasMovie = m.has;
+    });
+    return out;
   }
   // Состояние фильма в списках после записи — в память и на экран.
   function applied(row, id, add, rows) {
     row.hasMovie = add;
+    mine[id + ':' + row.id] = { has: add, at: Date.now() };
     local[id] = { v: rows.some(function (x) { return x.hasMovie; }), at: Date.now() };
     var l = listOf(row);
     if (l) {
@@ -291,7 +313,7 @@
     try {
       var st = await call('GET', '/watchlists/status/' + id);
       if (!st.ok || !Array.isArray(st.data)) { native(btn); return; }
-      var rows = st.data.filter(function (x) { return x && x.id != null; });
+      var rows = rowsOf(st.data, id);
       if (!rows.length) { openPanel({ mode: 'pick', movie: id, title: titleOf(btn), rows: rows, from: btn }); return; }
       var q = quickRow(rows);
       var other = rows.some(function (x) { return x.hasMovie && x !== q; });
@@ -317,7 +339,7 @@
     var st = await call('GET', '/watchlists/status/' + id);
     if (!panel || panel.movie !== id) return;
     if (!st.ok || !Array.isArray(st.data)) { closePanel(); native(btn); return; }
-    panel.rows = st.data.filter(function (x) { return x && x.id != null; });
+    panel.rows = rowsOf(st.data, id);
     paint();
   }
   function target(e) {
@@ -547,24 +569,34 @@
           b.disabled = true;
           var add = !row.hasMovie, r = await write(add, row.id, p.movie);
           if (r.ok) {
-            // быстрого списка ещё нет (или его удалили) — им становится выбранный
-            if (add && (!quick || !quickRow(p.rows))) setQuick(row, null);
+            // быстрого списка ещё нет (или его удалили) — им становится выбранный; выключенный сам не включается
+            if (add && !quickOff && (!quick || !quickRow(p.rows))) setQuick(row, null);
             applied(row, p.movie, add, p.rows);
           } else { X.toast('Не получилось'); paint(); }
         });
-        var star = h('button', { type: 'button', class: 'kl-q' + (isQ ? ' on' : ''), title: isQ ? 'Быстрый список' : 'Сделать быстрым', 'aria-label': isQ ? 'Быстрый список' : 'Сделать быстрым', 'aria-pressed': String(isQ) }, X.icon('bolt'));
-        star.addEventListener('click', function () { setQuick(row, null); paint(); X.toast('Быстрый список — «' + row.name + '»'); });
+        var tip = isQ ? 'Быстрый список. Нажми, чтобы выключить' : 'Сделать быстрым';
+        var star = h('button', { type: 'button', class: 'kl-q' + (isQ ? ' on' : ''), title: tip, 'aria-label': tip, 'aria-pressed': String(isQ) }, X.icon('bolt'));
+        // ⚡ — переключатель: на быстром списке выключает его, на другом — делает быстрым
+        star.addEventListener('click', function () {
+          if (isQ) clearQuick();
+          else { setQuick(row, null); X.toast('Быстрый список — «' + row.name + '»'); }
+          paint();
+        });
         body.append(h('div', { class: 'kl-line' }, b, star));
       });
       if (!p.rows.length && !p.form) body.append(h('p', { class: 'kl-empty', text: 'Списков пока нет. Создай первый — и закладка будет сохранять в него одним нажатием.' }));
       if (p.form) body.append(createForm(async function () {
         var st = await call('GET', '/watchlists/status/' + p.movie);
         if (!panel || panel !== p) return;
-        if (st.ok && Array.isArray(st.data)) p.rows = st.data.filter(function (x) { return x && x.id != null; });
+        if (st.ok && Array.isArray(st.data)) p.rows = rowsOf(st.data, p.movie);
         paint();
       }));
       else body.append(h('button', { type: 'button', class: 'kl-new', onclick: function () { p.form = true; paint(); } }, X.icon('plus'), h('span', { text: 'Новый список' })));
-      body.append(h('p', { class: 'kl-hint' }, X.icon('bolt'), h('span', { text: 'Быстрый список: в него закладка сохраняет одним нажатием.' })));
+      body.append(h('p', { class: 'kl-hint' }, X.icon('bolt'), h('span', {
+        text: quickOff ? 'Быстрый список выключен: закладка каждый раз спрашивает. ⚡ у списка — включить.'
+          : q ? 'Быстрый список: в него закладка сохраняет одним нажатием. Нажми ⚡ ещё раз, чтобы выключить.'
+          : 'Быстрый список: в него закладка сохраняет одним нажатием.'
+      })));
     }
     return [head, body];
   }
@@ -597,7 +629,7 @@
   }
   async function removeFrom(l, m) {
     var st = await call('GET', '/watchlists/status/' + m.id);
-    var rows = st.ok && Array.isArray(st.data) ? st.data.filter(function (x) { return x && x.id != null; }) : null;
+    var rows = st.ok && Array.isArray(st.data) ? rowsOf(st.data, m.id) : null;
     var row = rows && rowOf(l, rows);
     if (!row) { X.toast('Не получилось убрать'); return; }
     var r = await write(false, row.id, m.id);
@@ -639,8 +671,14 @@
     }
     var q = isQuick(l);
     var bar = h('div', { class: 'kl-bar' },
-      h('button', { type: 'button', class: 'kl-pill' + (q ? ' on' : ''), 'aria-pressed': String(q), onclick: function () { if (!q) { setQuick(null, l); paint(); X.toast('Закладка теперь сохраняет в «' + l.name + '»'); } } },
-        X.icon('bolt'), h('span', { text: q ? 'Быстрый список' : 'Сделать быстрым' })),
+      h('button', {
+        type: 'button', class: 'kl-pill' + (q ? ' on' : ''), 'aria-pressed': String(q), title: q ? 'Нажми, чтобы выключить быстрый список' : '',
+        onclick: function () {
+          if (q) clearQuick();
+          else { setQuick(null, l); X.toast('Закладка теперь сохраняет в «' + l.name + '»'); }
+          paint();
+        }
+      }, X.icon('bolt'), h('span', { text: q ? 'Быстрый список' : 'Сделать быстрым' })),
       h('a', { class: 'kl-pill', href: '/watchlist/' + enc(l.sid), onclick: function (e) { e.preventDefault(); closePanel(); X.go('/watchlist/' + enc(l.sid)); } }, h('span', { text: 'Страницей' }), X.icon('out')),
       h('a', { class: 'kl-pill', href: '/watchlists', onclick: function (e) { e.preventDefault(); closePanel(); X.go('/watchlists'); } }, h('span', { text: 'Все списки' })));
     var pg = pages[l.sid] || (l.count ? null : { items: [], done: true }); // пустой список загружать незачем
@@ -684,7 +722,7 @@
     if (u !== user) {
       // вошёл другой человек или вышел: всё, что знали о списках, — не про него
       user = u;
-      lists = null; where = {}; local = {}; pages = {}; started = false; syncedAt = 0; retries = 0;
+      lists = null; where = {}; local = {}; mine = {}; pages = {}; started = false; syncedAt = 0; retries = 0;
       closePanel(true);
     }
     syncEntry();
@@ -702,6 +740,7 @@
     d = d || {};
     on = d.lists !== false;
     quick = d.quick && typeof d.quick === 'object' && d.quick.name ? d.quick : null;
+    quickOff = d.quick === false;
     cur = typeof d.listCur === 'string' ? d.listCur : '';
     user = on ? who() : '';
     if (on) restore(d.saved);
@@ -714,7 +753,11 @@
       on = ch.lists.newValue !== false;
       sync(); // выключили — sync() сам всё забудет и уберёт кнопку; включили — начнёт сверку
     }
-    if (ch.quick) quick = ch.quick.newValue && ch.quick.newValue.name ? ch.quick.newValue : null;
+    if (ch.quick) {
+      var v = ch.quick.newValue;
+      quick = v && typeof v === 'object' && v.name ? v : null;
+      quickOff = v === false;
+    }
   });
   document.addEventListener('visibilitychange', function () {
     if (document.visibilityState === 'visible' && on && started && Date.now() - syncedAt > 3e5) syncLists(true);

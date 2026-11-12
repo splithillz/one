@@ -495,29 +495,55 @@
       if (st !== 'now' && st !== 'soon') delete warned[r.i];
     }
     // предупреждение поверх плеера — только когда часы идут
-    var show = hot && (clk.run || clk.auto);
-    if (pill) {
-      if (show) {
-        var inside = t >= hot.a;
-        var head = inside ? 'сейчас · ещё ' + Math.max(1, Math.ceil(hot.b - t)) + ' с' : 'через ' + Math.max(1, Math.ceil(hot.a - t)) + ' с';
-        if (pill._k !== head + hot.i) {
-          pill._k = head + hot.i;
-          pill.replaceChildren(X.icon('alert'), h('b', { text: head }), hot.text ? h('span', { text: hot.text }) : null);
-        }
-        pill.setAttribute('data-st', inside ? 'now' : 'soon');
-        if (!warned[hot.i]) {
-          warned[hot.i] = 1;
-          try { if (navigator.vibrate) navigator.vibrate([90, 70, 90]); } catch (e) {}
-        }
+    var show = !!(hot && (clk.run || clk.auto)), inside = false, head = '';
+    if (show) {
+      inside = t >= hot.a;
+      head = inside ? 'сейчас · ещё ' + Math.max(1, Math.ceil(hot.b - t)) + ' с' : 'через ' + Math.max(1, Math.ceil(hot.a - t)) + ' с';
+      if (!warned[hot.i]) {
+        warned[hot.i] = 1;
+        try { if (navigator.vibrate) navigator.vibrate([90, 70, 90]); } catch (e) {}
       }
-      if (pill.hidden === !!show) pill.hidden = !show;
     }
+    if (pill) {
+      if (show) fill(pill, head, hot, inside);
+      if (pill.hidden === show) pill.hidden = !show;
+    }
+    fullscreen(show, head, hot, inside);
   }
+  function fill(el, head, hot, inside) {
+    if (el._k !== head + hot.i) {
+      el._k = head + hot.i;
+      el.replaceChildren(X.icon('alert'), h('b', { text: head }), hot.text ? h('span', { text: hot.text }) : null);
+    }
+    el.setAttribute('data-st', inside ? 'now' : 'soon');
+  }
+  // Плеер развернули на весь экран. Тогда виден только он: предупреждение рядом с ним на странице скрыто.
+  // Но всплывающий слой браузера (popover), открытый ПОСЛЕ разворота, рисуется поверх развёрнутого плеера —
+  // туда и выводим. Поэтому при каждой смене полноэкранного режима слой закрывается и открывается заново.
+  var fsPill = null;
+  function fsElement() { return document.fullscreenElement || document.webkitFullscreenElement || null; }
+  function fsOpen() { try { return !!fsPill && fsPill.matches(':popover-open'); } catch (e) { return false; } }
+  function fullscreen(show, head, hot, inside) {
+    var can = show && !!fsElement() && typeof HTMLElement.prototype.showPopover === 'function';
+    if (!can) { if (fsOpen()) try { fsPill.hidePopover(); } catch (e) {} return; }
+    if (!fsPill) fsPill = h('div', { class: 'kadr-tm-pill kadr-tm-fs', popover: 'manual', 'data-kadr-ui': true, role: 'status' });
+    if (fsPill.parentNode !== document.body) document.body.appendChild(fsPill);
+    fill(fsPill, head, hot, inside);
+    if (!fsOpen()) try { fsPill.showPopover(); } catch (e) {}
+  }
+  function onFullscreen() {
+    if (fsOpen()) try { fsPill.hidePopover(); } catch (e) {}
+    if (fsPill) fsPill._k = '';
+    tick(); // откроет слой заново — уже поверх нового полноэкранного элемента
+  }
+  document.addEventListener('fullscreenchange', onFullscreen);
+  document.addEventListener('webkitfullscreenchange', onFullscreen);
 
   /* ===================== включение ===================== */
   function teardown() {
     if (panel) panel.remove();
     if (pill) pill.remove();
+    if (fsPill) { if (fsOpen()) try { fsPill.hidePopover(); } catch (e) {} fsPill.remove(); fsPill = null; }
     clearInterval(ticker);
     panel = pill = ui = null; ticker = 0; movie = 0; entries = null; frameSrc = ''; tries = 0;
     delete X.info.timings; delete X.info.clock;

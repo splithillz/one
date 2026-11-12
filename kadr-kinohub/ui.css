@@ -295,6 +295,14 @@ html .player_theater .kadr-tm { display: none; }
   animation: kadr-rise .3s var(--kd-out) both;
 }
 .kadr-tm-pill[hidden] { display: none; }
+/* то же предупреждение, когда плеер развёрнут на весь экран: всплывающий слой браузера поверх плеера (см. timings.js) */
+.kadr-tm-pill.kadr-tm-fs {
+  position: fixed; inset: auto; top: max(16px, env(safe-area-inset-top)); left: max(16px, env(safe-area-inset-left));
+  max-width: calc(100vw - 32px); margin: 0; border: 0; overflow: hidden; z-index: 2147483647;
+  padding: 11px 18px 11px 13px; font-size: 17px; gap: 9px;
+}
+.kadr-tm-pill.kadr-tm-fs .k-ic { width: 22px; height: 22px; }
+.kadr-tm-pill.kadr-tm-fs:not(:popover-open) { display: none !important; }
 .kadr-tm-pill b { flex: none; font-weight: 800; font-variant-numeric: tabular-nums; }
 .kadr-tm-pill span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #fff; opacity: .88; }
 .kadr-tm-pill[data-st="now"] { background: rgb(26 6 6 / .92); color: rgb(var(--kd-hot)); box-shadow: inset 0 0 0 1.5px rgb(var(--kd-hot) / .8), 0 10px 26px rgb(0 0 0 / .5); }
