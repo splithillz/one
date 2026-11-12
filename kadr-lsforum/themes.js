@@ -14,7 +14,15 @@
     { id: 'grape',  name: 'Grape',  bg: '#0d0911', s1: '#17111d', s2: '#201828', s3: '#2b2135', acc: '#c79bff', ink: '#220c3a' },
     { id: 'rose',   name: 'Rose',   bg: '#110a0e', s1: '#1c1218', s2: '#261a21', s3: '#32222b', acc: '#f394c4', ink: '#36091f' },
     { id: 'spark',  name: 'Spark',  bg: '#0e0c07', s1: '#1a170e', s2: '#231f14', s3: '#2e291b', acc: '#e8be5e', ink: '#2b1e05' },
-    { id: 'frost',  name: 'Frost',  bg: '#091016', s1: '#101a22', s2: '#16232d', s3: '#1e2e3a', acc: '#6dd3c8', ink: '#052522' }
+    { id: 'frost',  name: 'Frost',  bg: '#091016', s1: '#101a22', s2: '#16232d', s3: '#1e2e3a', acc: '#6dd3c8', ink: '#052522' },
+    { id: 'monet-white', name: 'Monet White', short: 'White', group: 'Monet', scheme: 'light', bg: '#111318', s1: '#1e1f25', s2: '#282a2f', s3: '#33353a', acc: '#adc6ff', ink: '#102f60',
+      tile: { bg: '#f9f9ff', s2: '#e2e2e9', s3: '#d9d9e0', acc: '#445e91', ink: '#ffffff' },
+      light: { acc: '#445e91', ink: '#ffffff', page: '#f9f9ff', card: '#ffffff', low: '#f3f3fa', mid: '#ededf4', high: '#e8e7ee', top: '#e2e2e9',
+        text: '#1a1b20', text2: '#44474f', outline: '#74777f', line: '#c4c6d0', inverse: '#2f3036', onInverse: '#f0f0f7', container: '#d8e2ff', onContainer: '#2b4678', selected: '#dbe2f9' } },
+    { id: 'monet-dark', name: 'Monet Dark', short: 'Dark', group: 'Monet', scheme: 'dark', bg: '#111318', s1: '#1e1f25', s2: '#282a2f', s3: '#33353a', acc: '#adc6ff', ink: '#102f60',
+      text: '#e2e2e9', text2: '#f0f0f7', muted: '#c4c6d0' },
+    { id: 'monet-black', name: 'Monet Black', short: 'Black', group: 'Monet', scheme: 'dark', bg: '#000000', s1: '#111318', s2: '#1e1f25', s3: '#2f3036', acc: '#adc6ff', ink: '#102f60',
+      text: '#e2e2e9', text2: '#f0f0f7', muted: '#c4c6d0' }
   ];
   var NATIVE = { id: OFF, name: 'Родная', bg: '#141414', s1: '#242424', s2: '#2c2c2c', s3: '#383838', acc: '#6c9a64', ink: '#0b1409' };
 
@@ -69,7 +77,7 @@
   function liftColor(c, state, light) {
     var t = resolve(state);
     if (!t || !c) return null;
-    var x = textOn(c, light ? WHITE : palette(t).s2, 4.5);
+    var x = textOn(c, light ? [236, 236, 242] : palette(t).s2, 4.5);
     return x === c ? null : x;
   }
   function fromAccent(seed) {
@@ -104,7 +112,8 @@
 
   function siteVars(t) {
     var p = palette(t), deep = mix(p.bg, BLACK, 0.35);
-    var text = mix([216, 216, 216], p.acc, 0.04), dark = mix([240, 240, 240], p.acc, 0.03), light = mix([166, 166, 166], p.acc, 0.1);
+    var text = t.text ? rgb(t.text) : mix([216, 216, 216], p.acc, 0.04), dark = t.text2 ? rgb(t.text2) : mix([240, 240, 240], p.acc, 0.03);
+    var light = t.muted ? rgb(t.muted) : mix([166, 166, 166], p.acc, 0.1);
     var v = {
       page_background: p.bg, area_background: p.s1, area_background_reset: p.s1, area_background_light: p.s1b, area_background_dark: p.bg2,
       header: deep, main_nav: p.bg2, main_nav_tab: p.s1,
@@ -147,7 +156,34 @@
     text_color: [53, 60, 65], text_dark: [0, 0, 0], text_light: [153, 153, 153], text_very_light: [255, 255, 255], timeline_color: [61, 69, 78],
     very_light_button: [255, 255, 255], very_light_button_font: [32, 32, 32], widget_title_bar: [255, 255, 255], widget_title_font: [26, 32, 44]
   };
+  function monetLight(t) {
+    var m = {}, p = palette(t);
+    Object.keys(t.light).forEach(function (k) { m[k] = rgb(t.light[k]); });
+    var v = {
+      active_input_border: m.acc, alternate_button: m.inverse, alternate_button_font: m.onInverse,
+      area_background: m.mid, area_background_dark: m.inverse, area_background_light: m.low, area_background_reset: m.card,
+      brand_primary: m.acc, button_bar: m.card, comment_count: m.high, comment_count_font: m.text2,
+      featured: m.acc, footer_text: m.text2, header: m.inverse, header_text: WHITE,
+      important_button: m.acc, important_button_font: m.ink, item_status: m.text2,
+      light_button: m.high, light_button_font: m.text, link: m.text, link_button: m.acc, link_hover: m.acc,
+      main_nav: m.inverse, main_nav_font: m.onInverse, main_nav_tab: m.card, main_nav_tab_font: m.card,
+      mentions: m.acc, normal_button: m.inverse, normal_button_font: m.onInverse, notification_bubble: m.acc,
+      page_background: m.page, pagination_active: m.acc, prefix: m.acc,
+      primary_button: m.acc, primary_button_font: m.ink, profile_header: m.text2,
+      secondary_title: m.card, secondary_title_font: m.text, section_title: m.container, section_title_font: m.onContainer,
+      selected: m.selected, selected_border: m.acc, tab_background: m.text2, tag: m.container, tag_font: m.onContainer,
+      text_color: m.text, text_dark: m.text, text_light: m.text2, text_very_light: WHITE, timeline_color: m.text2,
+      very_light_button: m.card, very_light_button_font: m.text, widget_title_bar: m.card, widget_title_font: m.text
+    };
+    for (var i = 1; i <= 10; i++) v['focus_bg_' + i + '_color'] = i === 1 ? p.s2 : i === 2 ? p.s1 : i === 3 ? p.s1b : p.bg2;
+    var out = '';
+    Object.keys(v).forEach(function (k) { out += '--theme-' + k + ':' + v[k].join(', ') + ';'; });
+    return out + '--focus-bg--color:rgb(' + m.page.join(', ') + ');--kd-acc-text:rgb(' + m.acc.join(', ') + ');' +
+      '--sectiontitle--box-shadow:inset 0 0 0 1px rgba(0, 0, 0, .1);--positive-dark:#1e7b4f;--negative-dark:#b3261e;';
+  }
+  function lightFace(t) { return t.light ? { id: t.id, name: t.name, bg: t.bg, s1: t.s1, s2: t.s2, s3: t.s3, acc: t.light.acc, ink: t.light.ink } : t; }
   function siteVarsLight(t) {
+    if (t.light) return monetLight(t);
     var p = palette(t), ah = toHsl(p.acc), hue = ah[0], sat = Math.min(0.3, ah[1] * 0.3);
     var accText = textOn(p.acc, WHITE, 4.5), v = {};
     Object.keys(LIGHT_NATIVE).forEach(function (k) {
@@ -166,20 +202,25 @@
     return out + '--focus-bg--color:rgb(' + v.page_background.join(', ') + ');--kd-acc-text:rgb(' + accText.join(', ') + ');' +
       '--sectiontitle--box-shadow:inset 0 0 0 1px rgba(0, 0, 0, .1);';
   }
-  function accentText(t, light) { var p = palette(t); return light ? textOn(p.acc, WHITE, 4.5) : p.acc; }
+  function accentText(t, light) { var p = palette(light ? lightFace(t) : t); return light ? textOn(p.acc, WHITE, 4.5) : p.acc; }
+  function forced(state) { var t = resolve(state); return t && t.scheme ? t.scheme : null; }
 
   function css(state) {
-    var t = resolve(state);
-    if (!t) return '';
-    var p = palette(t), a = p.acc.join(', ');
-    var out = 'html:root:root{' + siteVars(t) + '--kd-acc-text:' + t.acc + ';}' +
-      'html:root:root[data-focus-scheme="light"]{' + siteVarsLight(t) + '}';
+    var t0 = resolve(state);
+    if (!t0) return '';
+    var t = t0.scheme === 'light' ? lightFace(t0) : t0;
+    var p = palette(t), p0 = palette(t0), a = p0.acc.join(', ');
+    var darkBlock = siteVars(t0) + '--kd-acc-text:' + t0.acc + ';', lightBlock = siteVarsLight(t0);
+    var out = t0.scheme === 'light' ? 'html:root:root,html:root:root[data-focus-scheme="light"]{' + lightBlock + '}'
+      : t0.scheme === 'dark' ? 'html:root:root,html:root:root[data-focus-scheme="light"]{' + darkBlock + '}'
+      : 'html:root:root{' + darkBlock + '}html:root:root[data-focus-scheme="light"]{' + lightBlock + '}';
     var D = 'html:not([data-focus-scheme="light"]) ';
-    out += 'html:not(.kadr-rd) .ipsType_sectionTitle.ipsType_sectionTitle{background:rgb(var(--theme-light_button)) none !important}' +
-      'html .lsp-server-widget.lsp-server-widget{--lsp-accent:' + t.acc + '}' +
-      'html .lsp-server-widget .lsp-join-button.lsp-join-button{background:rgba(' + a + ', .16) !important;border-color:rgba(' + a + ', .55) !important;color:' + hex(p.accHi) + ' !important}' +
-      'html .lsp-server-widget .lsp-join-button.lsp-join-button:hover{background:rgba(' + a + ', .28) !important;border-color:' + t.acc + ' !important;color:' + hex(p.acc50) + ' !important}' +
-      'html .lsp-header-widget .fivem-logo.fivem-logo{background-color:' + t.acc + ' !important}' +
+    out += 'html:root:root{--kd-bar-acc:' + t0.acc + '}' + (t0.scheme === 'light' ? 'html #ipsLayout_footer #elCopyright{opacity:1}' : '') +
+      'html:not(.kadr-rd) .ipsType_sectionTitle.ipsType_sectionTitle{background:rgb(var(--theme-light_button)) none !important}' +
+      'html .lsp-server-widget.lsp-server-widget{--lsp-accent:' + t0.acc + '}' +
+      'html .lsp-server-widget .lsp-join-button.lsp-join-button{background:rgba(' + a + ', .16) !important;border-color:rgba(' + a + ', .55) !important;color:' + hex(p0.accHi) + ' !important}' +
+      'html .lsp-server-widget .lsp-join-button.lsp-join-button:hover{background:rgba(' + a + ', .28) !important;border-color:' + t0.acc + ' !important;color:' + hex(p0.acc50) + ' !important}' +
+      'html .lsp-header-widget .fivem-logo.fivem-logo{background-color:' + t0.acc + ' !important}' +
       'html .ipsTag_prefix.ipsTag_prefix,html a[data-mentionid][data-mentionid]:not(.cContentMessage a){color:' + t.ink + ' !important}' +
       'html .ipsPagination .ipsPagination_page.ipsPagination_active a,html .ipsButtonBar .ipsPagination .ipsPagination_page.ipsPagination_active a,' +
       'html .ipsButtonRow li > a.ipsButtonRow_active,html .ipsButtonRow li > button.ipsButtonRow_active,html .ipsComment.ipsComment_popular .ipsComment_popularFlag,' +
@@ -196,6 +237,11 @@
 
   function siteLook(state, light) {
     var t = resolve(state);
+    if (t && t.scheme) light = t.scheme === 'light';
+    if (t && t.light) {
+      var L = t.light;
+      return { page: L.page, panel: L.card, raised: L.mid, line: L.line, acc: L.acc, ink: L.ink, text: L.text, text2: L.text2, muted: L.text2, dark: false };
+    }
     if (light) {
       if (!t) return { page: '#ffffff', panel: '#ffffff', raised: '#f7f7f7', line: '#dfe1e2', acc: '#6c9a64', ink: '#000000', text: '#000000', text2: '#353c41', muted: '#6d7378', dark: false };
       var lp = palette(t), ah = toHsl(lp.acc), sat = Math.min(0.3, ah[1] * 0.3);
@@ -207,14 +253,14 @@
     var p = palette(t || NATIVE);
     return {
       page: hex(p.bg), panel: hex(t ? p.s1 : rgb('#262626')), raised: hex(p.s1b), line: hex(p.s3),
-      acc: hex(p.acc), ink: hex(p.ink), text: '#eeeeee', text2: '#d5d5d5', muted: '#999999', dark: true
+      acc: hex(p.acc), ink: hex(p.ink), text: t && t.text ? t.text : '#eeeeee', text2: t && t.muted ? t.muted : '#d5d5d5', muted: t && t.muted ? '#8e9099' : '#999999', dark: true
     };
   }
 
   g.KADR = {
     HOSTS: HOSTS, OFF: OFF, THEMES: THEMES, NATIVE: NATIVE,
     palette: palette, fromAccent: fromAccent, resolve: resolve, themeName: themeName, uiVars: uiVars,
-    siteVars: siteVars, siteVarsLight: siteVarsLight, css: css, liftColor: liftColor, accentText: accentText, textOn: textOn,
+    siteVars: siteVars, siteVarsLight: siteVarsLight, css: css, liftColor: liftColor, accentText: accentText, textOn: textOn, forced: forced,
     contrast: contrast, toHsl: toHsl, fromHsl: fromHsl, hex: hex, rgb: rgb, siteLook: siteLook
   };
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -12,8 +12,24 @@
   root.classList.add('kadr-rd');
   var ready = false;
   var styleEl = null, fontEl = null;
-  var prefs = { ckeTint: true, fx: 'plain', shadows: true, lspMin: false };
+  var prefs = { ckeTint: true, fx: 'plain', shadows: true, lspMin: false, icons: 'native' };
+  var iconCss = '', iconVer = '', iconEl = null, iconLoading = '';
+  var VER = '';
+  try { VER = chrome.runtime.getManifest().version; } catch (e) {}
   function isLight() { return root.getAttribute('data-focus-scheme') === 'light'; }
+  var SCHEME = 'data-focus-scheme';
+  var native = root.getAttribute(SCHEME);
+  function syncScheme() {
+    var f = ready ? K.forced(state) : null, cur = root.getAttribute(SCHEME), want = f || native;
+    if (want && cur !== want) root.setAttribute(SCHEME, want);
+  }
+  new MutationObserver(function () {
+    var cur = root.getAttribute(SCHEME), f = ready ? K.forced(state) : null;
+    if (f && cur === f) return;
+    native = cur;
+    if (f) syncScheme();
+    if (ready) { apply(); noteScheme(); }
+  }).observe(root, { attributes: true, attributeFilter: [SCHEME] });
 
   var FONT = '';
   try {
@@ -39,7 +55,28 @@
   }
 
   function place() {
+    if (iconEl && iconEl.textContent && iconEl.parentNode !== root) root.appendChild(iconEl);
     if (styleEl && styleEl.textContent && (styleEl.parentNode !== root || root.lastElementChild !== styleEl)) root.appendChild(styleEl);
+  }
+  function syncIcons() {
+    var name = skin ? prefs.icons : 'native', on = name !== 'native';
+    if (on && (!iconCss || iconVer !== VER) && iconLoading !== name) {
+      iconLoading = name;
+      fetch(chrome.runtime.getURL('iconsets/' + name + '.css')).then(function (r) { return r.text(); }).then(function (css) {
+        iconLoading = '';
+        if (prefs.icons !== name) return;
+        iconCss = css; iconVer = VER;
+        store.set({ iconCss: css, iconVer: VER });
+        syncIcons();
+      }).catch(function () { iconLoading = ''; });
+    }
+    var use = on && !!iconCss;
+    root.classList.toggle('kadr-ic', use);
+    if (use) {
+      if (!iconEl) { iconEl = document.createElement('style'); iconEl.id = 'kadr-icons'; }
+      if (iconEl.textContent !== iconCss) iconEl.textContent = iconCss;
+      if (iconEl.parentNode !== root) root.appendChild(iconEl);
+    } else if (iconEl) { iconEl.remove(); iconEl.textContent = ''; }
   }
   function setMeta(color) {
     var m = document.querySelector('meta[name="theme-color"][data-kadr]');
@@ -62,9 +99,11 @@
 
   function apply() {
     if (!ready) return;
+    syncScheme();
     root.classList.toggle('kadr-rd', skin);
     syncPrefs();
     syncFont();
+    syncIcons();
     var theme = K.resolve(state);
     if (!theme) {
       if (styleEl) { styleEl.remove(); styleEl.textContent = ''; }
@@ -96,7 +135,7 @@
     for (var i = 0; i < list.length; i++) {
       var el = list[i], orig = el.getAttribute(LIFT);
       if (orig === null) { orig = el.style.color; if (!orig) continue; }
-      var x = K.liftColor(parseColor(orig), state, isLight());
+      var x = K.liftColor(parseColor(orig), state, isLight() && !el.closest('#elProfileHeader, .ipsPageHead_special'));
       if (x) {
         var want = 'rgb(' + x.join(', ') + ')';
         if (el.getAttribute(LIFT) === null) el.setAttribute(LIFT, orig);
@@ -322,13 +361,16 @@
     if ('fx' in d) prefs.fx = d.fx === 'glass' || d.fx === 'material' ? d.fx : 'plain';
     if ('shadows' in d) prefs.shadows = d.shadows !== false;
     if ('lspMin' in d) prefs.lspMin = d.lspMin === true;
+    if ('icons' in d) prefs.icons = d.icons === 'solar' || d.icons === 'remix' ? d.icons : 'native';
+    if ('iconCss' in d) iconCss = d.iconCss || '';
+    if ('iconVer' in d) iconVer = d.iconVer || '';
   }
   var siteScheme = null;
   function noteScheme() {
-    var sc = isLight() ? 'light' : 'dark';
-    if (ready && siteScheme !== sc) { siteScheme = sc; store.set({ siteScheme: sc }); }
+    var sc = native === 'light' ? 'light' : 'dark';
+    if (ready && native && siteScheme !== sc) { siteScheme = sc; store.set({ siteScheme: sc }); }
   }
-  store.get(['theme', 'seed', 'skin', 'menuEntry', 'ckeTint', 'fx', 'shadows', 'lspMin', 'siteScheme'], function (d) {
+  store.get(['theme', 'seed', 'skin', 'menuEntry', 'ckeTint', 'fx', 'shadows', 'lspMin', 'icons', 'iconCss', 'iconVer', 'siteScheme'], function (d) {
     d = d || {};
     state = { theme: d.theme || K.OFF, seed: d.seed || null };
     skin = d.skin !== false;
@@ -352,11 +394,11 @@
       measureSoon();
     }
     if (ch.menuEntry) { entryOn = ch.menuEntry.newValue !== false; syncEntry(); }
-    if (ch.ckeTint || ch.fx || ch.shadows || ch.lspMin) {
+    if (ch.ckeTint || ch.fx || ch.shadows || ch.lspMin || ch.icons || ch.iconCss || ch.iconVer) {
       var d = {};
-      ['ckeTint', 'fx', 'shadows', 'lspMin'].forEach(function (k) { if (ch[k]) d[k] = ch[k].newValue; });
+      ['ckeTint', 'fx', 'shadows', 'lspMin', 'icons', 'iconCss', 'iconVer'].forEach(function (k) { if (ch[k]) d[k] = ch[k].newValue; });
       readPrefs(d);
-      syncPrefs(); syncLsp(); measureSoon();
+      syncPrefs(); syncIcons(); syncLsp(); measureSoon();
     }
   });
 
