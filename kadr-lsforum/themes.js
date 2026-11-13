@@ -221,6 +221,8 @@
       'html .lsp-server-widget .lsp-join-button.lsp-join-button{background:rgba(' + a + ', .16) !important;border-color:rgba(' + a + ', .55) !important;color:' + hex(p0.accHi) + ' !important}' +
       'html .lsp-server-widget .lsp-join-button.lsp-join-button:hover{background:rgba(' + a + ', .28) !important;border-color:' + t0.acc + ' !important;color:' + hex(p0.acc50) + ' !important}' +
       'html .lsp-header-widget .fivem-logo.fivem-logo{background-color:' + t0.acc + ' !important}' +
+      'html .lsp-header-widget .lsp-server-widget .icon.icon{color:' + t0.acc + ' !important}' +
+      'html .lsp-header-widget .lsp-server-widget .progress-fill.progress-fill{background:' + t0.acc + ' !important}' +
       'html .ipsTag_prefix.ipsTag_prefix,html a[data-mentionid][data-mentionid]:not(.cContentMessage a){color:' + t.ink + ' !important}' +
       'html .ipsPagination .ipsPagination_page.ipsPagination_active a,html .ipsButtonBar .ipsPagination .ipsPagination_page.ipsPagination_active a,' +
       'html .ipsButtonRow li > a.ipsButtonRow_active,html .ipsButtonRow li > button.ipsButtonRow_active,html .ipsComment.ipsComment_popular .ipsComment_popularFlag,' +

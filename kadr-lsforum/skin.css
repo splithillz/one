@@ -93,6 +93,7 @@ html.kadr-rd .lsp-server-widget {
   box-shadow: inset 0 1px 0 rgba(255,255,255,.06), 0 16px 36px -22px rgba(0,0,0,.9);
 }
 html.kadr-rd .lsp-server-widget > .stat-row:first-of-type { padding-right: 30px; }
+html.kadr-rd .lsp-server-widget { font-variant-numeric: tabular-nums; }
 html.kadr-rd .kadr-lsp-toggle {
   position: absolute; top: 8px; right: 8px; z-index: 1; display: grid; place-items: center; width: 26px; height: 26px; padding: 0;
   border: 0; border-radius: 9px; background: rgba(255,255,255,.08); color: rgba(255,255,255,.85); cursor: pointer;
@@ -107,8 +108,16 @@ html.kadr-rd .kadr-lsp-toggle:hover { background: rgba(255,255,255,.16); }
 html.kadr-rd .kadr-lsp-toggle:active { transform: scale(.88); }
 html.kadr-rd .kadr-lsp-toggle:focus-visible { outline: 2px solid #fff; outline-offset: 1px; }
 html.kadr-rd .lsp-server-widget > :not(.kadr-lsp-toggle) { transition: opacity .22s var(--k-out), visibility 0s; }
-html.kadr-rd[data-kadr-lsp="min"] .lsp-server-widget.lsp-server-widget {
-  border-color: transparent; background: transparent; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none;
+html.kadr-rd .lsp-header-widget .lsp-server-widget.lsp-server-widget {
+  border: 1px solid rgba(255,255,255,.09) !important; border-radius: 18px !important; background: rgba(var(--theme-header), .55) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.06), 0 16px 36px -22px rgba(0,0,0,.9) !important;
+  -webkit-backdrop-filter: blur(12px) !important; backdrop-filter: blur(12px) !important;
+}
+html.kadr-rd[data-focus-scheme="light"] .lsp-header-widget .lsp-server-widget.lsp-server-widget { background: rgba(var(--theme-header), .78) !important; -webkit-backdrop-filter: blur(20px) saturate(1.4) !important; backdrop-filter: blur(20px) saturate(1.4) !important; }
+html.kadr-rd.kadr-fx-material .lsp-header-widget .lsp-server-widget.lsp-server-widget { background: rgb(var(--theme-header)) !important; -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
+html.kadr-rd.kadr-noshadow .lsp-header-widget .lsp-server-widget.lsp-server-widget { box-shadow: none !important; }
+html.kadr-rd[data-kadr-lsp="min"] .lsp-server-widget.lsp-server-widget, html.kadr-rd[data-kadr-lsp="min"] .lsp-header-widget .lsp-server-widget.lsp-server-widget {
+  border-color: transparent !important; background: transparent !important; box-shadow: none !important; -webkit-backdrop-filter: none !important; backdrop-filter: none !important;
 }
 html.kadr-rd[data-kadr-lsp="min"] .lsp-server-widget > :not(.kadr-lsp-toggle) { opacity: 0; visibility: hidden; transition: opacity .18s var(--k-out), visibility 0s .18s; }
 html.kadr-rd[data-kadr-lsp="min"] .kadr-lsp-toggle.kadr-lsp-toggle {
