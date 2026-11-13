@@ -62,8 +62,6 @@ html.kadr-rd[data-focus-scheme="light"] {
 }
 
 @keyframes kd-enter { from { opacity: 0; transform: translateY(12px) scale(.985); } }
-@keyframes kd-fade { from { opacity: 0; } }
-@keyframes kd-pop { from { opacity: 0; transform: translateY(-6px) scale(.97); } }
 
 html.kadr-rd body { background-color: var(--k-page); -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; overflow-x: clip; }
 html.kadr-rd body,
@@ -152,9 +150,11 @@ html.kadr-rd[data-focus-scheme="light"] .focus-search #elSearch { background: va
 
 @media (max-width: 767px) {
   html.kadr-rd #ipsLayout_body { padding-left: 12px; padding-right: 12px; }
+  html.kadr-rd :is(.focus-breadcrumb, .focus-content > .ipsBreadcrumb_bottom) { padding-left: 10px; padding-right: 10px; }
   html.kadr-rd .ipsResponsive_pull { margin-left: 0; margin-right: 0; border-radius: var(--box--radius); }
   html.kadr-rd .ipsBox.ipsResponsive_pull, html.kadr-rd .ipsResponsive_pull.cPost { border-radius: var(--box--radius); }
 }
+@media (min-width: 768px) and (max-width: 979px) { html.kadr-rd :is(.focus-breadcrumb, .focus-content > .ipsBreadcrumb_bottom) { padding-left: 15px; padding-right: 15px; } }
 @media (max-width: 979px) {
   html.kadr-rd .header-wrap {
     display: flex; flex-direction: column; position: sticky; z-index: var(--z-index--sticky-header, 350);
@@ -236,8 +236,9 @@ html.kadr-rd .focus-social a, html.kadr-rd [class*="cShareLink_"] { border-radiu
 html.kadr-rd .ipsBox, html.kadr-rd .ipsWidget.ipsWidget_vertical, html.kadr-rd .ipsWidget.ipsWidget_horizontal {
   border: 0; border-radius: var(--box--radius); background: var(--k-card); box-shadow: var(--k-shadow), var(--k-ring);
 }
-html.kadr-rd .ipsBox { animation: kd-enter .46s var(--k-spring) backwards; }
-html.kadr-rd .ipsBox.ipsBox--child, html.kadr-rd .ipsBox .ipsBox { animation: none; box-shadow: var(--k-ring); }
+html.kadr-rd:not(.kadr-settled) .ipsBox:not(.ipsAnim) { animation: kd-enter .46s var(--k-spring) backwards; }
+html.kadr-rd .ipsBox.ipsBox--child, html.kadr-rd .ipsBox .ipsBox { box-shadow: var(--k-ring); }
+html.kadr-rd:not(.kadr-settled) :is(.ipsBox.ipsBox--child, .ipsBox .ipsBox):not(.ipsAnim) { animation: none; }
 html.kadr-rd .ipsSpacer_bottom.ipsBox { margin-bottom: 16px; }
 html.kadr-rd .ipsBox > :first-child { border-top-left-radius: var(--box--radius); border-top-right-radius: var(--box--radius); }
 html.kadr-rd .ipsBox > :last-child { border-bottom-left-radius: var(--box--radius); border-bottom-right-radius: var(--box--radius); }
@@ -250,13 +251,14 @@ html.kadr-rd .ipsType_sectionTitle a { color: inherit; }
 html.kadr-rd .cForumToggle { display: grid; place-items: center; width: 32px; height: 32px; margin-top: -4px; border-radius: 10px; color: var(--k-mut); background: var(--k-hover); transition: background-color .2s, transform .42s var(--k-spring); }
 html.kadr-rd .cForumToggle:active { transform: scale(.9); }
 
-html.kadr-rd .cForumList, html.kadr-rd .cForumList > .cForumRow.ipsBox { background: none; box-shadow: none; animation: none; }
+html.kadr-rd .cForumList, html.kadr-rd .cForumList > .cForumRow.ipsBox { background: none; box-shadow: none; }
+html.kadr-rd:not(.kadr-settled) :is(.cForumList, .cForumList > .cForumRow.ipsBox):not(.ipsAnim) { animation: none; }
 html.kadr-rd .cForumList > .cForumRow.ipsBox { margin-bottom: 26px; }
 html.kadr-rd .cForumList .ipsType_sectionTitle { padding: 2px 4px 12px; font-size: 21px; font-weight: 800; letter-spacing: -.02em; }
 html.kadr-rd .cForumList .ipsDataList {
   border: 0; border-radius: var(--box--radius); background: var(--k-card); box-shadow: var(--k-shadow), var(--k-ring);
-  animation: kd-enter .46s var(--k-spring) backwards;
 }
+html.kadr-rd:not(.kadr-settled) .cForumList .ipsDataList:not(.ipsAnim) { animation: kd-enter .46s var(--k-spring) backwards; }
 
 html.kadr-rd .ipsPageHeader { padding: 22px 24px; }
 html.kadr-rd .ipsType_pageTitle { font-size: clamp(22px, 3vw, 30px); font-weight: 800; letter-spacing: -.025em; line-height: 1.15; color: var(--k-tx); }
@@ -331,6 +333,7 @@ html.kadr-rd .ipsBadge { border-radius: 999px; padding: 0 9px; font-weight: 700;
 html.kadr-rd .ipsTag, html.kadr-rd .ipsTags > li > a { border-radius: 999px; }
 
 html.kadr-rd .ipsWidget { margin-bottom: 16px; overflow: hidden; }
+html.kadr-rd :is(.ipsWidget, #elMessageSidebar):has(.ipsMenu[style*="display: block"]) { overflow: visible; }
 html.kadr-rd .ipsWidget_title { background: transparent; border: 0; color: var(--k-tx); font-size: 15px; font-weight: 700; letter-spacing: -.005em; }
 html.kadr-rd .ipsWidget_inner { border-radius: 0 0 var(--box--radius) var(--box--radius); }
 html.kadr-rd .ipsWidget .ipsTabs { margin: 0 12px; }
@@ -386,7 +389,7 @@ html.kadr-rd .ipsStreamItem_time {
 html.kadr-rd .ipsButtonBar { border-radius: 16px; background: var(--k-card); box-shadow: var(--k-ring); }
 
 html.kadr-rd .cPost { margin-bottom: 16px; }
-html.kadr-rd .cPost.ipsBox { animation: kd-enter .46s var(--k-spring) backwards; }
+html.kadr-rd:not(.kadr-settled) .cPost.ipsBox:not(.ipsAnim) { animation: kd-enter .46s var(--k-spring) backwards; }
 html.kadr-rd .cAuthorPane { padding: 22px 14px; }
 html.kadr-rd .cAuthorPane_author { font-size: 16px; font-weight: 750; }
 html.kadr-rd .cAuthorPane_photo .ipsUserPhoto { border-radius: 50%; }
@@ -420,7 +423,9 @@ html.kadr-rd .ipsComment_meta.ipsType_light, html.kadr-rd .cTopicPostArea + .ips
 html.kadr-rd .ipsComment_eventSeparator, html.kadr-rd .ipsTimeline > li { border-radius: 12px; }
 html.kadr-rd .cTopicPostArea, html.kadr-rd .cGuestTeaser { border-radius: var(--box--radius); }
 
-html.kadr-rd .ipsMenu { border-radius: 18px; padding: 6px; border: 1px solid var(--k-line2); animation: kd-pop .2s var(--k-out) backwards; }
+html.kadr-rd .ipsMenu { border-radius: 18px; padding: 6px; border: 1px solid var(--k-line2); }
+html.kadr-rd .ipsMenu:not(.ipsAnim) { transition: opacity .2s var(--k-out), transform .2s var(--k-out); }
+@starting-style { html.kadr-rd .ipsMenu:not(.ipsAnim) { opacity: 0 !important; transform: translateY(-6px) scale(.97); } }
 html.kadr-rd .ipsMenu_item > a, html.kadr-rd .ipsMenu_item > span { border-radius: 10px; }
 html.kadr-rd .ipsMenu_sep hr { border-color: var(--k-line); }
 html.kadr-rd .ipsHovercard { border-radius: 20px; overflow: hidden; }
@@ -476,10 +481,12 @@ html.kadr-rd .cke_toolbox a.cke_button { border-radius: 9px; }
   html.kadr-rd body[data-pageapp="forums"][data-pagecontroller="index"] .ipsBreadcrumb_top ul[data-role="breadcrumbList"] { visibility: hidden; }
 }
 
-html.kadr-rd #elMessageHeader { padding: 16px 20px; }
-html.kadr-rd #elMessageHeader .ipsType_pageTitle { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
-html.kadr-rd #elMessageHeader .ipsType_pageTitle > .ipsPos_right { margin-left: auto; float: none; }
-html.kadr-rd #elMessageHeader #elFolderSettings { display: inline-grid; place-items: center; width: 34px; height: 34px; border-radius: 11px; background: var(--k-hover); font-size: 15px; }
+html.kadr-rd #elMessageHeader { padding: 12px 14px 12px 18px; }
+@media (max-width: 979px) {
+  html.kadr-rd #elMessageHeader.ipsBox { border-radius: var(--box--radius); margin-bottom: 16px; }
+  html.kadr-rd #elMessageSidebar.ipsBox { margin-top: 0; border-radius: var(--box--radius); }
+}
+html.kadr-rd #elMessageSidebar [data-role="messageListPagination"]:not(:has(*)) { display: none !important; }
 html.kadr-rd .ipsAttachment_progress:has(> [data-role="quotaWidth"]) {
   display: block; width: 168px; max-width: 100%; height: 6px; margin: 0 0 6px auto; border: 0; border-radius: 99px; background: var(--k-hover); overflow: hidden; box-shadow: none;
 }
@@ -491,19 +498,23 @@ html.kadr-rd #elInboxContent > .ipsDataItem { margin: 2px 0; border: 0; border-r
 html.kadr-rd #elInboxContent > .ipsDataItem + .ipsDataItem { border-top: 0; }
 html.kadr-rd #elInboxContent > .ipsDataItem.ipsDataItem_selected, html.kadr-rd #elInboxContent > .ipsDataItem[data-current] { background: var(--k-acc-soft); }
 html.kadr-rd #elMessageSearch { border: 0; background: transparent; }
-html.kadr-rd #elMessageViewer > .ipsBox { background: transparent; box-shadow: none; animation: none; overflow: visible; }
+html.kadr-rd #elMessageViewer > .ipsBox { background: transparent; box-shadow: none; overflow: visible; }
+html.kadr-rd:not(.kadr-settled) #elMessageViewer > .ipsBox:not(.ipsAnim) { animation: none; }
 html.kadr-rd #elMessageViewer > .ipsBox > .ipsAreaBackground_light {
   margin-bottom: 14px; padding: 16px 18px !important; border: 0; border-radius: var(--box--radius); background: var(--k-card); box-shadow: var(--k-shadow), var(--k-ring);
 }
 html.kadr-rd #elMessageViewer .ipsPageHeader { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 12px; padding: 0; background: none; box-shadow: none; }
-html.kadr-rd #elMessageViewer .ipsPageHeader > h1 { order: 1; flex: 1 1 auto; min-width: 0; margin: 0; font-size: 24px; }
+html.kadr-rd #elMessageViewer .ipsPageHeader > h1 { order: 1; flex: 1 1 auto; min-width: 0; margin: 0; font-size: 22px; }
 html.kadr-rd #elMessageViewer .ipsPageHeader > .ipsBox_alt { order: 2; display: flex; align-items: center; gap: 8px; margin: 0 0 0 auto; padding: 0; float: none; background: none; box-shadow: none; }
 html.kadr-rd #elMessageViewer .ipsPageHeader > .ipsBox_alt > * { float: none; margin: 0; }
+html.kadr-rd #elMessageViewer .ipsPageHeader > .ipsBox_alt::before, html.kadr-rd #elMessageViewer .ipsPageHeader > .ipsBox_alt::after { content: none; display: none; }
+html.kadr-rd #elMessageViewer .ipsPageHeader > .ipsBox_alt > #elConvoActions { margin-left: auto; }
 @media (max-width: 979px) {
   html.kadr-rd #elMessageViewer .ipsPageHeader > .ipsBox_alt { order: 0; flex: 1 1 100%; justify-content: space-between; margin: 0; }
 }
 html.kadr-rd .cMessage_members { margin-top: 12px; color: var(--k-mut); font-size: 13px; }
 html.kadr-rd .cMessage_members > ol { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 10px 0 0 !important; padding: 0; }
+html.kadr-rd .cMessage_members > ol::before, html.kadr-rd .cMessage_members > ol::after { content: none; display: none; }
 html.kadr-rd .cMessage_members > ol > li {
   display: flex; align-items: center; gap: 8px; float: none; width: auto !important; margin: 0 !important; padding: 5px 12px 5px 5px;
   border: 0 !important; border-radius: 999px; background: var(--k-hover);
@@ -561,7 +572,8 @@ html.kadr-rd.kadr-fx-glass :is(.ipsBox:not(.ipsBox .ipsBox), .cForumList .ipsDat
   .ipsBreadcrumb ul[data-role="breadcrumbList"] > li > a, #elMessageViewer article.ipsComment, #elMessageViewer > .ipsBox > .ipsAreaBackground_light, .ipsButtonBar, .ipsDialog) {
   -webkit-backdrop-filter: blur(18px) saturate(1.4); backdrop-filter: blur(18px) saturate(1.4);
 }
-html.kadr-rd.kadr-fx-glass .ipsMenu { background-color: var(--k-card); }
+html.kadr-rd.kadr-fx-glass .ipsMenu { background-color: rgba(var(--theme-area_background_reset), .96); }
+html.kadr-rd.kadr-fx-glass :is(.ipsBox, .cForumList .ipsDataList, .ipsWidget, .ipsBreadcrumb ul[data-role="breadcrumbList"] > li > a, #elMessageViewer article.ipsComment, #elMessageViewer > .ipsBox > .ipsAreaBackground_light, .ipsButtonBar, .ipsDialog):has(.ipsMenu[style*="display: block"]) { -webkit-backdrop-filter: none; backdrop-filter: none; }
 
 html.kadr-rd.kadr-fx-material {
   --k-card: color-mix(in srgb, rgb(var(--theme-area_background_reset)) 93%, rgb(var(--theme-brand_primary)));
@@ -589,18 +601,19 @@ html.kadr-rd.kadr-noshadow :is(.secondary-header-align, #elMobileNav, .focus-mob
 html.kadr-rd.kadr-noshadow #elProfilePhoto .ipsUserPhoto img { box-shadow: 0 0 0 4px var(--k-card); }
 html.kadr-rd.kadr-noshadow .cAuthorPane_photo .ipsUserPhoto img { box-shadow: 0 0 0 3px var(--k-card), 0 0 0 5px var(--k-line2); }
 
-html.kadr-rd .ipsDataList > .ipsDataItem { animation: kd-enter .42s var(--k-spring) backwards; }
-html.kadr-rd .ipsDataList > .ipsDataItem:nth-child(2) { animation-delay: .03s; }
-html.kadr-rd .ipsDataList > .ipsDataItem:nth-child(3) { animation-delay: .06s; }
-html.kadr-rd .ipsDataList > .ipsDataItem:nth-child(4) { animation-delay: .09s; }
-html.kadr-rd .ipsDataList > .ipsDataItem:nth-child(5) { animation-delay: .12s; }
-html.kadr-rd .ipsDataList > .ipsDataItem:nth-child(6) { animation-delay: .15s; }
-html.kadr-rd .ipsDataList > .ipsDataItem:nth-child(7) { animation-delay: .18s; }
-html.kadr-rd .ipsDataList > .ipsDataItem:nth-child(8) { animation-delay: .21s; }
-html.kadr-rd .ipsDataList > .ipsDataItem:nth-child(n+9) { animation-delay: .24s; }
+html.kadr-rd:not(.kadr-settled) .ipsDataList > .ipsDataItem:not(.ipsAnim) { animation: kd-enter .42s var(--k-spring) backwards; }
+html.kadr-rd:not(.kadr-settled) .ipsDataList > .ipsDataItem:nth-child(2):not(.ipsAnim) { animation-delay: .03s; }
+html.kadr-rd:not(.kadr-settled) .ipsDataList > .ipsDataItem:nth-child(3):not(.ipsAnim) { animation-delay: .06s; }
+html.kadr-rd:not(.kadr-settled) .ipsDataList > .ipsDataItem:nth-child(4):not(.ipsAnim) { animation-delay: .09s; }
+html.kadr-rd:not(.kadr-settled) .ipsDataList > .ipsDataItem:nth-child(5):not(.ipsAnim) { animation-delay: .12s; }
+html.kadr-rd:not(.kadr-settled) .ipsDataList > .ipsDataItem:nth-child(6):not(.ipsAnim) { animation-delay: .15s; }
+html.kadr-rd:not(.kadr-settled) .ipsDataList > .ipsDataItem:nth-child(7):not(.ipsAnim) { animation-delay: .18s; }
+html.kadr-rd:not(.kadr-settled) .ipsDataList > .ipsDataItem:nth-child(8):not(.ipsAnim) { animation-delay: .21s; }
+html.kadr-rd:not(.kadr-settled) .ipsDataList > .ipsDataItem:nth-child(n+9):not(.ipsAnim) { animation-delay: .24s; }
 
 @media (prefers-reduced-motion: reduce) {
-  html.kadr-rd *, html.kadr-rd *::before, html.kadr-rd *::after { animation: none !important; transition-duration: .01ms !important; }
+  html.kadr-rd *, html.kadr-rd *::before, html.kadr-rd *::after { animation-duration: .01ms !important; animation-delay: 0s !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; transition-delay: 0s !important; }
+  html.kadr-rd :is(.ipsBox, .cForumList .ipsDataList, .ipsDataList > .ipsDataItem):not(.ipsAnim) { animation-name: none !important; }
 }
 
 html.kadr-rd .ipsComment .ipsComment_controls { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
@@ -634,8 +647,14 @@ html.kadr-rd .ipsApp .ipsButton_overlaid > span { font-size: 13px; line-height: 
   html.kadr-rd .ipsPageHeader .ipsType_pageTitle { text-box: trim-both cap alphabetic; padding-top: calc((1lh - 1cap) / 2); padding-bottom: calc((1lh - 1cap) / 2); }
   html.kadr-rd a[data-mentionid] { text-box: trim-both cap alphabetic; padding-top: calc((1lh - 1cap) / 2 + .1em); padding-bottom: calc((1lh - 1cap) / 2 + .1em); }
 }
-html.kadr-rd #elMessageHeader h1.ipsType_pageTitle { display: flex; flex-wrap: wrap; align-items: center; }
-html.kadr-rd #elMessageHeader h1.ipsType_pageTitle > #elFolderSettings { align-self: stretch; width: auto; height: auto; aspect-ratio: 1; }
+html.kadr-rd #elMessageHeader h1.ipsType_pageTitle { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 0; margin: 0; font-size: 0; line-height: 0; }
+html.kadr-rd #elMessageHeader h1.ipsType_pageTitle > #elMessageFolders { display: block; font-size: 20px; line-height: 34px; white-space: nowrap; }
+html.kadr-rd #elMessageHeader h1.ipsType_pageTitle > #elFolderSettings { display: inline-grid; place-items: center; flex: none; align-self: center; width: 34px; height: 34px; margin-left: 8px; aspect-ratio: auto; border-radius: 50%; background: var(--k-hover); font-size: 15px; line-height: 1; }
+html.kadr-rd #elMessageHeader h1.ipsType_pageTitle > .ipsButton { display: inline-flex; align-items: center; justify-content: center; height: 34px; margin-left: 12px; padding: 0 16px; font-size: 13px; line-height: 1cap; }
+html.kadr-rd #elMessageHeader h1.ipsType_pageTitle > .ipsPos_right { margin-left: auto; float: none; }
+@media (max-width: 767px) { html.kadr-rd #elMessageHeader h1.ipsType_pageTitle > .ipsButton.ipsResponsive_showPhone { display: inline-flex !important; } }
+html.kadr-rd #elMessageHeader h1.ipsType_pageTitle > [data-role="loadingFolderAction"] { font-size: 13px; line-height: 1.3; }
+html.kadr-rd #elMessageViewer .ipsPageHeader > .ipsBox_alt .ipsButton { display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 34px; padding: 0 14px; font-size: 13px; line-height: 1cap; }
 html.kadr-rd.kadr-ic :is(.ipsComment .ipsComment_controls > li > :is(a, .ipsButton), .ipsStreamItem_contentType, .focus-mobile-footer li > a, .ipsApp .ipsButton_overlaid, #elMobileNav > li > a) > .fa {
   display: grid; place-items: center; width: 1em; height: 1em; line-height: 1;
 }

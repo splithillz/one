@@ -410,6 +410,8 @@
   requestAnimationFrame(tick);
   window.addEventListener('load', function () { place(); syncEntry(); measure(); liftColors(); syncLsp(); markOwn(); noteScheme(); setTimeout(function () { settled = true; measure(); }, 1500); });
   document.addEventListener('DOMContentLoaded', function () { place(); syncEntry(); measure(); liftColors(); syncLsp(); markOwn(); noteScheme(); });
+  function settle() { setTimeout(function () { root.classList.add('kadr-settled'); }, 1600); }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', settle); else settle();
 
   var timer = 0;
   function later() {
