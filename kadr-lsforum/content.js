@@ -118,9 +118,11 @@
     liftColors();
     syncLsp();
     markOwn();
+    fitFull = true;
+    fitSoon();
   }
 
-  var LIFT = 'data-kadr-color';
+  var liftEl = null, fitEl = null, fitPending = false, fitObs = null, fitSeen = null;
   function parseColor(v) {
     var m = /rgba?\(\s*([\d.]+)[\s,]+([\d.]+)[\s,]+([\d.]+)/i.exec(v || '');
     if (m) return [+m[1], +m[2], +m[3]].map(Math.round);
@@ -129,23 +131,114 @@
     var h = m[1].length === 3 ? m[1].replace(/./g, '$&$&') : m[1], n = parseInt(h, 16);
     return [n >> 16 & 255, n >> 8 & 255, n & 255];
   }
+  function cssStr(s) {
+    return '"' + s.replace(/[\\"]/g, '\\$&').replace(/[\0-\x1f\x7f]/g, function (c) { return '\\' + c.charCodeAt(0).toString(16) + ' '; }) + '"';
+  }
+  function putCss(el, id, css) {
+    if (!el) { if (!css) return el; el = document.createElement('style'); el.id = id; }
+    if (el.textContent !== css) el.textContent = css;
+    if (css && el.parentNode !== root) root.appendChild(el);
+    return el;
+  }
   function liftColors() {
     if (!ready || !document.body) return;
-    var list = document.body.querySelectorAll('[style*="color"], [' + LIFT + ']');
+    var light = isLight(), list = document.body.querySelectorAll('[style*="color"]'), by = Object.create(null), keys = [], css = '';
     for (var i = 0; i < list.length; i++) {
-      var el = list[i], orig = el.getAttribute(LIFT);
-      if (orig === null) { orig = el.style.color; if (!orig) continue; }
-      var x = K.liftColor(parseColor(orig), state, isLight() && !el.closest('#elProfileHeader, .ipsPageHead_special'));
-      if (x) {
-        var want = 'rgb(' + x.join(', ') + ')';
-        if (el.getAttribute(LIFT) === null) el.setAttribute(LIFT, orig);
-        if (el.style.getPropertyValue('color') !== want || !el.style.getPropertyPriority('color')) el.style.setProperty('color', want, 'important');
-      } else if (el.getAttribute(LIFT) !== null) {
-        el.style.setProperty('color', orig);
-        el.removeAttribute(LIFT);
+      var el = list[i], st = el.getAttribute('style'), orig = el.style.color;
+      if (!st || !orig) continue;
+      var e = by[st];
+      if (!e) { e = by[st] = { orig: orig, body: false, head: false }; keys.push(st); }
+      if (el.closest('#elProfileHeader, .ipsPageHead_special')) e.head = true; else e.body = true;
+    }
+    for (var k = 0; k < keys.length; k++) {
+      var x = by[keys[k]], c = parseColor(x.orig), sel = '[style=' + cssStr(keys[k]) + ']';
+      var b = x.body ? K.liftColor(c, state, light) : null;
+      var h = x.head ? K.liftColor(c, state, false) : null;
+      if (b) css += 'html ' + sel + '{color:rgb(' + b.join(',') + ')!important}';
+      if (x.head && (h || b) && String(h) !== String(b)) css += 'html :is(#elProfileHeader,.ipsPageHead_special) ' + sel + '{color:' + (h ? 'rgb(' + h.join(',') + ')' : x.orig) + '!important}';
+    }
+    liftEl = putCss(liftEl, 'kadr-lift', css);
+  }
+
+  function clipOf(el, stop, cache) {
+    var chain = [], p = el.parentElement, found = null;
+    while (p && p !== stop) {
+      if (cache.has(p)) { found = cache.get(p); break; }
+      chain.push(p);
+      if (getComputedStyle(p).overflowX !== 'visible') { found = p; break; }
+      p = p.parentElement;
+    }
+    for (var i = 0; i < chain.length; i++) cache.set(chain[i], found);
+    return found;
+  }
+  function pathOf(el) {
+    var parts = [];
+    for (var e = el; e && e !== root; e = e.parentElement) {
+      if (e.id && document.getElementById(e.id) === e) { parts.unshift('#' + CSS.escape(e.id)); break; }
+      for (var i = 1, s = e; (s = s.previousElementSibling); i++);
+      parts.unshift(':nth-child(' + i + ')');
+    }
+    return parts.join('>');
+  }
+  var FIT = { img: ';height:auto!important', table: ';table-layout:fixed!important;width:100%!important' };
+  var fitCss = '', fitDone = null, fitCount = -1, fitW = 0, fitFull = true;
+  function fitScan(rts) {
+    var add = '', cache = new Map();
+    for (var i = 0; i < rts.length; i++) {
+      var rt = rts[i];
+      if (rt.isContentEditable || rt.closest('.cke, [contenteditable]')) continue;
+      var box = rt.getBoundingClientRect(), all = rt.getElementsByTagName('*'), skip = null;
+      if (!box.width) continue;
+      for (var j = 0; j < all.length; j++) {
+        var el = all[j];
+        if (skip) { if (skip.contains(el)) continue; skip = null; }
+        var b = el.getBoundingClientRect();
+        if (!b.width || b.right <= box.right + 1 || fitDone.has(el)) continue;
+        var clip = clipOf(el, rt, cache);
+        if (clip) { skip = clip; continue; }
+        skip = el;
+        if (/^(absolute|fixed)$/.test(getComputedStyle(el).position)) continue;
+        fitDone.add(el);
+        add += 'html.kadr-rd ' + pathOf(el) + '{max-width:100%!important;min-width:0!important;box-sizing:border-box!important' + (FIT[el.localName] || '') + '}';
       }
     }
+    return add;
   }
+  function fit() {
+    fitPending = false;
+    if (!ready || !document.body) return;
+    if (!skin) { fitCss = ''; fitFull = true; if (fitEl) fitEl.textContent = ''; return; }
+    var rts = document.querySelectorAll('.ipsType_richText'), count = 0;
+    if (window.ResizeObserver && window.WeakSet) {
+      if (!fitObs) { fitObs = new ResizeObserver(function () { fitSoon(); }); fitSeen = new WeakSet(); }
+      for (var o = 0; o < rts.length; o++) if (!fitSeen.has(rts[o])) { fitSeen.add(rts[o]); fitObs.observe(rts[o]); }
+    }
+    for (var c = 0; c < rts.length; c++) count += rts[c].getElementsByTagName('*').length + 1;
+    if (count !== fitCount || innerWidth !== fitW) fitFull = true;
+    fitCount = count;
+    fitW = innerWidth;
+    if (fitFull || !fitDone) {
+      fitFull = false;
+      fitDone = new WeakSet();
+      if (fitCss) { fitCss = ''; fitEl.textContent = ''; }
+    }
+    for (var round = 0; round < 3; round++) {
+      var add = fitScan(rts);
+      if (!add) break;
+      fitCss += add;
+      fitEl = putCss(fitEl, 'kadr-fit', fitCss);
+    }
+  }
+  function fitSoon() {
+    if (fitPending) return;
+    fitPending = true;
+    requestAnimationFrame(fit);
+  }
+  function onMedia(e) { var t = e.target; if (t && /^(IMG|IFRAME|VIDEO|EMBED|OBJECT)$/.test(t.tagName) && t.closest('.ipsType_richText')) fitSoon(); }
+  document.addEventListener('load', onMedia, true);
+  document.addEventListener('error', onMedia, true);
+  document.addEventListener('loadedmetadata', onMedia, true);
+  window.addEventListener('resize', fitSoon);
 
   var LSPBTN = 'data-kadr-lsp-toggle';
   function lspLabel(b) {
@@ -408,21 +501,22 @@
     if (!settled) requestAnimationFrame(tick);
   }
   requestAnimationFrame(tick);
-  window.addEventListener('load', function () { place(); syncEntry(); measure(); liftColors(); syncLsp(); markOwn(); noteScheme(); setTimeout(function () { settled = true; measure(); }, 1500); });
-  document.addEventListener('DOMContentLoaded', function () { place(); syncEntry(); measure(); liftColors(); syncLsp(); markOwn(); noteScheme(); });
+  window.addEventListener('load', function () { place(); syncEntry(); measure(); liftColors(); syncLsp(); markOwn(); noteScheme(); fitSoon(); setTimeout(function () { settled = true; measure(); }, 1500); });
+  document.addEventListener('DOMContentLoaded', function () { place(); syncEntry(); measure(); liftColors(); syncLsp(); markOwn(); noteScheme(); fitSoon(); });
   function settle() { setTimeout(function () { root.classList.add('kadr-settled'); }, 1600); }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', settle); else settle();
 
   var timer = 0;
+  function mine(n) { return n === styleEl || n === liftEl || n === fitEl; }
   function later() {
-    if (!timer) timer = setTimeout(function () { timer = 0; place(); syncEntry(); measure(); liftColors(); syncLsp(); markOwn(); }, 120);
+    if (!timer) timer = setTimeout(function () { timer = 0; place(); syncEntry(); measure(); liftColors(); syncLsp(); markOwn(); fitSoon(); }, 120);
   }
   new MutationObserver(function (records) {
     for (var i = 0; i < records.length; i++) {
       var r = records[i], j;
-      if (r.target === styleEl) continue;
-      for (j = 0; j < r.addedNodes.length; j++) if (r.addedNodes[j] !== styleEl && r.addedNodes[j].nodeType === 1) { later(); return; }
-      for (j = 0; j < r.removedNodes.length; j++) if (r.removedNodes[j].nodeType === 1 && r.removedNodes[j] !== styleEl) { later(); return; }
+      if (mine(r.target)) continue;
+      for (j = 0; j < r.addedNodes.length; j++) if (r.addedNodes[j].nodeType === 1 && !mine(r.addedNodes[j])) { later(); return; }
+      for (j = 0; j < r.removedNodes.length; j++) if (r.removedNodes[j].nodeType === 1 && !mine(r.removedNodes[j])) { later(); return; }
     }
   }).observe(root, { childList: true, subtree: true });
 })();
