@@ -233,6 +233,7 @@
         D + '.ipsForm_horizontal .ipsFieldRow_required.ipsFieldRow_required::before'].join(',') + '{color:#f07070}' +
       D + '.ipsType_success,' + D + '.ipsType_positive{color:#5fd09b}' +
       D + '.ipsRepBadge_negative.ipsRepBadge_negative{color:#f07070 !important}' + D + '.ipsRepBadge_positive.ipsRepBadge_positive{color:#8bd05c !important}' +
+      'html[data-focus-scheme="light"] .ipsRepBadge_neutral.ipsRepBadge_neutral{color:rgba(var(--theme-text_color), .8) !important}html[data-focus-scheme="light"] .ipsCommentCount.ipsCommentCount.ipsFaded{opacity:.7}' +
       '::selection{background-color:' + t.acc + ';color:' + t.ink + '}';
     return out;
   }

@@ -233,7 +233,7 @@
 
   var SHEET_CSS =
     ':host{all:initial}' +
-    '.wrap{position:fixed;inset:0;display:flex;align-items:flex-end;justify-content:center;' +
+    '.wrap{position:fixed;left:0;right:0;bottom:0;height:100vh;height:100lvh;display:flex;align-items:flex-end;justify-content:center;' +
       'font:16px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-tap-highlight-color:transparent}' +
     '.scrim{position:absolute;inset:0;background:rgb(0 0 0/.42);opacity:0;transition:opacity .3s ease;touch-action:none}' +
     '.panel{position:relative;display:flex;flex-direction:column;width:100%;max-width:560px;height:72vh;height:min(72dvh,600px);' +
@@ -281,7 +281,7 @@
     panel.append(grab, frame);
     wrap.append(scrim, panel);
     shadow.append(css, wrap);
-    host.style.cssText = 'position:fixed;inset:0;z-index:2147483600';
+    host.style.cssText = 'position:fixed;left:0;right:0;bottom:0;height:100vh;height:100lvh;z-index:2147483600';
     root.appendChild(host);
     lockPage(true);
     sheet = { host: host, wrap: wrap, panel: panel, frame: frame, from: from };

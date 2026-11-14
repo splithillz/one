@@ -1,0 +1,47 @@
+const fs = require('fs'), os = require('os'), path = require('path'), crypto = require('crypto');
+const { chromium } = require('playwright');
+const ext = path.resolve(process.argv[2]);
+const id = crypto.createHash('sha256').update(ext).digest('hex').slice(0, 32).split('').map((c) => String.fromCharCode(97 + parseInt(c, 16))).join('');
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+let fails = 0; const check = (n, got, want) => { const ok = JSON.stringify(got) === JSON.stringify(want); if (!ok) fails++; console.log((ok ? 'ok   ' : 'FAIL ') + n + (ok ? '' : '\n       got  ' + JSON.stringify(got) + '\n       want ' + JSON.stringify(want))); };
+(async () => {
+  const ctx = await chromium.launchPersistentContext(fs.mkdtempSync(path.join(os.tmpdir(), 'kadr-sf-')), { channel: 'chromium', headless: true, viewport: { width: 1366, height: 900 }, args: [`--disable-extensions-except=${ext}`, `--load-extension=${ext}`] });
+  const ctl = await ctx.newPage(); await ctl.goto(`chrome-extension://${id}/popup.html`);
+  const set = (s) => ctl.evaluate((s) => new Promise((r) => chrome.storage.local.set(s, r)), s);
+  const get = (k) => ctl.evaluate((k) => new Promise((r) => chrome.storage.local.get(k, r)), k);
+  await ctl.evaluate(() => new Promise((r) => chrome.storage.local.clear(r)));
+  await set({ theme: 'mint', skin: true });
+  const page = await ctx.newPage();
+  await page.addInitScript(() => {
+    window.__f = [];
+    const s = () => { const b = document.body; if (b && b.childElementCount) window.__f.push({ sc: document.documentElement.getAttribute('data-focus-scheme'), bg: getComputedStyle(b).backgroundColor }); };
+    const loop = () => { s(); requestAnimationFrame(loop); }; requestAnimationFrame(loop);
+  });
+  const look = () => page.evaluate(() => ({ sc: document.documentElement.getAttribute('data-focus-scheme'), bg: getComputedStyle(document.body).backgroundColor }));
+  await page.goto('https://forum.ls-project.com/', { waitUntil: 'load', timeout: 60000 }); await sleep(1500);
+  check('dark forum, Мята: scheme dark', (await look()).sc, 'dark');
+  await set({ theme: 'monet-white' }); await sleep(700);
+  check('switch to Monet White live: scheme light, white page', await look(), { sc: 'light', bg: 'rgb(249, 249, 255)' });
+  check('forum scheme remembered as dark', (await get('siteScheme')).siteScheme, 'dark');
+  await page.reload({ waitUntil: 'load' }); await sleep(1500);
+  const fr = await page.evaluate(() => window.__f);
+  check('reload with Monet White: every painted frame already light', fr.filter((f) => f.sc !== 'light' || f.bg !== 'rgb(249, 249, 255)').length, 0);
+  console.log('     painted frames: ' + fr.length);
+  await set({ theme: 'grape' }); await sleep(700);
+  check('back to Grape live: forum scheme dark again', (await look()).sc, 'dark');
+  await set({ theme: 'monet-black' }); await sleep(700);
+  check('Monet Black: dark, pure black page', await look(), { sc: 'dark', bg: 'rgb(0, 0, 0)' });
+  await set({ theme: 'off', skin: false }); await sleep(700);
+  check('Родная, design off: forum scheme untouched', (await look()).sc, 'dark');
+  const sel = '[data-focus-toggle-theme]:not(.focus-editor-panel)'; const n = await page.locator(sel).count();
+  for (let i = 0; i < n; i++) { const l = page.locator(sel).nth(i); if (await l.isVisible()) { await Promise.all([page.waitForLoadState('load').catch(() => {}), l.click()]); break; } }
+  await sleep(2500);
+  check('forum switched to its light theme', (await look()).sc, 'light');
+  await set({ theme: 'monet-dark', skin: true }); await sleep(700);
+  check('light forum, Monet Dark: scheme dark, dark page', await look(), { sc: 'dark', bg: 'rgb(17, 19, 24)' });
+  check('forum scheme remembered as light', (await get('siteScheme')).siteScheme, 'light');
+  await set({ theme: 'grape' }); await sleep(700);
+  check('back to Grape: forum scheme light again', (await look()).sc, 'light');
+  await ctx.close();
+  console.log(fails ? fails + ' FAILED' : 'all passed');
+})().catch((e) => { console.error(e); process.exit(2); });

@@ -431,10 +431,11 @@ html.kadr-rd .ipsMenu_sep hr { border-color: var(--k-line); }
 html.kadr-rd .ipsHovercard { border-radius: 20px; overflow: hidden; }
 html.kadr-rd .ipsDialog { border-radius: 22px; overflow: hidden; }
 html.kadr-rd .ipsDialog_title { font-weight: 750; }
-html.kadr-rd #ipsTooltip { border-radius: 10px; }
+html.kadr-rd .ipsTooltip.ipsTooltip:not(.ipsComment_inlineQuoteTooltip) { background: var(--k-tx) !important; border-color: var(--k-tx) !important; color: var(--k-page); border-radius: 9px; padding: 5px 9px; font-weight: 600; box-shadow: 0 8px 20px -10px rgba(0, 0, 0, .6); }
 html.kadr-rd #ipsTooltip > div { border-radius: 10px; }
 html.kadr-rd .ipsMessage { border-radius: 16px; }
-html.kadr-rd .ipsDrawer_menu { border-radius: 24px 0 0 24px; overflow: hidden; }
+html.kadr-rd .ipsDrawer_menu { border-radius: 24px 0 0 24px; }
+html.kadr-rd .ipsDrawer_menu > .ipsDrawer_content { border-radius: inherit; }
 html.kadr-rd .ipsDrawer_list { padding-left: 8px; padding-right: 8px; }
 html.kadr-rd .ipsDrawer_list > li > .ipsDrawer_title { margin: 0; padding: 0; font: inherit; border: 0; background: none; }
 html.kadr-rd :is(#elMobileDrawer, .ipsDrawer) .ipsDrawer_list > li > a,
@@ -445,7 +446,7 @@ html.kadr-rd :is(#elMobileDrawer, .ipsDrawer) .ipsDrawer_list > li > .ipsDrawer_
 html.kadr-rd .ipsDrawer_list > li > a:hover, html.kadr-rd .ipsDrawer_list > li > .ipsDrawer_title > a:hover { background: var(--k-hover); }
 html.kadr-rd .ipsDrawer_list > li > a:active, html.kadr-rd .ipsDrawer_list > li > .ipsDrawer_title > a:active { transform: scale(.97); background: var(--k-hover); }
 html.kadr-rd :is(#elMobileDrawer, .ipsDrawer) .ipsDrawer_list > li[data-action="back"] > a { color: var(--k-mut); font-weight: 650; }
-html.kadr-rd .ipsDrawer_close { border-radius: 12px; }
+html.kadr-rd .ipsDrawer_close { border-radius: 50%; box-shadow: var(--k-shadow), var(--k-ring); }
 
 html.kadr-rd #elProfileHeader, html.kadr-rd .ipsPageHead_special { border-radius: var(--box--radius) var(--box--radius) 0 0; }
 html.kadr-rd .ipsPageHead_special .ipsCoverPhoto_container, html.kadr-rd .ipsCoverPhoto { border-radius: var(--box--radius) var(--box--radius) 0 0; overflow: hidden; }
@@ -550,7 +551,7 @@ html.kadr-rd #elMessageViewer .ipsComposeArea_dummy { border-radius: 999px; padd
 html.kadr-rd #elMessageViewer [data-role="tablePagination"] .ipsButtonBar { margin-bottom: 10px; }
 
 html.kadr-rd.kadr-fx-glass body::before {
-  content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+  content: ""; position: fixed; top: 0; left: 0; right: 0; height: 100vh; height: 100lvh; z-index: -1; pointer-events: none;
   background:
     radial-gradient(54vmax 42vmax at 100% 30%, rgba(var(--theme-brand_primary), var(--k-blob)), transparent 70%),
     radial-gradient(48vmax 40vmax at 0% 68%, rgba(var(--theme-brand_primary), calc(var(--k-blob) * .8)), transparent 70%),
