@@ -154,6 +154,8 @@ html.kadr-rd[data-focus-scheme="light"] .focus-search #elSearch { background: va
   html.kadr-rd .ipsResponsive_pull { margin-left: 0; margin-right: 0; border-radius: var(--box--radius); }
   html.kadr-rd .ipsBox.ipsResponsive_pull, html.kadr-rd .ipsResponsive_pull.cPost { border-radius: var(--box--radius); }
 }
+#elMobileNav > li[data-kadr-entry][data-kadr-upd] > a { position: relative; }
+#elMobileNav > li[data-kadr-entry][data-kadr-upd] > a::after { content: ""; position: absolute; top: 6px; right: 6px; width: 8px; height: 8px; border-radius: 50%; background: #ff5a4f; box-shadow: 0 0 0 2px rgba(0, 0, 0, .35); pointer-events: none; }
 @media (max-width: 979px) { html.kadr-rd { overflow-x: clip; } }
 @media (min-width: 768px) and (max-width: 979px) { html.kadr-rd :is(.focus-breadcrumb, .focus-content > .ipsBreadcrumb_bottom) { padding-left: 15px; padding-right: 15px; } }
 @media (max-width: 979px) {

@@ -203,13 +203,7 @@
       '--sectiontitle--box-shadow:inset 0 0 0 1px rgba(0, 0, 0, .1);';
   }
   function accentText(t, light) { var p = palette(light ? lightFace(t) : t); return light ? textOn(p.acc, WHITE, 4.5) : p.acc; }
-  function forced(state) { var t = resolve(state); return t && t.scheme ? t.scheme : state && state.scheme || null; }
-  function effective(state, mode, dark) {
-    if (mode !== 'system' || !state) return state;
-    var id = state.theme || OFF;
-    if (/^monet-/.test(id)) id = !dark ? 'monet-white' : id === 'monet-white' ? 'monet-dark' : id;
-    return { theme: id, seed: state.seed, scheme: dark ? 'dark' : 'light' };
-  }
+  function forced(state) { var t = resolve(state); return t && t.scheme ? t.scheme : null; }
 
   function css(state) {
     var t0 = resolve(state);
@@ -245,8 +239,8 @@
   }
 
   function siteLook(state, light) {
-    var t = resolve(state), f = forced(state);
-    if (f) light = f === 'light';
+    var t = resolve(state);
+    if (t && t.scheme) light = t.scheme === 'light';
     if (t && t.light) {
       var L = t.light;
       return { page: L.page, panel: L.card, raised: L.mid, line: L.line, acc: L.acc, ink: L.ink, text: L.text, text2: L.text2, muted: L.text2, dark: false };
@@ -269,7 +263,7 @@
   g.KADR = {
     HOSTS: HOSTS, OFF: OFF, THEMES: THEMES, NATIVE: NATIVE,
     palette: palette, fromAccent: fromAccent, resolve: resolve, themeName: themeName, uiVars: uiVars,
-    siteVars: siteVars, siteVarsLight: siteVarsLight, css: css, liftColor: liftColor, accentText: accentText, textOn: textOn, forced: forced, effective: effective,
+    siteVars: siteVars, siteVarsLight: siteVarsLight, css: css, liftColor: liftColor, accentText: accentText, textOn: textOn, forced: forced,
     contrast: contrast, toHsl: toHsl, fromHsl: fromHsl, hex: hex, rgb: rgb, siteLook: siteLook
   };
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -25,6 +25,11 @@
     <button class="btn" id="permBtn" type="button">Дать доступ</button>
   </div>
 
+  <div class="banner upd" id="upd" hidden>
+    <p><b id="updTitle">Вышла новая версия</b><br>Скачать её можно в теме Kadr на форуме.</p>
+    <a class="btn" id="updBtn" href="https://forum.ls-project.com/index.php?/topic/924-x/" target="_blank" rel="noopener">Скачать</a>
+  </div>
+
   <section class="hero" aria-hidden="true">
     <div class="f-nav"><i class="on"></i><i></i><i></i><i></i><span class="f-search"></span></div>
     <div class="f-card">
@@ -43,13 +48,6 @@
       <label class="tune-row"><span>Яркость</span><input type="range" id="tuneL" class="tune-l" min="35" max="80" step="1"></label>
     </div>
     <div class="opts">
-      <div class="opt wide" title="Светлая или тёмная схема: как выбрано переключателем ◐ на форуме или как в системе телефона и компьютера">
-        <span id="scLabel">День и ночь</span>
-        <div class="seg" id="scSeg" role="radiogroup" aria-labelledby="scLabel">
-          <button type="button" role="radio" data-sc="site">Как на форуме</button>
-          <button type="button" role="radio" data-sc="system">Как в системе</button>
-        </div>
-      </div>
       <div class="opt">
         <span id="skinLabel">Новый дизайн</span>
         <button class="switch" id="skinSwitch" type="button" role="switch" aria-checked="true" aria-labelledby="skinLabel"><i></i></button>
@@ -92,6 +90,11 @@
       </div>
     </div>
   </main>
+
+  <footer class="foot">
+    <span id="ver"></span>
+    <span id="credits" hidden>Создатели: <span id="creditNames"></span></span>
+  </footer>
 
   <script src="themes.js"></script>
   <script src="popup.js"></script>

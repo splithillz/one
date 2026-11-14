@@ -75,6 +75,11 @@ svg { display: block; }
   transition: transform .35s var(--spring), filter .2s;
 }
 .btn:active { transform: scale(.94); }
+a.btn { display: inline-flex; align-items: center; text-decoration: none; }
+.banner.upd { background: rgb(var(--acc) / .12); box-shadow: inset 0 0 0 1px rgb(var(--acc) / .34); }
+.foot { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 12px; margin: 14px var(--pad) 0; padding: 0 2px calc(14px + env(safe-area-inset-bottom)); font-size: 12px; font-weight: 600; color: rgb(var(--mut)); }
+.foot a { color: rgb(var(--tx) / .86); text-decoration: none; }
+.foot a:hover { color: rgb(var(--acc)); }
 
 .hero {
   --f-page: #141414; --f-panel: #262626; --f-raised: #2c2c2c; --f-line: #383838; --f-acc: #6c9a64; --f-ink: #0b1409;
