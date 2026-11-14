@@ -259,7 +259,7 @@
   });
 
   var VER = chrome.runtime.getManifest().version;
-  var CREDITS = [];
+  var CREDITS = [{ name: 'born to win', url: 'https://forum.ls-project.com/index.php?/profile/1751-born-to-win/' }];
   function verNum(v) { var p = String(v || '').split('.'); return (+p[0] || 0) * 1e6 + (+p[1] || 0) * 1e3 + (+p[2] || 0); }
   function showUpd(v) {
     var on = !!v && verNum(v) > verNum(VER);
