@@ -22,6 +22,7 @@ guest_interactions() {
   node flexpseudo.js "$EXT" > "$OUT/logs/flex-guest.log" 2>&1
   node gutter.js "$EXT" > "$OUT/logs/gutter.log" 2>&1
   node post-fit.js "$EXT" > "$OUT/logs/post-fit.log" 2>&1
+  node day-night.js "$EXT" > "$OUT/logs/day-night.log" 2>&1
 }
 guest_design() {
   for k in phone desktop; do node audit.js "$EXT" "$OUT/audit-$k" --kind=$k > "$OUT/logs/audit-$k.log" 2>&1; node audit.js "$EXT" "$OUT/audit-light-$k" --kind=$k --light > "$OUT/logs/audit-light-$k.log" 2>&1; done
@@ -49,5 +50,6 @@ grep -h "^FAIL" "$OUT"/logs/*.log | grep -v "/off/" || echo "none"
 echo "== interaction totals"; grep -h "checks with the skin" "$OUT"/logs/li-*.log
 echo "== menu totals"; grep -h "checks," "$OUT"/logs/menus-*.log
 echo "== post content"; grep -h "^post-fit:" "$OUT"/logs/post-fit.log
+echo "== day and night, text size"; grep -h "^day-night:" "$OUT"/logs/day-night.log
 echo "== audit rows that are not clean"; grep -h "^\[" "$OUT"/logs/audit-*.log | grep -v "contrast hard 0 soft 0 | var fails 0 .*errors+ 0" || echo "none"
 echo "== pixel rows that are not clean"; grep -h "^\[" "$OUT"/logs/pp-*.log | grep -v "| text 0 | rows 0 | icons 0/" || echo "none"

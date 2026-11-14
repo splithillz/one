@@ -66,7 +66,7 @@ const inPage = {
     }
     return out;
   },
-  overflow: () => document.documentElement.scrollWidth > innerWidth + 1 ? document.documentElement.scrollWidth : 0,
+  overflow: () => document.documentElement.scrollWidth > innerWidth + 1 ? document.documentElement.scrollWidth : (() => { const vw = innerWidth; let n = 0; for (const el of document.body.querySelectorAll('*')) { const r = el.getBoundingClientRect(); if (r.width <= 0 || r.right <= vw + 1 || r.left >= vw || getComputedStyle(el).position === 'fixed') continue; let c = false; for (let p = el.parentElement; p && p !== document.body; p = p.parentElement) if (/(hidden|clip|auto|scroll)/.test(getComputedStyle(p).overflowX)) { c = true; break; } if (!c) n++; } return n; })(),
   boxInfo: (sel) => {
     const vis = (e) => !!(e && e.getClientRects().length && e.checkVisibility({ visibilityProperty: true, opacityProperty: true }) && parseFloat(getComputedStyle(e).opacity) > 0.05);
     const els = [...document.querySelectorAll(sel)].filter(vis); if (!els.length) return null;

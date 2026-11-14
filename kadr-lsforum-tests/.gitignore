@@ -1,3 +1,6 @@
 out/
 auth/
 *cred*.json
+node_modules/
+firefox/package.json
+firefox/package-lock.json

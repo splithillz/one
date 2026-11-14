@@ -43,6 +43,13 @@
       <label class="tune-row"><span>Яркость</span><input type="range" id="tuneL" class="tune-l" min="35" max="80" step="1"></label>
     </div>
     <div class="opts">
+      <div class="opt wide" title="Светлая или тёмная схема: как выбрано переключателем ◐ на форуме или как в системе телефона и компьютера">
+        <span id="scLabel">День и ночь</span>
+        <div class="seg" id="scSeg" role="radiogroup" aria-labelledby="scLabel">
+          <button type="button" role="radio" data-sc="site">Как на форуме</button>
+          <button type="button" role="radio" data-sc="system">Как в системе</button>
+        </div>
+      </div>
       <div class="opt">
         <span id="skinLabel">Новый дизайн</span>
         <button class="switch" id="skinSwitch" type="button" role="switch" aria-checked="true" aria-labelledby="skinLabel"><i></i></button>
@@ -65,6 +72,14 @@
           <button type="button" role="radio" data-fx="plain">Обычный</button>
           <button type="button" role="radio" data-fx="glass">Стекло</button>
           <button type="button" role="radio" data-fx="material">Material</button>
+        </div>
+      </div>
+      <div class="opt wide dep" title="Размер текста в постах и личных сообщениях">
+        <span id="fsLabel">Текст постов</span>
+        <div class="seg fs" id="fsSeg" role="radiogroup" aria-labelledby="fsLabel">
+          <button type="button" role="radio" data-fs="m" aria-label="Обычный">А</button>
+          <button type="button" role="radio" data-fs="l" aria-label="Крупнее">А</button>
+          <button type="button" role="radio" data-fs="xl" aria-label="Ещё крупнее">А</button>
         </div>
       </div>
       <div class="opt wide dep" title="Значки форума: родные, Solar или Remix">

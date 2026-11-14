@@ -184,15 +184,22 @@
     var v = K.uiVars(cur);
     for (var k in v) root.style.setProperty(k, v[k]);
     themeColor.content = 'rgb(' + v['--bg'].split(' ').join(',') + ')';
-    var L = K.siteLook(cur, siteLight), hero = document.querySelector('.hero');
+    var es = shown(), f = K.forced(es), light = f ? f === 'light' : siteLight;
+    var L = K.siteLook(es, light), hero = document.querySelector('.hero');
     hero.classList.toggle('skin', prefs.skin);
-    hero.classList.toggle('light', siteLight);
+    hero.classList.toggle('light', light);
     [['--f-page', L.page], ['--f-panel', L.panel], ['--f-raised', L.raised], ['--f-line', L.line], ['--f-acc', L.acc], ['--f-ink', L.ink],
       ['--f-tx', L.text], ['--f-tx2', L.text2], ['--f-mut', L.muted]].forEach(function (x) { hero.style.setProperty(x[0], x[1]); });
-    $('heroName').textContent = K.themeName(cur);
+    $('heroName').textContent = K.themeName(es);
   }
 
-  var prefs = { skin: true, menuEntry: true, ckeTint: true, shadows: true, fx: 'plain', icons: 'native' };
+  var prefs = { skin: true, menuEntry: true, ckeTint: true, shadows: true, fx: 'plain', icons: 'native', scheme: 'site', postSize: 'm' };
+  var sysMq = null;
+  try { sysMq = matchMedia('(prefers-color-scheme: dark)'); } catch (e) {}
+  function shown() {
+    if (prefs.scheme !== 'system' || (cur.theme === K.OFF && !prefs.skin)) return cur;
+    return K.effective(cur, 'system', !sysMq || sysMq.matches);
+  }
   function renderOpts() {
     $('skinSwitch').setAttribute('aria-checked', String(prefs.skin));
     $('menuSwitch').setAttribute('aria-checked', String(prefs.menuEntry));
@@ -207,6 +214,13 @@
       var on = b.dataset.ic === prefs.icons;
       b.setAttribute('aria-checked', String(on));
       b.tabIndex = on ? 0 : -1;
+    });
+    [['scSeg', 'sc', 'scheme'], ['fsSeg', 'fs', 'postSize']].forEach(function (x) {
+      [].forEach.call($(x[0]).querySelectorAll('[data-' + x[1] + ']'), function (b) {
+        var on = b.dataset[x[1]] === prefs[x[2]];
+        b.setAttribute('aria-checked', String(on));
+        b.tabIndex = on ? 0 : -1;
+      });
     });
     [].forEach.call(document.querySelectorAll('.opt.dep'), function (o) { o.setAttribute('aria-disabled', String(!prefs.skin)); });
   }
@@ -243,6 +257,24 @@
   }
   segKeys('fxSeg', 'data-fx');
   segKeys('icSeg', 'data-ic');
+  segKeys('scSeg', 'data-sc');
+  segKeys('fsSeg', 'data-fs');
+  $('scSeg').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-sc]');
+    if (!b) return;
+    prefs.scheme = b.dataset.sc;
+    store.set({ scheme: prefs.scheme });
+    renderOpts();
+    render();
+  });
+  $('fsSeg').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-fs]');
+    if (!b) return;
+    prefs.postSize = b.dataset.fs;
+    store.set({ postSize: prefs.postSize });
+    renderOpts();
+  });
+  if (sysMq) { var onSys = function () { if (prefs.scheme === 'system') render(); }; if (sysMq.addEventListener) sysMq.addEventListener('change', onSys); else if (sysMq.addListener) sysMq.addListener(onSys); }
   var VER = chrome.runtime.getManifest().version;
   function setIcons(name) {
     prefs.icons = name;
@@ -265,7 +297,7 @@
     chrome.permissions.request({ origins: K.HOSTS }, function (ok) { if (ok) $('perm').hidden = true; });
   });
 
-  store.get(['theme', 'seed', 'skin', 'menuEntry', 'ckeTint', 'shadows', 'fx', 'icons', 'siteScheme'], function (d) {
+  store.get(['theme', 'seed', 'skin', 'menuEntry', 'ckeTint', 'shadows', 'fx', 'icons', 'siteScheme', 'scheme', 'postSize'], function (d) {
     d = d || {};
     cur = { theme: d.theme || K.OFF, seed: d.seed || null };
     if (/^#[0-9a-f]{6}$/i.test(d.seed || '')) seed = d.seed.toLowerCase();
@@ -275,6 +307,8 @@
     prefs.shadows = d.shadows !== false;
     prefs.fx = d.fx === 'glass' || d.fx === 'material' ? d.fx : 'plain';
     prefs.icons = d.icons === 'solar' || d.icons === 'remix' ? d.icons : 'native';
+    prefs.scheme = d.scheme === 'system' ? 'system' : 'site';
+    prefs.postSize = d.postSize === 'l' || d.postSize === 'xl' ? d.postSize : 'm';
     if (!SHEET && d.siteScheme === 'light') siteLight = true;
     slidersFromSeed();
     paintCustom();

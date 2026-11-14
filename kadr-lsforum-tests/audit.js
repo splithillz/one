@@ -131,7 +131,7 @@ async function launch(dir) {
     for (const w of WIDTHS) {
       await pb.setViewportSize({ width: w, height: H }); await sleep(550);
       const v = await pb.evaluate(`(${COLLECT})({})`);
-      rep.overflowB[w] = v.sw > v.vw + 1 ? v.sw : 0;
+      rep.overflowB[w] = v.sw > v.vw + 1 ? v.sw : v.wide.length ? 'wide ' + v.wide.length : 0;
       if (v.wide.length) rep.wideB[w] = v.wide;
       if (KIND === 'desktop' && (w === 768 || w === 1024)) await pb.screenshot({ path: path.join(outDir, `${AUTH ? 'auth-' : ''}${LIGHT ? 'light-' : ''}${name}-${w}.png`) });
     }

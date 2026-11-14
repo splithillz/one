@@ -154,6 +154,7 @@ html.kadr-rd[data-focus-scheme="light"] .focus-search #elSearch { background: va
   html.kadr-rd .ipsResponsive_pull { margin-left: 0; margin-right: 0; border-radius: var(--box--radius); }
   html.kadr-rd .ipsBox.ipsResponsive_pull, html.kadr-rd .ipsResponsive_pull.cPost { border-radius: var(--box--radius); }
 }
+@media (max-width: 979px) { html.kadr-rd { overflow-x: clip; } }
 @media (min-width: 768px) and (max-width: 979px) { html.kadr-rd :is(.focus-breadcrumb, .focus-content > .ipsBreadcrumb_bottom) { padding-left: 15px; padding-right: 15px; } }
 @media (max-width: 979px) {
   html.kadr-rd .header-wrap {
@@ -398,7 +399,9 @@ html.kadr-rd .cAuthorPane_info [data-role="group"] span { display: inline-block;
 html.kadr-rd .cAuthorPane_badge { border-radius: 50%; }
 html.kadr-rd .ipsComment_content { padding: 18px 22px; }
 html.kadr-rd .ipsComment_meta { color: var(--k-mut); font-size: 13px; }
-html.kadr-rd .cPost .ipsType_richText { font-size: var(--post--font-size); line-height: var(--post--line-height); color: var(--k-tx2); }
+html.kadr-rd .cPost .ipsType_richText { font-size: calc(var(--post--font-size) * var(--kd-fs, 1)); line-height: var(--post--line-height); color: var(--k-tx2); }
+html.kadr-rd[data-kadr-fs="l"] { --kd-fs: 1.125; }
+html.kadr-rd[data-kadr-fs="xl"] { --kd-fs: 1.25; }
 html.kadr-rd .ipsType_richText a:not([class*="cke_"], .cke a) { color: color-mix(in srgb, var(--k-acc-text) 78%, var(--k-tx)); text-decoration-color: rgba(var(--theme-brand_primary), .4); }
 html.kadr-rd .ipsType_richText img { border-radius: 12px; }
 html.kadr-rd .ipsQuote { border-radius: 16px; border: 0; border-left: 3px solid var(--k-acc); background: var(--k-hover); }
@@ -541,7 +544,7 @@ html.kadr-rd #elMessageViewer .ipsComment_author { font-size: 14px; }
 html.kadr-rd #elMessageViewer .ipsComment_author .ipsRepBadge { display: none; }
 html.kadr-rd #elMessageViewer .ipsComment_meta { font-size: 12px; }
 html.kadr-rd #elMessageViewer .ipsComment_content > .ipsPadding_vertical { padding-top: 8px !important; padding-bottom: 4px !important; }
-html.kadr-rd #elMessageViewer .ipsComment_content .ipsType_richText { font-size: 15px; line-height: 1.55; }
+html.kadr-rd #elMessageViewer .ipsComment_content .ipsType_richText { font-size: calc(15px * var(--kd-fs, 1)); line-height: 1.55; }
 html.kadr-rd #elMessageViewer .ipsItemControls { margin-top: 2px; min-height: 0; }
 html.kadr-rd #elMessageViewer .ipsComment_ellipsis { display: inline-grid; place-items: center; width: 30px; height: 30px; border-radius: 10px; }
 html.kadr-rd #elMessageViewer .ipsComment_ellipsis:hover { background: var(--k-hover); }

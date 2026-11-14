@@ -12,19 +12,27 @@
   root.classList.add('kadr-rd');
   var ready = false;
   var styleEl = null, fontEl = null;
-  var prefs = { ckeTint: true, fx: 'plain', shadows: true, lspMin: false, icons: 'native' };
+  var prefs = { ckeTint: true, fx: 'plain', shadows: true, lspMin: false, icons: 'native', scheme: 'site', postSize: 'm' };
   var iconCss = '', iconVer = '', iconEl = null, iconLoading = '';
   var VER = '';
   try { VER = chrome.runtime.getManifest().version; } catch (e) {}
   function isLight() { return root.getAttribute('data-focus-scheme') === 'light'; }
   var SCHEME = 'data-focus-scheme';
   var native = root.getAttribute(SCHEME);
+  var sysMq = null;
+  try { sysMq = matchMedia('(prefers-color-scheme: dark)'); } catch (e) {}
+  function eff() {
+    if (prefs.scheme !== 'system' || (state.theme === K.OFF && !skin)) return state;
+    return K.effective(state, 'system', !sysMq || sysMq.matches);
+  }
+  function onSys() { if (ready && prefs.scheme === 'system') { apply(); tintSheet(); } }
+  if (sysMq) { if (sysMq.addEventListener) sysMq.addEventListener('change', onSys); else if (sysMq.addListener) sysMq.addListener(onSys); }
   function syncScheme() {
-    var f = ready ? K.forced(state) : null, cur = root.getAttribute(SCHEME), want = f || native;
+    var f = ready ? K.forced(eff()) : null, cur = root.getAttribute(SCHEME), want = f || native;
     if (want && cur !== want) root.setAttribute(SCHEME, want);
   }
   new MutationObserver(function () {
-    var cur = root.getAttribute(SCHEME), f = ready ? K.forced(state) : null;
+    var cur = root.getAttribute(SCHEME), f = ready ? K.forced(eff()) : null;
     if (f && cur === f) return;
     native = cur;
     if (f) syncScheme();
@@ -52,6 +60,7 @@
     root.classList.toggle('kadr-fx-material', skin && prefs.fx === 'material');
     root.classList.toggle('kadr-noshadow', skin && !prefs.shadows);
     if (skin && prefs.lspMin) root.setAttribute('data-kadr-lsp', 'min'); else root.removeAttribute('data-kadr-lsp');
+    if (skin && prefs.postSize !== 'm') root.setAttribute('data-kadr-fs', prefs.postSize); else root.removeAttribute('data-kadr-fs');
   }
 
   function place() {
@@ -104,12 +113,12 @@
     syncPrefs();
     syncFont();
     syncIcons();
-    var theme = K.resolve(state);
+    var es = eff(), theme = K.resolve(es);
     if (!theme) {
       if (styleEl) { styleEl.remove(); styleEl.textContent = ''; }
       restoreMeta();
     } else {
-      var text = K.css(state);
+      var text = K.css(es);
       if (!styleEl) { styleEl = document.createElement('style'); styleEl.id = ID; }
       if (styleEl.textContent !== text) styleEl.textContent = text;
       place();
@@ -142,7 +151,7 @@
   }
   function liftColors() {
     if (!ready || !document.body) return;
-    var light = isLight(), list = document.body.querySelectorAll('[style*="color"]'), by = Object.create(null), keys = [], css = '';
+    var light = isLight(), es = eff(), list = document.body.querySelectorAll('[style*="color"]'), by = Object.create(null), keys = [], css = '';
     for (var i = 0; i < list.length; i++) {
       var el = list[i], st = el.getAttribute('style'), orig = el.style.color;
       if (!st || !orig) continue;
@@ -152,8 +161,8 @@
     }
     for (var k = 0; k < keys.length; k++) {
       var x = by[keys[k]], c = parseColor(x.orig), sel = '[style=' + cssStr(keys[k]) + ']';
-      var b = x.body ? K.liftColor(c, state, light) : null;
-      var h = x.head ? K.liftColor(c, state, false) : null;
+      var b = x.body ? K.liftColor(c, es, light) : null;
+      var h = x.head ? K.liftColor(c, es, false) : null;
       if (b) css += 'html ' + sel + '{color:rgb(' + b.join(',') + ')!important}';
       if (x.head && (h || b) && String(h) !== String(b)) css += 'html :is(#elProfileHeader,.ipsPageHead_special) ' + sel + '{color:' + (h ? 'rgb(' + h.join(',') + ')' : x.orig) + '!important}';
     }
@@ -180,7 +189,8 @@
     }
     return parts.join('>');
   }
-  var FIT = { img: ';height:auto!important', table: ';table-layout:fixed!important;width:100%!important' };
+  var FIT = { img: ';height:auto!important', table: ';table-layout:fixed!important;width:100%!important', iframe: '', video: '', embed: '', object: '', svg: '', canvas: '' };
+  var WRAP = { nowrap: ';white-space:normal!important;overflow-wrap:anywhere!important', pre: ';white-space:pre-wrap!important;overflow-wrap:anywhere!important' };
   var fitCss = '', fitDone = null, fitCount = -1, fitW = 0, fitFull = true;
   function fitScan(rts) {
     var add = '', cache = new Map();
@@ -197,9 +207,10 @@
         var clip = clipOf(el, rt, cache);
         if (clip) { skip = clip; continue; }
         skip = el;
-        if (/^(absolute|fixed)$/.test(getComputedStyle(el).position)) continue;
+        var cs = getComputedStyle(el);
+        if (/^(absolute|fixed)$/.test(cs.position)) continue;
         fitDone.add(el);
-        add += 'html.kadr-rd ' + pathOf(el) + '{max-width:100%!important;min-width:0!important;box-sizing:border-box!important' + (FIT[el.localName] || '') + '}';
+        add += 'html.kadr-rd ' + pathOf(el) + '{max-width:100%!important;min-width:0!important;box-sizing:border-box!important' + (el.localName in FIT ? FIT[el.localName] : WRAP[cs.whiteSpace] || ';overflow-wrap:anywhere!important') + '}';
       }
     }
     return add;
@@ -356,7 +367,7 @@
   function openSheet(from) {
     if (sheet) return;
     var url;
-    try { url = chrome.runtime.getURL('popup.html') + '#sheet' + (isLight() ? '-light' : ''); } catch (e) { return; }
+    try { url = chrome.runtime.getURL('popup.html') + '#sheet' + (native === 'light' ? '-light' : ''); } catch (e) { return; }
     var host = document.createElement('kadr-sheet');
     var shadow = host.attachShadow({ mode: 'closed' });
     var css = document.createElement('style');
@@ -457,13 +468,15 @@
     if ('icons' in d) prefs.icons = d.icons === 'solar' || d.icons === 'remix' ? d.icons : 'native';
     if ('iconCss' in d) iconCss = d.iconCss || '';
     if ('iconVer' in d) iconVer = d.iconVer || '';
+    if ('scheme' in d) prefs.scheme = d.scheme === 'system' ? 'system' : 'site';
+    if ('postSize' in d) prefs.postSize = d.postSize === 'l' || d.postSize === 'xl' ? d.postSize : 'm';
   }
   var siteScheme = null;
   function noteScheme() {
     var sc = native === 'light' ? 'light' : 'dark';
     if (ready && native && siteScheme !== sc) { siteScheme = sc; store.set({ siteScheme: sc }); }
   }
-  store.get(['theme', 'seed', 'skin', 'menuEntry', 'ckeTint', 'fx', 'shadows', 'lspMin', 'icons', 'iconCss', 'iconVer', 'siteScheme'], function (d) {
+  store.get(['theme', 'seed', 'skin', 'menuEntry', 'ckeTint', 'fx', 'shadows', 'lspMin', 'icons', 'iconCss', 'iconVer', 'siteScheme', 'scheme', 'postSize'], function (d) {
     d = d || {};
     state = { theme: d.theme || K.OFF, seed: d.seed || null };
     skin = d.skin !== false;
@@ -478,18 +491,19 @@
 
   chrome.storage.onChanged.addListener(function (ch, area) {
     if (area !== 'local') return;
-    if (ch.theme || ch.seed || ch.skin) {
+    if (ch.theme || ch.seed || ch.skin || ch.scheme) {
       if (ch.theme) state.theme = ch.theme.newValue || K.OFF;
       if (ch.seed) state.seed = ch.seed.newValue || null;
       if (ch.skin) skin = ch.skin.newValue !== false;
+      if (ch.scheme) readPrefs({ scheme: ch.scheme.newValue });
       apply();
       tintSheet();
       measureSoon();
     }
     if (ch.menuEntry) { entryOn = ch.menuEntry.newValue !== false; syncEntry(); }
-    if (ch.ckeTint || ch.fx || ch.shadows || ch.lspMin || ch.icons || ch.iconCss || ch.iconVer) {
+    if (ch.ckeTint || ch.fx || ch.shadows || ch.lspMin || ch.icons || ch.iconCss || ch.iconVer || ch.postSize) {
       var d = {};
-      ['ckeTint', 'fx', 'shadows', 'lspMin', 'icons', 'iconCss', 'iconVer'].forEach(function (k) { if (ch[k]) d[k] = ch[k].newValue; });
+      ['ckeTint', 'fx', 'shadows', 'lspMin', 'icons', 'iconCss', 'iconVer', 'postSize'].forEach(function (k) { if (ch[k]) d[k] = ch[k].newValue; });
       readPrefs(d);
       syncPrefs(); syncIcons(); syncLsp(); measureSoon();
     }

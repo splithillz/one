@@ -171,20 +171,29 @@ svg { display: block; }
 .tune-h { --track: linear-gradient(90deg, #f33, #fa3, #ee3, #3d4, #3dd, #39f, #93f, #f3c, #f33); }
 
 .opts { display: grid; grid-template-columns: 1fr; gap: 8px; margin-top: 12px; }
+[data-mode="sheet"] { scrollbar-width: none; }
+[data-mode="sheet"] ::-webkit-scrollbar { display: none; }
 .touch .opts, [data-mode="sheet"] .opts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@media (max-width: 340px) { .touch .opts, [data-mode="sheet"] .opts { grid-template-columns: minmax(0, 1fr); } }
 .opt {
   display: flex; align-items: center; gap: 8px; min-width: 0; min-height: 50px; padding: 8px 10px 8px 13px;
   border-radius: 15px; background: rgb(var(--s1)); box-shadow: inset 0 0 0 1px rgb(var(--line) / .06);
   font-weight: 600; font-size: 13px; line-height: 1.2; transition: background-color .35s;
 }
 .opt span { flex: 1; min-width: 0; }
-.opt.wide { grid-column: 1 / -1; }
+.opt.wide { grid-column: 1 / -1; flex-wrap: wrap; row-gap: 8px; }
+.opt.wide > span { flex: 0 0 auto; white-space: nowrap; }
+.opt.wide > .seg { flex: 1 1 auto; }
 .opt.dep[aria-disabled="true"] { opacity: .45; pointer-events: none; }
 .seg { display: flex; flex: 2 1 auto; gap: 3px; padding: 3px; border-radius: 12px; background: rgb(var(--s2)); box-shadow: inset 0 0 0 1px rgb(var(--line) / .06); }
 .seg button { flex: 1 1 0; min-width: 0; height: 32px; padding: 0 6px; border-radius: 9px; font-weight: 650; font-size: 12.5px; text-align: center; color: rgb(var(--mut)); transition: background-color .2s, color .2s, transform .35s var(--spring); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .seg button:active { transform: scale(.94); }
 .seg button[aria-checked="true"] { background: rgb(var(--acc)); color: rgb(var(--ink)); }
 .touch .seg button { height: 36px; font-size: 13.5px; }
+.seg.fs button { font-weight: 700; }
+.seg.fs [data-fs="m"] { font-size: 13px; }
+.seg.fs [data-fs="l"] { font-size: 15.5px; }
+.seg.fs [data-fs="xl"] { font-size: 18.5px; }
 .only-touch { display: none; }
 .touch .only-touch, [data-mode="sheet"] .only-touch { display: flex; }
 .switch {
