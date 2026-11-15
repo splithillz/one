@@ -1,0 +1,56 @@
+name: rp-speller on Windows
+
+on:
+  push:
+    branches: [claude/avatar-mobile-extension-design-0uk0qe]
+    paths:
+      - "rp-speller/**"
+      - ".github/workflows/rp-speller-windows.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 40
+    defaults:
+      run:
+        shell: pwsh
+        working-directory: rp-speller
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Rust toolchain
+        run: |
+          rustup update stable --no-self-update
+          rustup default stable
+          rustc --version
+          cargo --version
+
+      - name: Logic tests (real Yandex Speller)
+        run: cargo test -p rp-speller-core
+
+      - name: Build
+        run: cargo build --release -p rpspeller -p fakegame -p poke -p winrun
+
+      - name: Desktop session
+        continue-on-error: true
+        run: |
+          query user
+          Get-Process explorer -ErrorAction SilentlyContinue | Select-Object Id, SessionId
+          [System.Diagnostics.Process]::GetCurrentProcess().SessionId
+
+      - name: Drive RPSpeller.exe on the desktop
+        env:
+          WINRUN_OUT: ${{ runner.temp }}\winrun
+        run: .\target\release\winrun.exe
+
+      - name: Keep logs and screenshots
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: winrun
+          path: ${{ runner.temp }}\winrun
+          if-no-files-found: warn
