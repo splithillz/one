@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["core", "app", "testkit/fakegame"]
+members = ["core", "app", "testkit/fakegame", "testkit/poke"]
 default-members = ["core"]
 
 [workspace.package]

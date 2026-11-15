@@ -1,0 +1,11 @@
+[package]
+name = "poke"
+description = "Test helper: sends RP Speller the messages its tray icon would send"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish = false
+
+[target.'cfg(windows)'.dependencies.windows]
+workspace = true
+features = ["Win32_Foundation", "Win32_UI_WindowsAndMessaging"]

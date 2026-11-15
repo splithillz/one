@@ -1,6 +1,6 @@
 use std::ffi::c_void;
 use std::ptr::{null, null_mut};
-use std::sync::mpsc::{self, Sender};
+use std::sync::Arc;
 use std::thread;
 
 use rp_speller_core::speller::{check_via, Fixes, API_HOST, API_PATH};
@@ -55,6 +55,9 @@ impl Endpoint {
 }
 
 struct Handle(*mut c_void);
+
+unsafe impl Send for Handle {}
+unsafe impl Sync for Handle {}
 
 impl Drop for Handle {
     fn drop(&mut self) {
@@ -150,17 +153,22 @@ pub struct Done {
 }
 
 pub struct Worker {
-    tx: Sender<Vec<String>>,
+    http: Arc<Result<Http, String>>,
+    target: isize,
 }
 
 impl Worker {
     pub fn start(notify: HWND) -> Self {
-        let (tx, rx) = mpsc::channel::<Vec<String>>();
-        let target = hwnd_to_isize(notify);
-        thread::spawn(move || {
-            let http = Http::new();
-            for words in rx {
-                let result = match &http {
+        Self { http: Arc::new(Http::new()), target: hwnd_to_isize(notify) }
+    }
+
+    pub fn submit(&self, words: Vec<String>) -> bool {
+        let http = Arc::clone(&self.http);
+        let target = self.target;
+        thread::Builder::new()
+            .name("speller".into())
+            .spawn(move || {
+                let result = match http.as_ref() {
                     Ok(h) => check_via(&words, |body| h.post_form(body)),
                     Err(e) => Err(e.clone()),
                 };
@@ -169,13 +177,8 @@ impl Worker {
                 if posted.is_err() {
                     drop(unsafe { Box::from_raw(done) });
                 }
-            }
-        });
-        Self { tx }
-    }
-
-    pub fn submit(&self, words: Vec<String>) -> bool {
-        self.tx.send(words).is_ok()
+            })
+            .is_ok()
     }
 }
 

@@ -13,9 +13,9 @@ use windows::Win32::UI::Controls::{
     WC_LINK,
 };
 use windows::Win32::UI::HiDpi::AdjustWindowRectExForDpi;
-use windows::Win32::UI::Input::KeyboardAndMouse::SetFocus;
+use windows::Win32::UI::Input::KeyboardAndMouse::{GetFocus, SetFocus};
 use windows::Win32::UI::WindowsAndMessaging::{
-    CreateWindowExW, DefWindowProcW, DestroyWindow, GetWindowRect, LoadCursorW, RegisterClassExW, SetForegroundWindow, SetWindowPos,
+    CreateWindowExW, DefWindowProcW, DestroyWindow, GetWindowRect, IsChild, WM_ACTIVATE, LoadCursorW, RegisterClassExW, SetForegroundWindow, SetWindowPos,
     ShowWindow, BM_GETCHECK, BM_SETCHECK, BS_AUTOCHECKBOX, BS_DEFPUSHBUTTON, BS_PUSHBUTTON, CBS_DROPDOWNLIST, CB_ADDSTRING, CB_GETCURSEL,
     CB_SETCURSEL, ES_AUTOHSCROLL, ES_AUTOVSCROLL, ES_MULTILINE, ES_NUMBER, ES_UPPERCASE, ES_WANTRETURN, HICON, HMENU, IDC_ARROW, MB_ICONWARNING,
     MB_OK, SWP_NOACTIVATE, SWP_NOZORDER, SW_RESTORE, SW_SHOW, WINDOW_EX_STYLE, WINDOW_STYLE, WM_CLOSE, WM_COMMAND,
@@ -61,6 +61,7 @@ struct Win {
     cancel: HWND,
     original_hotkey: String,
     initial_hotkey_value: usize,
+    last_focus: HWND,
 }
 
 thread_local! {
@@ -238,6 +239,7 @@ pub fn open(cfg: &Config, icon_small: HICON, icon_big: HICON) {
                 cancel,
                 original_hotkey: cfg.hotkey.clone(),
                 initial_hotkey_value: send(hotkey, HKM_GETHOTKEY, 0, 0) as usize & 0xFFFF,
+                last_focus: hotkey,
             })
         });
         layout(h, dpi_of(h), None);
@@ -430,6 +432,17 @@ unsafe extern "system" fn settings_proc(h: HWND, msg: u32, wp: WPARAM, lp: LPARA
             WM_DPICHANGED => {
                 let suggested = *(lp.0 as *const RECT);
                 layout(h, crate::win::hiword(wp.0) as u32, Some(suggested));
+                LRESULT(0)
+            }
+            WM_ACTIVATE => {
+                if loword(wp.0) == 0 {
+                    let focused = GetFocus();
+                    if !focused.0.is_null() && IsChild(h, focused).as_bool() {
+                        with_win(|w| w.last_focus = focused);
+                    }
+                } else if let Some(target) = with_win(|w| w.last_focus) {
+                    let _ = SetFocus(Some(target));
+                }
                 LRESULT(0)
             }
             WM_CLOSE => {

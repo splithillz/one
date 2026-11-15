@@ -12,7 +12,7 @@ use windows::Win32::System::Threading::CreateMutexW;
 use windows::Win32::UI::Controls::{InitCommonControlsEx, LoadIconMetric, ICC_HOTKEY_CLASS, ICC_LINK_CLASS, ICC_STANDARD_CLASSES, ICC_UPDOWN_CLASS, INITCOMMONCONTROLSEX, LIM_LARGE, LIM_SMALL};
 use windows::Win32::UI::Input::KeyboardAndMouse::{RegisterHotKey, UnregisterHotKey, HOT_KEY_MODIFIERS, MOD_NOREPEAT};
 use windows::Win32::UI::WindowsAndMessaging::{
-    AppendMenuW, CreatePopupMenu, CreateWindowExW, DefWindowProcW, DestroyMenu, DestroyWindow, DispatchMessageW, GetMessageW, IsChild,
+    AllowSetForegroundWindow, AppendMenuW, CreatePopupMenu, FindWindowW, GetWindowThreadProcessId, WM_APP, WM_CLOSE, CreateWindowExW, DefWindowProcW, DestroyMenu, DestroyWindow, DispatchMessageW, GetMessageW, IsChild,
     IsDialogMessageW, KillTimer, PostMessageW, PostQuitMessage, RegisterClassExW, RegisterWindowMessageW, SetForegroundWindow,
     SetMenuDefaultItem, SetTimer, TrackPopupMenu, TranslateMessage, HICON, MB_ICONINFORMATION, MB_OK, MF_CHECKED, MF_SEPARATOR, MF_STRING,
     MF_UNCHECKED, MSG, TPM_NONOTIFY, TPM_RETURNCMD, TPM_RIGHTBUTTON, WM_CONTEXTMENU, WM_DESTROY, WM_ENDSESSION, WM_HOTKEY,
@@ -28,6 +28,7 @@ use crate::{clipboard, game, log, settings};
 const MAIN_CLASS: PCWSTR = w!("RPSpellerMain");
 const HOTKEY_ID: i32 = 1;
 const T_SAVE: usize = 10;
+const ENTER_WAIT_MS: u32 = 2000;
 const T_CLIP: usize = 11;
 const ID_OPEN: usize = 201;
 const ID_TOGGLE: usize = 202;
@@ -35,6 +36,7 @@ const ID_SETTINGS: usize = 203;
 const ID_LOGS: usize = 204;
 const ID_YANDEX: usize = 205;
 const ID_EXIT: usize = 206;
+const WM_SHOW_SETTINGS: u32 = WM_APP + 3;
 const NIN_SELECT: u32 = 0x400;
 const NIN_KEYSELECT: u32 = 0x401;
 
@@ -66,6 +68,7 @@ pub struct App {
     chat_opened: bool,
     sending: bool,
     waiting_enter: bool,
+    flush_armed: bool,
     clip_restore: Option<(String, Option<String>)>,
 }
 
@@ -127,6 +130,7 @@ impl App {
         self.corrector.reset();
         self.sending = false;
         self.waiting_enter = false;
+        self.flush_armed = false;
         self.overlay.show_over(game::bounds(self.game));
     }
 
@@ -138,8 +142,8 @@ impl App {
         if let Some(e) = self.corrector.typed(&text, caret, c) {
             self.apply(vec![e]);
         }
-        if self.corrector.has_queue() {
-            self.overlay.kill_timer(T_FLUSH);
+        if self.corrector.has_queue() && !self.flush_armed {
+            self.flush_armed = true;
             self.overlay.timer(T_FLUSH, 120);
         }
     }
@@ -148,8 +152,9 @@ impl App {
         let Some(last) = edits.last() else { return };
         self.overlay.apply_edits(&edits);
         let shown = edits.iter().find(|e| e.undoable).unwrap_or(last);
-        let tail = if shown.undoable { "    ⌫ — вернуть" } else { "" };
-        self.overlay.flash(&format!("{} → {}{tail}", shown.from, shown.text), GREEN);
+        let tail = if shown.undoable { "   ·   Backspace — вернуть" } else { "" };
+        let arrow = self.overlay.arrow();
+        self.overlay.flash(&format!("{} {arrow} {}{tail}", shown.from, shown.text), GREEN);
         let list: Vec<String> = edits.iter().map(|e| format!("{} → {}", e.from, e.text)).collect();
         log::write(format!("fixed: {}", list.join(", ")));
     }
@@ -179,6 +184,7 @@ impl App {
         match id {
             T_FLUSH => {
                 self.overlay.kill_timer(T_FLUSH);
+                self.flush_armed = false;
                 self.flush();
             }
             T_ENTER => {
@@ -221,13 +227,14 @@ impl App {
         }
         self.sending = true;
         self.overlay.kill_timer(T_FLUSH);
+        self.flush_armed = false;
         self.overlay.set_status("проверяю…", GREY);
         let (text, _) = self.overlay.text();
         self.corrector.prepare_finish(&text);
         self.flush();
         if self.corrector.busy() {
             self.waiting_enter = true;
-            self.overlay.timer(T_ENTER, 1500);
+            self.overlay.timer(T_ENTER, ENTER_WAIT_MS);
         } else {
             self.finish_and_send();
         }
@@ -253,6 +260,7 @@ impl App {
     pub fn on_escape(&mut self) {
         self.waiting_enter = false;
         self.sending = false;
+        self.flush_armed = false;
         self.overlay.hide();
         self.cancel_chat();
     }
@@ -422,6 +430,14 @@ unsafe extern "system" fn main_proc(hwnd: HWND, msg: u32, wp: WPARAM, lp: LPARAM
                 }
                 LRESULT(0)
             }
+            WM_SHOW_SETTINGS => {
+                open_settings();
+                LRESULT(0)
+            }
+            WM_CLOSE => {
+                exit(hwnd);
+                LRESULT(0)
+            }
             WM_QUERYENDSESSION => LRESULT(1),
             WM_ENDSESSION => {
                 if wp.0 != 0 {
@@ -451,7 +467,15 @@ pub fn run() -> i32 {
     unsafe {
         let _mutex = CreateMutexW(None, true, w!("RPSpeller-single-instance"));
         if GetLastError() == ERROR_ALREADY_EXISTS {
-            message_box(None, "RP Speller уже запущен — значок в трее рядом с часами.", MB_ICONINFORMATION | MB_OK);
+            match FindWindowW(MAIN_CLASS, PCWSTR::null()) {
+                Ok(other) if !other.0.is_null() => {
+                    let mut pid = 0u32;
+                    GetWindowThreadProcessId(other, Some(&mut pid));
+                    let _ = AllowSetForegroundWindow(pid);
+                    let _ = PostMessageW(Some(other), WM_SHOW_SETTINGS, WPARAM(0), LPARAM(0));
+                }
+                _ => message_box(None, "RP Speller уже запущен — значок в трее рядом с часами.", MB_ICONINFORMATION | MB_OK),
+            }
             return 0;
         }
         let icc = INITCOMMONCONTROLSEX {
@@ -511,6 +535,7 @@ pub fn run() -> i32 {
             chat_opened: false,
             sending: false,
             waiting_enter: false,
+            flush_armed: false,
             clip_restore: None,
         };
         APP.with(|c| *c.borrow_mut() = Some(app));

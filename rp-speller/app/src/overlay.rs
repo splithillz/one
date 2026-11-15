@@ -26,7 +26,7 @@ use windows::Win32::UI::WindowsAndMessaging::{
 use windows::Win32::UI::WindowsAndMessaging::{EC_LEFTMARGIN, EC_RIGHTMARGIN};
 
 use crate::app::with_app;
-use crate::win::{create_font, dpi_for_rect, dpi_of, hinstance, hiword, line_height, loword, rgb, scale, send, set_font, wide, window_text};
+use crate::win::{dpi_for_rect, has_glyphs, ui_font, dpi_of, hinstance, hiword, line_height, loword, rgb, scale, send, set_font, wide, window_text};
 use crate::{game, log};
 
 pub const OV_ENTER: u32 = WM_APP + 10;
@@ -35,7 +35,7 @@ pub const T_FLUSH: usize = 1;
 pub const T_STATUS: usize = 2;
 pub const T_ENTER: usize = 3;
 
-pub const HINT: &str = "Enter — отправить · Esc — отмена · ⌫ сразу после исправления — вернуть";
+pub const HINT: &str = "Enter — отправить · Esc — отмена · Backspace сразу после исправления — вернуть";
 pub const GREY: COLORREF = rgb(160, 166, 176);
 pub const GREEN: COLORREF = rgb(143, 209, 138);
 const BG: COLORREF = rgb(28, 30, 36);
@@ -67,6 +67,7 @@ struct Ui {
     edit_line: i32,
     status_line: i32,
     dwm_round: bool,
+    arrow: &'static str,
 }
 
 thread_local! {
@@ -152,6 +153,7 @@ impl Overlay {
                     edit_line: 20,
                     status_line: 14,
                     dwm_round,
+                    arrow: "->",
                 })
             });
             apply_dpi(hwnd, dpi_of(hwnd));
@@ -249,6 +251,10 @@ impl Overlay {
         send(self.edit, EM_SETSEL, c16 as usize, c16);
     }
 
+    pub fn arrow(&self) -> &'static str {
+        ui(|u| u.arrow).unwrap_or("->")
+    }
+
     pub fn set_status(&self, text: &str, color: COLORREF) {
         ui(|u| {
             u.status = text.to_string();
@@ -277,8 +283,8 @@ fn apply_dpi(hwnd: HWND, dpi: u32) {
             return (u.edit, HFONT::default(), HFONT::default(), false);
         }
         let old = (u.font_edit, u.font_status);
-        u.font_edit = create_font("Segoe UI", 13.0, dpi, 400);
-        u.font_status = create_font("Segoe UI", 9.0, dpi, 400);
+        u.font_edit = ui_font(13.0, dpi, 400);
+        u.font_status = ui_font(9.0, dpi, 400);
         u.dpi = dpi;
         (u.edit, old.0, old.1, true)
     }) else {
@@ -293,9 +299,11 @@ fn apply_dpi(hwnd: HWND, dpi: u32) {
     send(edit, EM_SETMARGINS, (EC_LEFTMARGIN | EC_RIGHTMARGIN) as usize, margin | (margin << 16));
     let edit_line = line_height(hwnd, font_edit);
     let status_line = line_height(hwnd, font_status);
+    let arrow = if has_glyphs(hwnd, font_status, "→") { "→" } else { "->" };
     ui(|u| {
         u.edit_line = edit_line;
         u.status_line = status_line;
+        u.arrow = arrow;
     });
     unsafe {
         for f in [old_edit, old_status] {
@@ -438,7 +446,12 @@ unsafe extern "system" fn edit_proc(hwnd: HWND, msg: u32, wp: WPARAM, lp: LPARAM
                         }
                         return LRESULT(0);
                     }
-                    0x08 if !ctrl && with_app(|a| a.on_backspace()) == Some(true) => {
+                    0x08 if ctrl => {
+                        delete_word(hwnd);
+                        SWALLOW_BACK.set(true);
+                        return LRESULT(0);
+                    }
+                    0x08 if with_app(|a| a.on_backspace()) == Some(true) => {
                         SWALLOW_BACK.set(true);
                         return LRESULT(0);
                     }
@@ -449,7 +462,7 @@ unsafe extern "system" fn edit_proc(hwnd: HWND, msg: u32, wp: WPARAM, lp: LPARAM
             WM_CHAR => {
                 let code = wp.0 as u32;
                 match code {
-                    0x08 if SWALLOW_BACK.replace(false) => return LRESULT(0),
+                    0x08 | 0x7F if SWALLOW_BACK.replace(false) => return LRESULT(0),
                     0x09 | 0x0A | 0x0D | 0x1B => return LRESULT(0),
                     0x01 => {
                         send(hwnd, EM_SETSEL, 0, -1);

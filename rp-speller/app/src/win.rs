@@ -4,7 +4,7 @@ use std::mem::size_of;
 use windows::core::{w, PCWSTR};
 use windows::Win32::Foundation::{COLORREF, HINSTANCE, HWND, LPARAM, RECT, SIZE, WPARAM};
 use windows::Win32::Graphics::Gdi::{
-    CreateFontIndirectW, GetDC, GetMonitorInfoW, GetTextExtentPoint32W, GetTextMetricsW, MonitorFromPoint, MonitorFromRect, ReleaseDC,
+    CreateFontIndirectW, GetDC, GetGlyphIndicesW, GGI_MARK_NONEXISTING_GLYPHS, GetMonitorInfoW, GetTextExtentPoint32W, GetTextMetricsW, MonitorFromPoint, MonitorFromRect, ReleaseDC,
     SelectObject, CLEARTYPE_QUALITY, DEFAULT_CHARSET, HFONT, HGDIOBJ, MONITORINFO, MONITOR_DEFAULTTONEAREST, MONITOR_DEFAULTTOPRIMARY,
     TEXTMETRICW,
 };
@@ -138,15 +138,34 @@ pub fn create_font(face: &str, points: f32, dpi: u32, weight: i32) -> HFONT {
     unsafe { CreateFontIndirectW(&lf) }
 }
 
-pub fn message_font(dpi: u32) -> HFONT {
+fn system_message_font(dpi: u32) -> Option<LOGFONTW> {
     let mut ncm = NONCLIENTMETRICSW { cbSize: size_of::<NONCLIENTMETRICSW>() as u32, ..Default::default() };
     let ok = unsafe {
         SystemParametersInfoForDpi(SPI_GETNONCLIENTMETRICS.0, ncm.cbSize, Some(&mut ncm as *mut _ as *mut c_void), 0, dpi).is_ok()
     };
-    if ok && ncm.lfMessageFont.lfHeight != 0 {
-        unsafe { CreateFontIndirectW(&ncm.lfMessageFont) }
-    } else {
-        create_font("Segoe UI", 9.0, dpi, 400)
+    (ok && ncm.lfMessageFont.lfHeight != 0 && ncm.lfMessageFont.lfFaceName[0] != 0).then_some(ncm.lfMessageFont)
+}
+
+pub fn message_font(dpi: u32) -> HFONT {
+    match system_message_font(dpi) {
+        Some(lf) => unsafe { CreateFontIndirectW(&lf) },
+        None => create_font("Segoe UI", 9.0, dpi, 400),
+    }
+}
+
+pub fn ui_font(points: f32, dpi: u32, weight: i32) -> HFONT {
+    match system_message_font(dpi) {
+        Some(mut lf) => {
+            lf.lfHeight = -((points * dpi as f32 / 72.0).round() as i32);
+            lf.lfWidth = 0;
+            lf.lfWeight = weight;
+            lf.lfItalic = 0;
+            lf.lfUnderline = 0;
+            lf.lfStrikeOut = 0;
+            lf.lfQuality = CLEARTYPE_QUALITY;
+            unsafe { CreateFontIndirectW(&lf) }
+        }
+        None => create_font("Segoe UI", points, dpi, weight),
     }
 }
 
@@ -165,6 +184,19 @@ pub fn text_size(hwnd: HWND, font: HFONT, s: &str) -> SIZE {
         ReleaseDC(Some(hwnd), dc);
     }
     size
+}
+
+pub fn has_glyphs(hwnd: HWND, font: HFONT, s: &str) -> bool {
+    let units: Vec<u16> = s.encode_utf16().collect();
+    let mut idx = vec![0u16; units.len()];
+    unsafe {
+        let dc = GetDC(Some(hwnd));
+        let old = SelectObject(dc, HGDIOBJ(font.0));
+        let n = GetGlyphIndicesW(dc, PCWSTR(units.as_ptr()), units.len() as i32, idx.as_mut_ptr(), GGI_MARK_NONEXISTING_GLYPHS);
+        SelectObject(dc, old);
+        ReleaseDC(Some(hwnd), dc);
+        n as usize == units.len() && idx.iter().all(|&g| g != 0xFFFF)
+    }
 }
 
 pub fn line_height(hwnd: HWND, font: HFONT) -> i32 {
