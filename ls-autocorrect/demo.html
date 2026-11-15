@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LS Autocorrect — демо чата</title>
+<style>
+  :root { color-scheme: dark; }
+  body { margin: 0; min-height: 100vh; background: linear-gradient(160deg, #1b2735, #090a0f); font: 15px/1.45 system-ui, sans-serif; color: #e8e8ea; }
+  .chat { position: fixed; left: 24px; top: 24px; width: min(560px, calc(100vw - 48px)); }
+  .log { max-height: 50vh; overflow: auto; padding: 10px 12px; border-radius: 12px; background: rgba(0, 0, 0, .35); }
+  .log p { margin: 0 0 4px; text-shadow: 0 1px 2px #000; }
+  .log b { color: #8fd18a; }
+  .log .fix { color: #9aa0a6; font-size: 12px; }
+  .in { display: flex; gap: 8px; margin-top: 10px; }
+  input { flex: 1; padding: 10px 12px; border: 0; border-radius: 10px; background: rgba(0, 0, 0, .55); color: #fff; font: inherit; outline: 2px solid transparent; }
+  input:focus { outline-color: rgba(143, 209, 138, .6); }
+  .tip { margin-top: 8px; font-size: 12.5px; color: #9aa0a6; }
+</style>
+</head>
+<body>
+  <div class="chat">
+    <div class="log" id="log"><p class="fix">Пиши как в игровом чате: «здраствуйте», «/me досал телефон», «как дела харашо». Enter — отправить.</p></div>
+    <div class="in"><input id="msg" autocomplete="off" spellcheck="false" placeholder="Сообщение…"></div>
+    <div class="tip">Backspace сразу после исправления — вернуть как было.</div>
+  </div>
+  <script src="ls-autocorrect.js"></script>
+  <script>
+    var input = document.getElementById('msg'), log = document.getElementById('log');
+    var ac = LSAutocorrect.attach(input, {
+      whitelist: ['лспд', 'вайнвуд', 'грув', 'рп', 'оос', 'мта', 'гта'],
+      onFix: function (from, to) { var p = document.createElement('p'); p.className = 'fix'; p.textContent = 'исправлено: ' + from + ' → ' + to; log.appendChild(p); log.scrollTop = log.scrollHeight; }
+    });
+    input.addEventListener('keydown', function (e) {
+      if (e.key !== 'Enter' || !input.value.trim()) return;
+      var p = document.createElement('p'); p.innerHTML = '<b>Игрок:</b> '; p.appendChild(document.createTextNode(input.value.trim()));
+      log.appendChild(p); log.scrollTop = log.scrollHeight;
+      window.sent = (window.sent || []).concat(input.value.trim());
+      input.value = '';
+    });
+    input.focus();
+  </script>
+</body>
+</html>

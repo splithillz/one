@@ -1,0 +1,14 @@
+<!doctype html><meta charset="utf-8"><div id="root"></div>
+<script src="https://cdn.jsdelivr.net/npm/react@18.3.1/umd/react.production.min.js"></script><script src="https://cdn.jsdelivr.net/npm/react-dom@18.3.1/umd/react-dom.production.min.js"></script><script src="../ls-autocorrect.js"></script>
+<script>
+function Chat() {
+  const [text, setText] = React.useState('');
+  const ref = React.useRef(null);
+  React.useEffect(() => { const ac = LSAutocorrect.attach(ref.current, { persist: false }); return () => ac.destroy(); }, []);
+  window.__model = text;
+  return React.createElement('div', null,
+    React.createElement('input', { id: 'msg', ref, value: text, onChange: (e) => setText(e.target.value), onKeyDown: (e) => { if (e.key === 'Enter') { window.sent = (window.sent || []).concat(text.trim()); setText(''); } } }),
+    React.createElement('pre', { id: 'model' }, text));
+}
+ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(Chat));
+</script>
