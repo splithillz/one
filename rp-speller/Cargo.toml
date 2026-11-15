@@ -1,0 +1,22 @@
+[workspace]
+resolver = "3"
+members = ["core", "app", "testkit/fakegame"]
+default-members = ["core"]
+
+[workspace.package]
+version = "0.2.0"
+edition = "2024"
+rust-version = "1.100"
+
+[workspace.dependencies]
+rp-speller-core = { path = "core" }
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.154"
+windows = "0.62.2"
+
+[profile.release]
+opt-level = 3
+lto = "fat"
+codegen-units = 1
+panic = "abort"
+strip = true
