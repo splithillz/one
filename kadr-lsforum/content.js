@@ -11,7 +11,7 @@
   var skin = true;
   root.classList.add('kadr-rd');
   var ready = false;
-  var styleEl = null, fontEl = null;
+  var styleEl = null;
   var prefs = { ckeTint: true, fx: 'plain', shadows: true, lspMin: false, icons: 'native', postSize: 'm' };
   var iconCss = '', iconVer = '', iconEl = null, iconLoading = '';
   var VER = '';
@@ -31,21 +31,24 @@
     if (ready) { apply(); noteScheme(); }
   }).observe(root, { attributes: true, attributeFilter: [SCHEME] });
 
-  var FONT = '';
+  var FACES = [];
   try {
-    FONT = '@font-face{font-family:Onest;font-style:normal;font-weight:400 800;font-display:swap;src:url("' +
-      chrome.runtime.getURL('fonts/onest-cyrillic.woff2') + '") format("woff2");unicode-range:U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116}' +
-      '@font-face{font-family:Onest;font-style:normal;font-weight:400 800;font-display:swap;src:url("' +
-      chrome.runtime.getURL('fonts/onest-latin.woff2') + '") format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,' +
-      'U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}';
+    (window.KADR_FONTS || []).forEach(function (f) {
+      var bin = atob(f.b64), buf = new Uint8Array(bin.length);
+      for (var i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
+      FACES.push(new FontFace('Onest', buf.buffer, { style: 'normal', weight: '400 800', display: 'swap', unicodeRange: f.range }));
+    });
   } catch (e) {}
-
   function syncFont() {
-    if (skin && FONT) {
-      if (!fontEl) { fontEl = document.createElement('style'); fontEl.id = 'kadr-font'; fontEl.textContent = FONT; }
-      if (!fontEl.isConnected) (document.head || root).appendChild(fontEl);
-    } else if (fontEl && fontEl.isConnected) fontEl.remove();
+    var on = skin && FACES.length > 0;
+    for (var i = 0; i < FACES.length; i++) {
+      try {
+        if (on && !document.fonts.has(FACES[i])) document.fonts.add(FACES[i]);
+        else if (!on && document.fonts.has(FACES[i])) document.fonts.delete(FACES[i]);
+      } catch (e) {}
+    }
   }
+  syncFont();
   function syncPrefs() {
     root.classList.toggle('kadr-cke-tint', skin && prefs.ckeTint);
     root.classList.toggle('kadr-fx-glass', skin && prefs.fx === 'glass');

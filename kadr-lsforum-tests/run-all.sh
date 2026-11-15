@@ -31,7 +31,7 @@ guest_design() {
   for k in phone desktop; do node pp.js "$EXT" "$OUT/pp-light-$k" --kind=$k --light --states="$S3" > "$OUT/logs/pp-light-$k.log" 2>&1; done
   node lsp-collapse2.js "$EXT" "$OUT/lsp" > "$OUT/logs/lsp-collapse.log" 2>&1
   node lsp-collapse2.js "$EXT" "$OUT/lsp-light" --light > "$OUT/logs/lsp-collapse-light.log" 2>&1
-  for t in ls-new ls-sheet font-flash ls-fouc ic-fouc scheme-force off-sticky; do echo "== $t" >> "$OUT/logs/misc.log"; node $t.js "$EXT" >> "$OUT/logs/misc.log" 2>&1; done
+  for t in ls-new ls-sheet font-flash font-nav ls-fouc ic-fouc scheme-force off-sticky; do echo "== $t" >> "$OUT/logs/misc.log"; node $t.js "$EXT" >> "$OUT/logs/misc.log" 2>&1; done
 }
 pids=()
 if [ -n "${KADR_CRED:-}" ]; then
