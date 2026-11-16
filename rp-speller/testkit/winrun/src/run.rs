@@ -508,6 +508,7 @@ fn run(t: &mut T) {
     t.check("повторный запуск открыл настройки", ok);
     let ok = t.wait(3000, || ui::foreground() == SETTINGS);
     t.check("окно настроек на переднем плане", ok);
+    ui::sleep(1000);
     t.shot("05-settings");
     ui::tap(VK_ESCAPE);
     let ok = t.wait(3000, || !ui::visible(SETTINGS));
@@ -567,6 +568,7 @@ fn run(t: &mut T) {
     t.poke(&["tray-menu", &mx.to_string(), &my.to_string()]);
     let ok = t.wait(3000, || ui::visible(MENU));
     t.check("меню открывается", ok);
+    ui::sleep(500);
     t.shot("06-menu");
     ui::tap(VK_DOWN);
     ui::tap(VK_DOWN);
