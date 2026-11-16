@@ -1,7 +1,9 @@
 use std::env;
 use std::fs;
-use std::path::PathBuf;
+use std::io::{IsTerminal, Write};
+use std::path::{Path, PathBuf};
 use std::process::{Child, Command};
+use std::sync::Mutex;
 use std::time::{Duration, Instant};
 
 use crate::relay::Relay;
@@ -9,12 +11,28 @@ use crate::ui::{self, Clip, VK_A, VK_BACK, VK_CONTROL, VK_DOWN, VK_ESCAPE, VK_F7
 
 const OVERLAY: &str = "RPSpellerOverlay";
 const SETTINGS: &str = "RPSpellerSettings";
+const MAIN: &str = "RPSpellerMain";
 const GAME: &str = "grcWindow";
 const MENU: &str = "#32768";
+
+static REPORT: Mutex<String> = Mutex::new(String::new());
+
+macro_rules! say {
+    ($($arg:tt)*) => {{
+        let line = format!($($arg)*);
+        println!("{line}");
+        if let Ok(mut r) = REPORT.lock() {
+            r.push_str(&line);
+            r.push_str("\r\n");
+        }
+    }};
+}
 
 struct T {
     pass: u32,
     fail: u32,
+    failed: Vec<String>,
+    app_exe: PathBuf,
     dir: PathBuf,
     out: PathBuf,
     appdir: PathBuf,
@@ -25,18 +43,19 @@ struct T {
     app: Option<Child>,
 }
 
-fn read(p: &PathBuf) -> String {
+fn read(p: &Path) -> String {
     fs::read(p).map(|b| String::from_utf8_lossy(&b).into_owned()).unwrap_or_default()
 }
 
 impl T {
     fn check(&mut self, name: &str, ok: bool) -> bool {
-        println!("{}  {name}", if ok { "PASS" } else { "FAIL" });
+        say!("{}  {name}", if ok { "ОК    " } else { "ОШИБКА" });
         if ok {
             self.pass += 1;
         } else {
             self.fail += 1;
-            println!("      foreground now: {}", ui::foreground());
+            self.failed.push(name.to_string());
+            say!("        (окно в фокусе: {})", ui::foreground());
         }
         ok
     }
@@ -95,8 +114,8 @@ impl T {
     }
 
     fn shot(&self, name: &str) {
-        if let Err(e) = ui::screenshot(&self.out.join(format!("{name}.bmp"))) {
-            println!("      screenshot {name} failed: {e}");
+        if let Err(e) = ui::screenshot(&self.out.join(format!("{name}.png"))) {
+            say!("        снимок {name} не сохранился: {e}");
         }
     }
 
@@ -108,7 +127,7 @@ impl T {
 
     fn start_app(&mut self, relay: bool) -> bool {
         let before = self.app_count("started");
-        let mut cmd = Command::new(self.dir.join("RPSpeller.exe"));
+        let mut cmd = Command::new(&self.app_exe);
         if relay {
             cmd.env("RPSPELLER_SPELLER_URL", format!("http://127.0.0.1:{}/check", self.relay.port));
         } else {
@@ -122,8 +141,26 @@ impl T {
         self.app.as_mut().is_some_and(|c| matches!(c.try_wait(), Ok(None)))
     }
 
+    fn close_app(&mut self) -> bool {
+        self.poke(&["close"]);
+        let ok = self.wait(6000, || self.applog().lines().last().is_some_and(|l| l.trim_end().ends_with(" exit")));
+        let end = Instant::now() + Duration::from_secs(5);
+        while let Some(c) = self.app.as_mut() {
+            match c.try_wait() {
+                Ok(Some(_)) | Err(_) => break,
+                Ok(None) if Instant::now() >= end => {
+                    let _ = c.kill();
+                    break;
+                }
+                Ok(None) => ui::sleep(100),
+            }
+        }
+        self.app = None;
+        ok
+    }
+
     fn open_settings(&self) -> bool {
-        let _ = Command::new(self.dir.join("RPSpeller.exe")).spawn().map(|mut c| c.wait());
+        let _ = Command::new(&self.app_exe).spawn().map(|mut c| c.wait());
         self.wait(5000, || ui::visible(SETTINGS))
     }
 
@@ -149,96 +186,247 @@ impl T {
         ui::tap(key);
         let shown = self.wait(6000, || ui::visible(OVERLAY));
         let focused = shown && self.wait(3000, || ui::foreground() == OVERLAY);
-        self.check(&format!("{name}: overlay is shown and has the focus"), focused);
+        self.check(&format!("{name}: окно ввода появилось и получило фокус"), focused);
         if shown && !focused
             && let Some(o) = ui::find(OVERLAY)
         {
             let (x, y) = ui::center(o);
             ui::click(x, y - 8);
-            println!("      clicked into the overlay to carry on");
+            say!("        кликнул в окно ввода, чтобы продолжить");
         }
         ui::sleep(400);
         shown
     }
 }
 
+fn game_running() -> bool {
+    if ui::find(GAME).is_some() {
+        return true;
+    }
+    let out = Command::new("tasklist").args(["/fo", "csv", "/nh"]).output();
+    out.map(|o| {
+        let s = String::from_utf8_lossy(&o.stdout).to_lowercase();
+        s.lines().any(|l| {
+            let name = l.trim_start_matches('"').split('"').next().unwrap_or("");
+            let stem = name.trim_end_matches(".exe");
+            stem == "gta5" || stem == "gta5_enhanced" || ((stem.starts_with("fivem") || stem.starts_with("cfx")) && stem.contains("gtaprocess"))
+        })
+    })
+    .unwrap_or(false)
+}
+
+fn finish(code: i32, interactive: bool, out: &Path) -> i32 {
+    if let Ok(r) = REPORT.lock() {
+        let _ = fs::write(out.join("report.txt"), r.as_bytes());
+    }
+    if interactive {
+        print!("\nНажми Enter, чтобы закрыть окно.");
+        let _ = std::io::stdout().flush();
+        let mut s = String::new();
+        let _ = std::io::stdin().read_line(&mut s);
+    }
+    code
+}
+
 pub fn main() -> i32 {
+    ui::set_dpi_aware();
+    let interactive = std::io::stdin().is_terminal() && env::var_os("CI").is_none();
     let dir = env::current_exe().ok().and_then(|p| p.parent().map(PathBuf::from)).unwrap_or_default();
-    let out = env::var("WINRUN_OUT").map(PathBuf::from).unwrap_or_else(|_| dir.join("winrun-out"));
+    let out = env::var("WINRUN_OUT").map(PathBuf::from).unwrap_or_else(|_| dir.join("selftest-report"));
+    let _ = fs::remove_dir_all(&out);
     let _ = fs::create_dir_all(&out);
     let appdir = PathBuf::from(env::var("APPDATA").unwrap_or_default()).join("RPSpeller");
-    let _ = fs::remove_dir_all(&appdir);
-    println!("{}", ui::session_info());
+
+    say!("Самопроверка RP Speller {}", env!("CARGO_PKG_VERSION"));
+    say!("{}", ui::windows_version());
+    say!("{}", ui::session_info());
+
+    let Some(app_exe) = [dir.join("RPSpeller.exe"), dir.join("..").join("RPSpeller.exe")].into_iter().find(|p| p.exists()) else {
+        say!("\nНе нашёл RPSpeller.exe ни рядом, ни в папке выше. Распакуй архив целиком и запусти снова.");
+        return finish(2, interactive, &out);
+    };
+    for need in ["fakegame.exe", "poke.exe"] {
+        if !dir.join(need).exists() {
+            say!("\nНе нашёл {need} рядом с самопроверкой. Распакуй архив целиком и запусти снова.");
+            return finish(2, interactive, &out);
+        }
+    }
+    if game_running() {
+        say!("\nЗапущена GTA V или FiveM. Закрой игру и запусти самопроверку снова:");
+        say!("тест печатает и отправляет сообщения, они не должны попасть в настоящий чат.");
+        return finish(2, interactive, &out);
+    }
+
+    if interactive {
+        say!("\nСейчас тест сам будет открывать окна, нажимать клавиши и печатать. Это займёт 4–5 минут.");
+        say!("Не трогай клавиатуру и мышь, пока не появится итог. Закрыть это окно — прервать тест.");
+        for i in (1..=10).rev() {
+            print!("\rСтарт через {i:2} с ");
+            let _ = std::io::stdout().flush();
+            ui::sleep(1000);
+        }
+        println!();
+    }
+
+    let mut was_running = false;
+    if ui::post_close(MAIN) {
+        was_running = true;
+        let gone = {
+            let end = Instant::now() + Duration::from_secs(8);
+            loop {
+                if ui::find(MAIN).is_none() {
+                    break true;
+                }
+                if Instant::now() >= end {
+                    break false;
+                }
+                ui::sleep(100);
+            }
+        };
+        say!("RP Speller был запущен — {}.", if gone { "закрыл его на время теста" } else { "закрыть не получилось" });
+        if !gone {
+            say!("Закрой RP Speller сам (правый клик по значку в трее → «Выход») и запусти самопроверку снова.");
+            return finish(2, interactive, &out);
+        }
+    }
+    let backup = appdir.with_file_name("RPSpeller.selftest-backup");
+    let backed_up = appdir.exists() && {
+        let _ = fs::remove_dir_all(&backup);
+        fs::rename(&appdir, &backup).is_ok()
+    };
+    if appdir.exists() {
+        let _ = fs::remove_dir_all(&appdir);
+    }
+    let clip = Clip::new();
+    let saved_clip = clip.get();
+
     let relay = match Relay::start() {
         Ok(r) => r,
         Err(e) => {
-            println!("relay failed: {e}");
-            return 2;
+            say!("Не смог запустить тестовый сервер: {e}");
+            return finish(2, interactive, &out);
         }
     };
     let mut t = T {
         pass: 0,
         fail: 0,
+        failed: Vec::new(),
+        app_exe,
         gamelog: out.join("game.log"),
         dir,
-        out,
-        appdir,
+        out: out.clone(),
+        appdir: appdir.clone(),
         relay,
-        clip: Clip::new(),
+        clip,
         game: None,
         app: None,
     };
-    let _ = fs::remove_file(&t.gamelog);
 
-    println!("\n== 1. start");
+    run(&mut t);
+
+    for f in ["log.txt", "config.json", "cache.json", "own.json"] {
+        let _ = fs::copy(t.appdir.join(f), t.out.join(format!("app-{f}")));
+    }
+    if t.app.is_some() || ui::find(MAIN).is_some() {
+        t.close_app();
+    }
+    if let Some(mut g) = t.game.take() {
+        let _ = g.kill();
+        let _ = g.wait();
+    }
+    ui::sleep(500);
+    let _ = fs::remove_dir_all(&appdir);
+    if backed_up && fs::rename(&backup, &appdir).is_err() {
+        say!("Не получилось вернуть твои настройки: они лежат в {}", backup.display());
+    }
+    match &saved_clip {
+        Some(text) => {
+            t.clip.set(text);
+        }
+        None => {
+            t.clip.set("");
+        }
+    }
+
+    say!("\n==================================================");
+    say!("Итог: прошло {} из {} проверок.", t.pass, t.pass + t.fail);
+    if t.failed.is_empty() {
+        say!("Всё работает.");
+    } else {
+        say!("Не прошли:");
+        for f in &t.failed {
+            say!("  • {f}");
+        }
+    }
+    say!("Отчёт и снимки экрана: {}", t.out.display());
+    say!("Пришли мне report.txt и картинки из этой папки.");
+    if backed_up {
+        say!("Твои настройки и словарь RP Speller возвращены на место.");
+    }
+    if was_running {
+        say!("RP Speller был закрыт на время теста — запусти его снова.");
+    }
+    finish(i32::from(t.fail > 0), interactive, &t.out)
+}
+
+fn run(t: &mut T) {
+    say!("\n== 1. Запуск");
     let ok = t.start_game();
-    t.check("game window starts", ok);
+    t.check("тестовое окно «игры» открылось", ok);
     let ok = t.start_app(true);
-    t.check("app starts", ok);
+    t.check("RP Speller запустился", ok);
     ui::sleep(1500);
     let ok = !t.applog().contains("tray icon failed");
-    t.check("tray icon added", ok);
+    t.check("значок в трее появился", ok);
+    if t.applog().contains("RegisterHotKey(F7) failed") {
+        t.check("клавиша F7 свободна", false);
+        say!("\nF7 занята другой программой, и в игре она тоже не сработала бы.");
+        say!("Закрой программу, которая её держит, или выбери в настройках RP Speller другую клавишу.");
+        say!("Дальше тест без F7 бессмысленен, останавливаюсь.");
+        return;
+    }
+    t.check("клавиша F7 свободна", true);
     t.shot("01-start");
 
-    println!("\n== 2. hotkey opens the game chat and the overlay");
+    say!("\n== 2. F7 открывает чат игры и окно ввода");
     let ok = t.focus_game();
-    t.check("game is in front after a click", ok);
+    t.check("окно «игры» на переднем плане после клика", ok);
     let before = t.game_count("chat open");
     t.overlay("F7", VK_F7);
     let ok = t.wait_game_more("chat open", before, 6000);
-    t.check("hotkey tapped T in the game", ok);
+    t.check("программа нажала T в «игре»", ok);
     let ok = read(&t.gamelog).contains("vk=0x54 sc=0x14");
-    t.check("game saw T as a normal key (vk 0x54)", ok);
+    t.check("«игра» увидела T как обычную клавишу", ok);
     t.shot("02-overlay");
 
-    println!("\n== 3. typo fixed after space, Backspace returns it");
+    say!("\n== 3. Исправление после пробела и отмена через Backspace");
     ui::type_text("здраствуйте ");
     let ok = t.wait_app("fixed: здраствуйте → здравствуйте", 6000);
-    t.check("typo fixed", ok);
+    t.check("опечатка исправлена", ok);
     ui::sleep(300);
     t.shot("03-fixed");
     ui::tap(VK_BACK);
     let ok = t.wait_app("kept: здраствуйте", 4000);
-    t.check("Backspace keeps the word", ok);
+    t.check("Backspace вернул слово", ok);
     t.shot("04-kept");
 
-    println!("\n== 4. Enter checks the last word and sends");
+    say!("\n== 4. Enter проверяет последнее слово и отправляет");
     let sent = t.game_count(" sent: ");
     ui::type_text("как дила харашо");
     ui::sleep(300);
     ui::tap(VK_RETURN);
     let ok = t.wait_game_more(" sent: ", sent, 8000);
-    t.check("message reached the game", ok);
+    t.check("сообщение дошло до «игры»", ok);
     let ok = t.last_sent() == "здраствуйте как дела хорошо";
-    t.check("sent text is fixed except the kept word", ok);
+    t.check("отправлено с исправлениями, кроме возвращённого слова", ok);
     let ok = read(&t.gamelog).contains("paste: здраствуйте как дела хорошо");
-    t.check("pasted with Ctrl+V", ok);
+    t.check("вставлено через Ctrl+V", ok);
     let ok = t.wait(3000, || ui::foreground() == GAME);
-    t.check("game is in front again after sending", ok);
+    t.check("после отправки «игра» снова в фокусе", ok);
     let ok = !t.relay.all_words().iter().any(|w| w.contains(' '));
-    t.check("only single words went to the speller", ok);
+    t.check("в Спеллер ушли отдельные слова, а не сообщение", ok);
 
-    println!("\n== 5. Ctrl+Backspace and Ctrl+A");
+    say!("\n== 5. Ctrl+Backspace и Ctrl+A");
     t.focus_game();
     let sent = t.game_count(" sent: ");
     t.overlay("Ctrl+Backspace", VK_F7);
@@ -246,7 +434,7 @@ pub fn main() -> i32 {
     ui::chord(VK_CONTROL, VK_BACK);
     ui::tap(VK_RETURN);
     let ok = t.wait_game_more(" sent: ", sent, 8000) && t.last_sent() == "один";
-    t.check("Ctrl+Backspace deletes the last word", ok);
+    t.check("Ctrl+Backspace стирает слово", ok);
     t.focus_game();
     let sent = t.game_count(" sent: ");
     t.overlay("Ctrl+A", VK_F7);
@@ -255,9 +443,9 @@ pub fn main() -> i32 {
     ui::type_text("новый");
     ui::tap(VK_RETURN);
     let ok = t.wait_game_more(" sent: ", sent, 8000) && t.last_sent() == "новый";
-    t.check("Ctrl+A selects everything", ok);
+    t.check("Ctrl+A выделяет всё", ok);
 
-    println!("\n== 6. Esc closes the chat without sending");
+    say!("\n== 6. Esc закрывает чат без отправки");
     t.focus_game();
     let sent = t.game_count(" sent: ");
     let closed = t.game_count("chat closed");
@@ -265,78 +453,78 @@ pub fn main() -> i32 {
     ui::type_text("превет");
     ui::tap(VK_ESCAPE);
     let ok = t.wait_game_more("chat closed", closed, 6000);
-    t.check("game chat closed with Esc", ok);
+    t.check("чат «игры» закрыт через Esc", ok);
     ui::sleep(800);
     let ok = t.game_count(" sent: ") == sent;
-    t.check("nothing sent", ok);
+    t.check("ничего не отправлено", ok);
 
-    println!("\n== 7. slow speller: Enter does not hang");
+    say!("\n== 7. Медленный Спеллер: Enter не зависает");
     t.relay.set_mode("slow:4");
     t.focus_game();
     let sent = t.game_count(" sent: ");
-    t.overlay("slow", VK_F7);
+    t.overlay("медленный Спеллер", VK_F7);
     ui::type_text("сигодня");
     ui::tap(VK_RETURN);
     let ok = t.wait_app("speller is slow", 5000);
-    t.check("app gives up waiting", ok);
+    t.check("программа перестала ждать", ok);
     let ok = t.wait_game_more(" sent: ", sent, 6000) && t.last_sent() == "сигодня";
-    t.check("message sent as typed", ok);
+    t.check("сообщение ушло как набрано", ok);
     t.relay.set_mode("canned");
     ui::sleep(4000);
 
-    println!("\n== 8. broken speller: typing keeps working");
+    say!("\n== 8. Сломанный Спеллер: набор не ломается");
     t.relay.set_mode("fail");
     t.focus_game();
     let sent = t.game_count(" sent: ");
-    t.overlay("broken", VK_F7);
+    t.overlay("сломанный Спеллер", VK_F7);
     ui::type_text("пошол ");
     let ok = t.wait_app("speller failed: HTTP 500", 5000);
-    t.check("error logged", ok);
+    t.check("ошибка записана в журнал", ok);
     ui::tap(VK_RETURN);
     let ok = t.wait_game_more(" sent: ", sent, 6000) && t.last_sent() == "пошол";
-    t.check("message sent unchanged", ok);
+    t.check("сообщение ушло без изменений", ok);
     t.relay.set_mode("canned");
 
-    println!("\n== 9. clipboard comes back after the paste");
+    say!("\n== 9. Буфер обмена возвращается после вставки");
     let ok = t.clip.set("старое");
-    t.check("test put text in the clipboard", ok);
+    t.check("тест положил текст в буфер", ok);
     t.focus_game();
     let sent = t.game_count(" sent: ");
-    t.overlay("clipboard", VK_F7);
+    t.overlay("буфер обмена", VK_F7);
     ui::type_text("харашо");
     ui::tap(VK_RETURN);
     let ok = t.wait_game_more(" sent: ", sent, 8000) && t.last_sent() == "хорошо";
-    t.check("sent fixed", ok);
+    t.check("отправлено исправленным", ok);
     ui::sleep(2000);
     let got = t.clip.get();
     let ok = got.as_deref() == Some("старое");
-    t.check("clipboard restored", ok);
+    t.check("буфер обмена вернулся", ok);
     if !ok {
-        println!("      clipboard: {got:?}");
+        say!("        в буфере: {got:?}");
     }
 
-    println!("\n== 10. settings");
+    say!("\n== 10. Настройки");
     let ok = t.open_settings();
-    t.check("second launch opens the settings", ok);
+    t.check("повторный запуск открыл настройки", ok);
     let ok = t.wait(3000, || ui::foreground() == SETTINGS);
-    t.check("settings window is in front", ok);
+    t.check("окно настроек на переднем плане", ok);
     t.shot("05-settings");
     ui::tap(VK_ESCAPE);
     let ok = t.wait(3000, || !ui::visible(SETTINGS));
-    t.check("Esc closes the settings", ok);
+    t.check("Esc закрывает настройки", ok);
     t.open_settings();
     t.tabs(7);
     ui::tap(VK_SPACE);
     ui::tap(VK_RETURN);
     let ok = t.wait_config("\"Autocorrect\": false", 4000);
-    t.check("autocorrect switched off", ok);
+    t.check("исправления выключены", ok);
     t.focus_game();
     let reqs = t.relay.count();
-    t.overlay("autocorrect off", VK_F7);
+    t.overlay("исправления выключены", VK_F7);
     ui::type_text("харашо ");
     ui::sleep(1500);
     let ok = t.relay.count() == reqs;
-    t.check("no requests while off", ok);
+    t.check("выключенные исправления не ходят в сеть", ok);
     ui::tap(VK_ESCAPE);
     ui::sleep(1000);
     t.open_settings();
@@ -344,20 +532,20 @@ pub fn main() -> i32 {
     ui::tap(VK_SPACE);
     ui::tap(VK_RETURN);
     let ok = t.wait_config("\"Autocorrect\": true", 4000);
-    t.check("autocorrect back on", ok);
+    t.check("исправления снова включены", ok);
 
-    println!("\n== 11. settings: change the hotkey");
+    say!("\n== 11. Настройки: смена горячей клавиши");
     t.open_settings();
     ui::tap(VK_F8);
     ui::sleep(300);
     ui::tap(VK_RETURN);
     let ok = t.wait_config("\"Hotkey\": \"F8\"", 4000);
-    t.check("hotkey saved as F8", ok);
+    t.check("горячая клавиша сохранена как F8", ok);
     t.focus_game();
     let before = t.game_count("chat open");
     t.overlay("F8", VK_F8);
     let ok = t.wait_game_more("chat open", before, 6000);
-    t.check("F8 opens the chat", ok);
+    t.check("F8 открывает чат", ok);
     ui::tap(VK_ESCAPE);
     ui::sleep(1500);
     t.focus_game();
@@ -365,26 +553,26 @@ pub fn main() -> i32 {
     ui::tap(VK_F7);
     ui::sleep(1500);
     let ok = t.game_count("vk=0x76") > f7 && !ui::visible(OVERLAY);
-    t.check("F7 is a normal key again", ok);
+    t.check("F7 снова обычная клавиша", ok);
     t.open_settings();
     ui::tap(VK_F7);
     ui::sleep(300);
     ui::tap(VK_RETURN);
     let ok = t.wait_config("\"Hotkey\": \"F7\"", 4000);
-    t.check("hotkey back to F7", ok);
+    t.check("горячая клавиша снова F7", ok);
 
-    println!("\n== 12. tray menu");
+    say!("\n== 12. Меню в трее");
     let (sw, sh) = ui::screen();
     let (mx, my) = (sw / 2, sh / 2);
     t.poke(&["tray-menu", &mx.to_string(), &my.to_string()]);
     let ok = t.wait(3000, || ui::visible(MENU));
-    t.check("tray menu opens", ok);
+    t.check("меню открывается", ok);
     t.shot("06-menu");
     ui::tap(VK_DOWN);
     ui::tap(VK_DOWN);
     ui::tap(VK_RETURN);
     let ok = t.wait_config("\"Autocorrect\": false", 4000);
-    t.check("menu works from the keyboard", ok);
+    t.check("меню работает с клавиатуры", ok);
     if ui::visible(MENU) {
         ui::tap(VK_ESCAPE);
     }
@@ -394,139 +582,113 @@ pub fn main() -> i32 {
     ui::tap(VK_DOWN);
     ui::tap(VK_RETURN);
     let ok = t.wait_config("\"Autocorrect\": true", 4000);
-    t.check("menu toggles it back", ok);
+    t.check("меню включает обратно", ok);
     if ui::visible(MENU) {
         ui::tap(VK_ESCAPE);
     }
     t.poke(&["tray-dblclick"]);
     let ok = t.wait(4000, || ui::visible(SETTINGS));
-    t.check("double click opens the settings", ok);
+    t.check("двойной клик по значку открывает настройки", ok);
     let ok = t.wait(2000, || ui::foreground() == SETTINGS);
-    t.check("and they are in front", ok);
+    t.check("и они на переднем плане", ok);
     ui::tap(VK_ESCAPE);
     t.wait(3000, || !ui::visible(SETTINGS));
 
-    println!("\n== 13. no game: text goes to the clipboard");
+    say!("\n== 13. Без игры текст уходит в буфер обмена");
     if let Some(mut g) = t.game.take() {
         let _ = g.kill();
         let _ = g.wait();
     }
     t.wait(3000, || !ui::visible(GAME));
-    t.overlay("no game", VK_F7);
+    t.overlay("без игры", VK_F7);
     let ok = t.wait_app("hotkey: game window not found", 5000);
-    t.check("missing game is logged", ok);
+    t.check("программа заметила, что игры нет", ok);
     t.shot("07-no-game");
     ui::type_text("харашо");
     ui::tap(VK_RETURN);
     let ok = t.wait_app("send failed: окно игры не найдено", 6000);
-    t.check("send failure logged", ok);
+    t.check("неудачная отправка записана в журнал", ok);
     ui::sleep(800);
     let got = t.clip.get();
     let ok = got.as_deref() == Some("хорошо");
-    t.check("fixed text is in the clipboard", ok);
+    t.check("исправленный текст лежит в буфере", ok);
 
-    println!("\n== 14. typing mode (letter by letter)");
+    say!("\n== 14. Печать по буквам");
     let ok = t.start_game();
-    t.check("game window restarts", ok);
+    t.check("окно «игры» открылось снова", ok);
     t.open_settings();
     t.tabs(5);
     ui::tap(VK_DOWN);
     ui::tap(VK_TAB);
     ui::tap(VK_RETURN);
     let ok = t.wait_config("\"InputMode\": \"type\"", 4000);
-    t.check("input mode saved", ok);
+    t.check("режим «печать по буквам» сохранён", ok);
     t.focus_game();
     let sent = t.game_count(" sent: ");
     let pastes = t.game_count("paste:");
-    t.overlay("typing mode", VK_F7);
+    t.overlay("печать по буквам", VK_F7);
     ui::type_text("харашо");
     ui::tap(VK_RETURN);
     let ok = t.wait_game_more(" sent: ", sent, 8000) && t.last_sent() == "хорошо";
-    t.check("typed text arrived", ok);
+    t.check("текст дошёл по буквам", ok);
     let ok = t.game_count("paste:") == pastes;
-    t.check("no clipboard paste used", ok);
+    t.check("буфер обмена не использовался", ok);
     t.open_settings();
     t.tabs(5);
     ui::tap(VK_UP);
     ui::tap(VK_TAB);
     ui::tap(VK_RETURN);
     let ok = t.wait_config("\"InputMode\": \"paste\"", 4000);
-    t.check("input mode back to paste", ok);
+    t.check("режим вставки вернулся", ok);
 
-    println!("\n== 15. words survive a restart");
-    t.poke(&["close"]);
-    let ok = t.wait(6000, || t.applog().lines().last().is_some_and(|l| l.trim_end().ends_with(" exit")));
-    t.check("app exits cleanly", ok);
-    let exited = {
-        let app = &mut t.app;
-        let end = Instant::now() + Duration::from_secs(5);
-        loop {
-            match app.as_mut().map(|c| c.try_wait()) {
-                Some(Ok(Some(_))) | None => break true,
-                _ if Instant::now() >= end => break false,
-                _ => ui::sleep(100),
-            }
-        }
-    };
-    t.check("app process gone", exited);
+    say!("\n== 15. Словарь переживает перезапуск");
+    let ok = t.close_app();
+    t.check("программа закрылась сама", ok);
     let ok = read(&t.appdir.join("cache.json")).contains("[\"харашо\",\"хорошо\"]");
-    t.check("cache saved", ok);
+    t.check("проверенные слова сохранены", ok);
     let ok = read(&t.appdir.join("own.json")).contains("здраствуйте");
-    t.check("kept word saved", ok);
+    t.check("возвращённое слово сохранено", ok);
     let ok = t.start_app(true);
-    t.check("app restarts", ok);
+    t.check("программа запустилась снова", ok);
     let ok = t.applog().lines().rev().find(|l| l.contains("started")).is_some_and(|l| !l.contains("words in cache 0"));
-    t.check("cache loaded", ok);
+    t.check("словарь загружен", ok);
     t.focus_game();
     let reqs = t.relay.count();
     let fixed = t.app_count("fixed: харашо → хорошо");
-    t.overlay("after restart", VK_F7);
+    t.overlay("после перезапуска", VK_F7);
     ui::type_text("здраствуйте харашо ");
     let ok = t.wait_app_more("fixed: харашо → хорошо", fixed, 4000);
-    t.check("cached word fixed without the network", ok);
+    t.check("знакомое слово исправлено без сети", ok);
     ui::sleep(1000);
     let ok = t.relay.count() == reqs;
-    t.check("kept word left alone, no requests", ok);
+    t.check("возвращённое слово не тронуто, запросов нет", ok);
     ui::tap(VK_ESCAPE);
     ui::sleep(1000);
 
-    println!("\n== 16. real Yandex Speller over HTTPS");
-    t.poke(&["close"]);
-    t.wait(6000, || t.applog().lines().last().is_some_and(|l| l.trim_end().ends_with(" exit")));
+    say!("\n== 16. Настоящий Яндекс.Спеллер по HTTPS");
+    t.close_app();
     ui::sleep(1000);
     let ok = t.start_app(false);
-    t.check("app starts without the test relay", ok);
+    t.check("программа запустилась без тестового сервера", ok);
     t.focus_game();
-    t.overlay("real speller", VK_F7);
+    t.overlay("настоящий Спеллер", VK_F7);
     ui::type_text("сказл ");
     let ok = t.wait_app("fixed: сказл → сказал", 12000);
-    t.check("real Speller fixed a word through WinHTTP", ok);
+    t.check("настоящий Спеллер исправил слово", ok);
     t.shot("08-real-speller");
     if !ok {
         for l in t.applog().lines().filter(|l| l.contains("speller")) {
-            println!("      {l}");
+            say!("        {l}");
         }
     }
     ui::tap(VK_ESCAPE);
     ui::sleep(800);
 
-    println!("\n== 17. health");
+    say!("\n== 17. Здоровье");
     let ok = t.app_alive();
-    t.check("app still running", ok);
+    t.check("программа всё ещё работает", ok);
     let ok = !t.applog().contains("panic");
-    t.check("no panics", ok);
+    t.check("без аварий", ok);
     let ok = t.relay.agents().iter().all(|a| a.starts_with("RPSpeller/"));
-    t.check("user agent names the app", ok);
-
-    for f in ["log.txt", "config.json", "cache.json", "own.json"] {
-        let _ = fs::copy(t.appdir.join(f), t.out.join(f));
-    }
-    println!("\n== app log\n{}", t.applog());
-    t.poke(&["close"]);
-    ui::sleep(1000);
-    if let Some(mut g) = t.game.take() {
-        let _ = g.kill();
-    }
-    println!("\n{} passed, {} failed", t.pass, t.fail);
-    i32::from(t.fail > 0)
+    t.check("программа представляется Спеллеру своим именем", ok);
 }

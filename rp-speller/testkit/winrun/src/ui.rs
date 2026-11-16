@@ -1,5 +1,4 @@
 use std::ffi::c_void;
-use std::fs;
 use std::mem::size_of;
 use std::path::Path;
 use std::ptr::copy_nonoverlapping;
@@ -8,7 +7,7 @@ use std::thread;
 use std::time::Duration;
 
 use windows::core::{w, PCWSTR};
-use windows::Win32::Foundation::{GlobalFree, HANDLE, HGLOBAL, HWND, RECT};
+use windows::Win32::Foundation::{GlobalFree, HANDLE, HGLOBAL, HWND, LPARAM, RECT, WPARAM};
 use windows::Win32::Graphics::Gdi::{
     BitBlt, CreateCompatibleBitmap, CreateCompatibleDC, DeleteDC, DeleteObject, GetDC, GetDIBits, ReleaseDC, SelectObject, BITMAPINFO,
     BITMAPINFOHEADER, BI_RGB, DIB_RGB_COLORS, HGDIOBJ, SRCCOPY,
@@ -20,14 +19,15 @@ use windows::Win32::System::Ole::CF_UNICODETEXT;
 use windows::Win32::System::RemoteDesktop::ProcessIdToSessionId;
 use windows::Win32::System::StationsAndDesktops::{CloseDesktop, GetUserObjectInformationW, OpenInputDesktop, DESKTOP_CONTROL_FLAGS, DESKTOP_READOBJECTS, UOI_NAME};
 use windows::Win32::System::Threading::GetCurrentProcessId;
-use windows::Win32::UI::HiDpi::GetDpiForSystem;
+use windows::Win32::System::Registry::{RegGetValueW, HKEY_LOCAL_MACHINE, RRF_RT_REG_DWORD, RRF_RT_REG_SZ};
+use windows::Win32::UI::HiDpi::{GetDpiForSystem, SetProcessDpiAwarenessContext, DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2};
 use windows::Win32::UI::Input::KeyboardAndMouse::{
     MapVirtualKeyW, SendInput, INPUT, INPUT_0, INPUT_KEYBOARD, INPUT_MOUSE, KEYBDINPUT, KEYBD_EVENT_FLAGS, KEYEVENTF_EXTENDEDKEY,
     KEYEVENTF_KEYUP, KEYEVENTF_UNICODE, MAPVK_VK_TO_VSC, MOUSEEVENTF_LEFTDOWN, MOUSEEVENTF_LEFTUP, MOUSEINPUT, VIRTUAL_KEY,
 };
 use windows::Win32::UI::WindowsAndMessaging::{
     CreateWindowExW, DefWindowProcW, FindWindowW, GetClassNameW, GetForegroundWindow, GetSystemMetrics, GetWindowRect, IsWindowVisible,
-    RegisterClassExW, SetCursorPos, HWND_MESSAGE, SM_CXSCREEN, SM_CYSCREEN, WINDOW_EX_STYLE, WINDOW_STYLE, WNDCLASSEXW,
+    PostMessageW, RegisterClassExW, SetCursorPos, HWND_MESSAGE, SM_CXSCREEN, SM_CYSCREEN, WINDOW_EX_STYLE, WINDOW_STYLE, WM_CLOSE, WNDCLASSEXW,
 };
 
 pub const VK_BACK: u16 = 0x08;
@@ -301,26 +301,51 @@ pub fn screenshot(path: &Path) -> std::io::Result<()> {
         let _ = DeleteDC(mem);
         ReleaseDC(None, screen_dc);
     }
-    let row = (w * 3 + 3) / 4 * 4;
-    let size = 54 + row * h;
-    let mut out = Vec::with_capacity(size as usize);
-    out.extend_from_slice(b"BM");
-    out.extend_from_slice(&(size as u32).to_le_bytes());
-    out.extend_from_slice(&[0, 0, 0, 0]);
-    out.extend_from_slice(&54u32.to_le_bytes());
-    out.extend_from_slice(&40u32.to_le_bytes());
-    out.extend_from_slice(&w.to_le_bytes());
-    out.extend_from_slice(&h.to_le_bytes());
-    out.extend_from_slice(&1u16.to_le_bytes());
-    out.extend_from_slice(&24u16.to_le_bytes());
-    out.extend_from_slice(&[0u8; 24]);
-    for y in (0..h).rev() {
-        let start = out.len();
-        for x in 0..w {
-            let i = ((y * w + x) * 4) as usize;
-            out.extend_from_slice(&pixels[i..i + 3]);
-        }
-        out.resize(start + row as usize, 0);
+    crate::png::write_bgra(path, w as u32, h as u32, &pixels)
+}
+
+pub fn set_dpi_aware() {
+    unsafe {
+        let _ = SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
     }
-    fs::write(path, out)
+}
+
+fn reg_string(name: &str) -> Option<String> {
+    let key = wide("SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion");
+    let value = wide(name);
+    let mut buf = [0u16; 256];
+    let mut size = (buf.len() * 2) as u32;
+    let r = unsafe {
+        RegGetValueW(HKEY_LOCAL_MACHINE, PCWSTR(key.as_ptr()), PCWSTR(value.as_ptr()), RRF_RT_REG_SZ, None, Some(buf.as_mut_ptr() as *mut c_void), Some(&mut size))
+    };
+    (r.0 == 0).then(|| String::from_utf16_lossy(&buf[..buf.iter().position(|&c| c == 0).unwrap_or(0)]))
+}
+
+fn reg_dword(name: &str) -> Option<u32> {
+    let key = wide("SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion");
+    let value = wide(name);
+    let mut v = 0u32;
+    let mut size = 4u32;
+    let r = unsafe {
+        RegGetValueW(HKEY_LOCAL_MACHINE, PCWSTR(key.as_ptr()), PCWSTR(value.as_ptr()), RRF_RT_REG_DWORD, None, Some(&mut v as *mut u32 as *mut c_void), Some(&mut size))
+    };
+    (r.0 == 0).then_some(v)
+}
+
+pub fn windows_version() -> String {
+    let build = reg_string("CurrentBuild").unwrap_or_default();
+    let name = match build.parse::<u32>() {
+        Ok(b) if b >= 22000 => reg_string("ProductName").unwrap_or_default().replace("Windows 10", "Windows 11"),
+        _ => reg_string("ProductName").unwrap_or_default(),
+    };
+    let ubr = reg_dword("UBR").map(|u| format!(".{u}")).unwrap_or_default();
+    let display = reg_string("DisplayVersion").unwrap_or_default();
+    format!("{name} {display}, build {build}{ubr}")
+}
+
+pub fn post_close(class: &str) -> bool {
+    match find(class) {
+        Some(h) => unsafe { PostMessageW(Some(h), WM_CLOSE, WPARAM(0), LPARAM(0)).is_ok() },
+        None => false,
+    }
 }

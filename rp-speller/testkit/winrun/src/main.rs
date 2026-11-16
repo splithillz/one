@@ -1,4 +1,6 @@
 #[cfg(windows)]
+mod png;
+#[cfg(windows)]
 mod relay;
 #[cfg(windows)]
 mod run;
