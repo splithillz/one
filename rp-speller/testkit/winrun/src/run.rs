@@ -7,7 +7,7 @@ use std::sync::Mutex;
 use std::time::{Duration, Instant};
 
 use crate::relay::Relay;
-use crate::ui::{self, Clip, VK_A, VK_BACK, VK_CONTROL, VK_DOWN, VK_ESCAPE, VK_F7, VK_F8, VK_RETURN, VK_SPACE, VK_TAB, VK_UP};
+use crate::ui::{self, Clip, VK_A, VK_BACK, VK_CONTROL, VK_DOWN, VK_ESCAPE, VK_F7, VK_F8, VK_LEFT, VK_RETURN, VK_RIGHT, VK_SPACE, VK_TAB};
 
 const OVERLAY: &str = "RPSpellerOverlay";
 const SETTINGS: &str = "RPSpellerSettings";
@@ -514,7 +514,7 @@ fn run(t: &mut T) {
     let ok = t.wait(3000, || !ui::visible(SETTINGS));
     t.check("Esc закрывает настройки", ok);
     t.open_settings();
-    t.tabs(7);
+    t.tabs(1);
     ui::tap(VK_SPACE);
     ui::tap(VK_RETURN);
     let ok = t.wait_config("\"Autocorrect\": false", 4000);
@@ -529,7 +529,7 @@ fn run(t: &mut T) {
     ui::tap(VK_ESCAPE);
     ui::sleep(1000);
     t.open_settings();
-    t.tabs(7);
+    t.tabs(1);
     ui::tap(VK_SPACE);
     ui::tap(VK_RETURN);
     let ok = t.wait_config("\"Autocorrect\": true", 4000);
@@ -537,6 +537,9 @@ fn run(t: &mut T) {
 
     say!("\n== 11. Настройки: смена горячей клавиши");
     t.open_settings();
+    t.tabs(2);
+    ui::tap(VK_SPACE);
+    ui::sleep(300);
     ui::tap(VK_F8);
     ui::sleep(300);
     ui::tap(VK_RETURN);
@@ -556,6 +559,9 @@ fn run(t: &mut T) {
     let ok = t.game_count("vk=0x76") > f7 && !ui::visible(OVERLAY);
     t.check("F7 снова обычная клавиша", ok);
     t.open_settings();
+    t.tabs(2);
+    ui::tap(VK_SPACE);
+    ui::sleep(300);
     ui::tap(VK_F7);
     ui::sleep(300);
     ui::tap(VK_RETURN);
@@ -619,9 +625,9 @@ fn run(t: &mut T) {
     let ok = t.start_game();
     t.check("окно «игры» открылось снова", ok);
     t.open_settings();
-    t.tabs(5);
-    ui::tap(VK_DOWN);
-    ui::tap(VK_TAB);
+    t.tabs(4);
+    ui::tap(VK_RIGHT);
+    ui::sleep(300);
     ui::tap(VK_RETURN);
     let ok = t.wait_config("\"InputMode\": \"type\"", 4000);
     t.check("режим «печать по буквам» сохранён", ok);
@@ -636,9 +642,9 @@ fn run(t: &mut T) {
     let ok = t.game_count("paste:") == pastes;
     t.check("буфер обмена не использовался", ok);
     t.open_settings();
-    t.tabs(5);
-    ui::tap(VK_UP);
-    ui::tap(VK_TAB);
+    t.tabs(4);
+    ui::tap(VK_LEFT);
+    ui::sleep(300);
     ui::tap(VK_RETURN);
     let ok = t.wait_config("\"InputMode\": \"paste\"", 4000);
     t.check("режим вставки вернулся", ok);
@@ -667,7 +673,80 @@ fn run(t: &mut T) {
     ui::tap(VK_ESCAPE);
     ui::sleep(1000);
 
-    say!("\n== 16. Настоящий Яндекс.Спеллер по HTTPS");
+    say!("\n== 16. Стили окна ввода, перетаскивание и сброс места");
+    for (name, word, fixed, shot) in [("chat", "сабака", "собака", "09-style-chat"), ("capsule", "малако", "молоко", "10-style-capsule")] {
+        t.open_settings();
+        ui::tap(VK_RIGHT);
+        ui::sleep(300);
+        ui::tap(VK_RETURN);
+        let ok = t.wait_config(&format!("\"Style\": \"{name}\""), 4000);
+        t.check(&format!("стиль {name} сохранён"), ok);
+        t.focus_game();
+        let before = t.app_count(&format!("style {name}"));
+        t.overlay(&format!("стиль {name}"), VK_F7);
+        let ok = t.wait_app_more(&format!("style {name}"), before, 3000);
+        t.check(&format!("окно ввода открылось в стиле {name}"), ok);
+        let needle = format!("fixed: {word} → {fixed}");
+        let before = t.app_count(&needle);
+        ui::type_text(&format!("{word} "));
+        let ok = t.wait_app_more(&needle, before, 6000);
+        t.check(&format!("{name}: опечатка исправлена"), ok);
+        ui::sleep(600);
+        t.shot(shot);
+        ui::tap(VK_ESCAPE);
+        ui::sleep(1000);
+    }
+    t.open_settings();
+    ui::tap(VK_LEFT);
+    ui::tap(VK_LEFT);
+    ui::sleep(300);
+    ui::tap(VK_RETURN);
+    let ok = t.wait_config("\"Style\": \"glass\"", 4000);
+    t.check("стиль «Стекло» сохранён", ok);
+    t.focus_game();
+    t.overlay("стекло", VK_F7);
+    ui::sleep(600);
+    match ui::find(OVERLAY).map(ui::rect) {
+        Some(home) => {
+            let (x, y) = (home.left + 24, home.bottom - 8);
+            ui::drag(x, y, x + 60, y - 120);
+            let ok = t.wait_config("\"Glass\": {", 4000);
+            t.check("перетащенное место запомнилось", ok);
+            let moved = ui::find(OVERLAY).map(ui::rect).unwrap_or_default();
+            let ok = (moved.left - home.left, moved.top - home.top) == (60, -120);
+            t.check("окно ввода едет за мышью", ok);
+            if !ok {
+                say!("        сдвиг: {} {}", moved.left - home.left, moved.top - home.top);
+            }
+            t.shot("11-dragged");
+            let needle = "fixed: карова → корова";
+            let before = t.app_count(needle);
+            ui::type_text("карова ");
+            let ok = t.wait_app_more(needle, before, 6000);
+            t.check("после перетаскивания печать работает", ok);
+            ui::tap(VK_ESCAPE);
+            ui::sleep(1000);
+            t.focus_game();
+            t.overlay("на новом месте", VK_F7);
+            ui::sleep(600);
+            let again = ui::find(OVERLAY).map(ui::rect).unwrap_or_default();
+            let ok = (again.left, again.top) == (moved.left, moved.top);
+            t.check("окно ввода открылось там, куда его перетащили", ok);
+            ui::double_click(again.left + 24, again.bottom - 8);
+            let ok = t.wait_config("\"Glass\": null", 4000);
+            t.check("двойной клик сбросил место", ok);
+            let back = ui::find(OVERLAY).map(ui::rect).unwrap_or_default();
+            let ok = (back.left, back.top) == (home.left, home.top);
+            t.check("окно ввода вернулось на место", ok);
+            ui::tap(VK_ESCAPE);
+            ui::sleep(1000);
+        }
+        None => {
+            t.check("окно ввода найдено", false);
+        }
+    }
+
+    say!("\n== 17. Настоящий Яндекс.Спеллер по HTTPS");
     t.close_app();
     ui::sleep(1000);
     let ok = t.start_app(false);
@@ -686,7 +765,7 @@ fn run(t: &mut T) {
     ui::tap(VK_ESCAPE);
     ui::sleep(800);
 
-    say!("\n== 17. Здоровье");
+    say!("\n== 18. Здоровье");
     let ok = t.app_alive();
     t.check("программа всё ещё работает", ok);
     let ok = !t.applog().contains("panic");

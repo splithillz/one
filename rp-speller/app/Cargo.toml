@@ -13,11 +13,18 @@ path = "src/main.rs"
 rp-speller-core.workspace = true
 serde_json.workspace = true
 
+[target.'cfg(windows)'.dependencies]
+windows-numerics = "0.3.1"
+
 [target.'cfg(windows)'.dependencies.windows]
 workspace = true
 features = [
     "Win32_Foundation",
+    "Win32_Graphics_Direct2D",
+    "Win32_Graphics_Direct2D_Common",
+    "Win32_Graphics_DirectWrite",
     "Win32_Graphics_Dwm",
+    "Win32_Graphics_Dxgi_Common",
     "Win32_Graphics_Gdi",
     "Win32_Networking_WinHttp",
     "Win32_Security",

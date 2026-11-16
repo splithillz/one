@@ -6,12 +6,36 @@ fn main() {
 #[cfg(windows)]
 fn main() {
     use windows::core::{w, PCWSTR};
-    use windows::Win32::Foundation::{LPARAM, WPARAM};
+    use windows::Win32::Foundation::{LPARAM, RECT, WPARAM};
     use windows::Win32::UI::WindowsAndMessaging::{
-        AllowSetForegroundWindow, FindWindowW, GetWindowThreadProcessId, PostMessageW, WM_APP, WM_CLOSE, WM_CONTEXTMENU, WM_LBUTTONDBLCLK,
+        AllowSetForegroundWindow, FindWindowW, GetWindowRect, GetWindowThreadProcessId, IsWindowVisible, PostMessageW, WM_APP, WM_CLOSE, WM_CONTEXTMENU,
+        WM_LBUTTONDBLCLK,
     };
 
     let args: Vec<String> = std::env::args().skip(1).collect();
+    if args.first().map(String::as_str) == Some("overlay-rect") {
+        let found = unsafe { FindWindowW(w!("RPSpellerOverlay"), PCWSTR::null()) };
+        let Ok(o) = found else {
+            eprintln!("overlay window not found");
+            std::process::exit(2);
+        };
+        let mut r = RECT::default();
+        unsafe {
+            let _ = GetWindowRect(o, &mut r);
+        }
+        let shown = unsafe { IsWindowVisible(o).as_bool() };
+        let line = format!("{} {} {} {} {}\n", r.left, r.top, r.right, r.bottom, u8::from(shown));
+        match args.get(1) {
+            Some(path) => {
+                let tmp = format!("{path}.tmp");
+                if std::fs::write(&tmp, &line).and_then(|()| std::fs::rename(&tmp, path)).is_err() {
+                    std::process::exit(4);
+                }
+            }
+            None => print!("{line}"),
+        }
+        return;
+    }
     let main = unsafe { FindWindowW(w!("RPSpellerMain"), PCWSTR::null()) };
     let Ok(main) = main else {
         eprintln!("RP Speller is not running");
@@ -27,7 +51,7 @@ fn main() {
         Some("tray-dblclick") => (tray, 0, (WM_LBUTTONDBLCLK as isize) | (1 << 16)),
         Some("close") => (WM_CLOSE, 0, 0),
         _ => {
-            eprintln!("usage: poke tray-menu [x y] | tray-dblclick | close");
+            eprintln!("usage: poke tray-menu [x y] | tray-dblclick | close | overlay-rect [file]");
             std::process::exit(1);
         }
     };

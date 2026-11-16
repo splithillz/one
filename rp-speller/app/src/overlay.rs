@@ -2,31 +2,34 @@ use std::cell::{Cell, RefCell};
 use std::ffi::c_void;
 use std::mem::size_of;
 
+use rp_speller_core::config::{Spot, Style};
 use rp_speller_core::text::{char_index, chars_from_utf16, utf16_index};
 use rp_speller_core::{apply, Edit};
 use windows::core::{w, PCWSTR};
-use windows::Win32::Foundation::{COLORREF, HWND, LPARAM, LRESULT, RECT, WPARAM};
-use windows::Win32::Graphics::Dwm::{DwmSetWindowAttribute, DWMWA_BORDER_COLOR, DWMWA_WINDOW_CORNER_PREFERENCE, DWMWCP_ROUND};
+use windows::Win32::Foundation::{COLORREF, HWND, LPARAM, LRESULT, POINT, RECT, WPARAM};
+use windows::Win32::Graphics::Dwm::{DwmSetWindowAttribute, DWMWA_BORDER_COLOR, DWMWA_WINDOW_CORNER_PREFERENCE, DWMWCP_DONOTROUND, DWMWCP_ROUND};
 use windows::Win32::Graphics::Gdi::{
-    BeginPaint, BitBlt, CreateCompatibleBitmap, CreateCompatibleDC, CreatePen, CreateRoundRectRgn, CreateSolidBrush, DeleteDC, DeleteObject,
-    DrawTextW, EndPaint, FillRect, GetStockObject, InvalidateRect, RoundRect, SelectObject, SetBkColor, SetBkMode, SetTextColor, SetWindowRgn,
-    DT_END_ELLIPSIS, DT_NOPREFIX, DT_SINGLELINE, DT_VCENTER, HBRUSH, HDC, HFONT, HGDIOBJ, NULL_BRUSH, NULL_PEN, PAINTSTRUCT, PS_INSIDEFRAME,
-    SRCCOPY, TRANSPARENT,
+    BeginPaint, CreateRoundRectRgn, CreateSolidBrush, DeleteObject, EndPaint, GetDC, GetTextExtentPoint32W, InvalidateRect, ReleaseDC, ScreenToClient,
+    SelectObject, SetBkColor, SetTextColor, SetWindowRgn, HDC, HFONT, HGDIOBJ, PAINTSTRUCT,
 };
-use windows::Win32::UI::Controls::{EM_GETSEL, EM_REPLACESEL, EM_SETLIMITTEXT, EM_SETMARGINS, EM_SETSEL};
+use windows::Win32::Foundation::SIZE;
+use windows::Win32::UI::Controls::{EM_GETSEL, EM_POSFROMCHAR, EM_REPLACESEL, EM_SETLIMITTEXT, EM_SETMARGINS, EM_SETSEL};
 use windows::Win32::UI::Input::KeyboardAndMouse::{GetKeyState, SetFocus};
 use windows::Win32::UI::Shell::{DefSubclassProc, RemoveWindowSubclass, SetWindowSubclass};
 use windows::Win32::UI::WindowsAndMessaging::{
-    CreateWindowExW, DefWindowProcW, GetClientRect, IsWindowVisible, KillTimer, LoadCursorW, MoveWindow, PostMessageW, RegisterClassExW,
-    SetTimer, SetWindowPos, ShowWindow, CS_HREDRAW, CS_VREDRAW,
-    ES_AUTOHSCROLL, HMENU, HWND_TOPMOST, IDC_ARROW, SWP_NOACTIVATE, SW_HIDE, SW_SHOW, WINDOW_EX_STYLE, WINDOW_STYLE, WM_ACTIVATE, WM_APP,
-    WM_CHAR, WM_CTLCOLOREDIT, WM_DPICHANGED, WM_ERASEBKGND, WM_KEYDOWN, WM_NCDESTROY, WM_PAINT, WM_TIMER, WNDCLASSEXW, WS_CHILD,
-    WS_CLIPCHILDREN, WS_EX_TOOLWINDOW, WS_EX_TOPMOST, WS_POPUP, WS_VISIBLE,
+    CreateWindowExW, DefWindowProcW, GetClientRect, GetWindowRect, IsWindowVisible, KillTimer, LoadCursorW, MoveWindow, PostMessageW,
+    RegisterClassExW, SetLayeredWindowAttributes, SetTimer, SetWindowPos, ShowWindow, CS_DBLCLKS, EC_LEFTMARGIN, EC_RIGHTMARGIN, ES_AUTOHSCROLL,
+    HMENU, HTCAPTION, HTCLIENT, HWND_TOPMOST, IDC_ARROW, LWA_ALPHA, SWP_NOACTIVATE, SWP_NOSIZE, SWP_NOZORDER, SW_HIDE, SW_SHOW, WINDOW_EX_STYLE,
+    WINDOW_STYLE, WM_ACTIVATE, WM_APP, WM_CHAR, WM_CTLCOLOREDIT, WM_DPICHANGED, WM_ENTERSIZEMOVE, WM_ERASEBKGND, WM_EXITSIZEMOVE, WM_KEYDOWN, WM_NCDESTROY,
+    WM_NCHITTEST, WM_NCLBUTTONDBLCLK, WM_PAINT, WM_TIMER, WNDCLASSEXW, WS_CHILD, WS_CLIPCHILDREN, WS_EX_LAYERED, WS_EX_TOOLWINDOW, WS_EX_TOPMOST,
+    WS_POPUP, WS_VISIBLE,
 };
-use windows::Win32::UI::WindowsAndMessaging::{EC_LEFTMARGIN, EC_RIGHTMARGIN};
 
 use crate::app::with_app;
-use crate::win::{dpi_for_rect, has_glyphs, ui_font, dpi_of, hinstance, hiword, line_height, loword, rgb, scale, send, set_font, wide, window_text};
+use crate::bubble::Bubble;
+use crate::gfx::Painter;
+use crate::style::{self, bubble_kind, look, BubbleKind, Geo, Status};
+use crate::win::{dpi_for_rect, hiword, line_height, loword, scale, send, set_font, ui_font, wide, window_text};
 use crate::{game, log};
 
 pub const OV_ENTER: u32 = WM_APP + 10;
@@ -34,46 +37,31 @@ pub const OV_ESCAPE: u32 = WM_APP + 11;
 pub const T_FLUSH: usize = 1;
 pub const T_STATUS: usize = 2;
 pub const T_ENTER: usize = 3;
-
-pub const HINT: &str = "Enter — отправить · Esc — отмена · Backspace сразу после исправления — вернуть";
-pub const GREY: COLORREF = rgb(160, 166, 176);
-pub const GREEN: COLORREF = rgb(143, 209, 138);
-const BG: COLORREF = rgb(28, 30, 36);
-const FIELD: COLORREF = rgb(40, 43, 51);
-const WHITE: COLORREF = rgb(255, 255, 255);
 const CLASS: PCWSTR = w!("RPSpellerOverlay");
 const MAX_LEN: usize = 400;
-
-const PAD_X: i32 = 14;
-const PAD_TOP: i32 = 12;
-const PAD_BOTTOM: i32 = 9;
-const FIELD_PAD_X: i32 = 10;
-const FIELD_PAD_Y: i32 = 7;
-const GAP: i32 = 6;
-const RADIUS: i32 = 16;
-const FIELD_RADIUS: i32 = 12;
 
 struct Ui {
     edit: HWND,
     dpi: u32,
-    font_edit: HFONT,
-    font_status: HFONT,
-    bg: HBRUSH,
-    field: HBRUSH,
-    status: String,
-    color: COLORREF,
-    field_rect: RECT,
-    status_rect: RECT,
+    style: Style,
+    font: HFONT,
     edit_line: i32,
-    status_line: i32,
-    dwm_round: bool,
-    arrow: &'static str,
+    geo: Geo,
+    status: Status,
+    fix: Option<(usize, usize, String)>,
+    dwm: bool,
+    game: RECT,
+    bubble: Option<Bubble>,
 }
 
 thread_local! {
     static UI: RefCell<Option<Ui>> = const { RefCell::new(None) };
     static FIELD_BRUSH: Cell<isize> = const { Cell::new(0) };
+    static EDIT_FG: Cell<u32> = const { Cell::new(0xFFFFFF) };
+    static EDIT_BG: Cell<u32> = const { Cell::new(0) };
     static SWALLOW_BACK: Cell<bool> = const { Cell::new(false) };
+    static MOVE_FROM: Cell<(i32, i32)> = const { Cell::new((i32::MIN, i32::MIN)) };
+    static PAINT_RETRY: Cell<u8> = const { Cell::new(0) };
 }
 
 fn ui<R>(f: impl FnOnce(&mut Ui) -> R) -> Option<R> {
@@ -90,16 +78,16 @@ impl Overlay {
         unsafe {
             let wc = WNDCLASSEXW {
                 cbSize: size_of::<WNDCLASSEXW>() as u32,
-                style: CS_HREDRAW | CS_VREDRAW,
+                style: CS_DBLCLKS,
                 lpfnWndProc: Some(overlay_proc),
-                hInstance: hinstance(),
+                hInstance: crate::win::hinstance(),
                 hCursor: LoadCursorW(None, IDC_ARROW).unwrap_or_default(),
                 lpszClassName: CLASS,
                 ..Default::default()
             };
             RegisterClassExW(&wc);
             let hwnd = CreateWindowExW(
-                WS_EX_TOPMOST | WS_EX_TOOLWINDOW,
+                WS_EX_TOPMOST | WS_EX_TOOLWINDOW | WS_EX_LAYERED,
                 CLASS,
                 w!("RP Speller"),
                 WS_POPUP | WS_CLIPCHILDREN,
@@ -109,7 +97,7 @@ impl Overlay {
                 80,
                 None,
                 None,
-                Some(hinstance()),
+                Some(crate::win::hinstance()),
                 None,
             )
             .map_err(|e| e.to_string())?;
@@ -124,39 +112,30 @@ impl Overlay {
                 20,
                 Some(hwnd),
                 Some(HMENU(std::ptr::without_provenance_mut(1))),
-                Some(hinstance()),
+                Some(crate::win::hinstance()),
                 None,
             )
             .map_err(|e| e.to_string())?;
             send(edit, EM_SETLIMITTEXT, MAX_LEN, 0);
             let _ = SetWindowSubclass(edit, Some(edit_proc), 1, 0);
-            let pref = DWMWCP_ROUND;
-            let dwm_round = DwmSetWindowAttribute(hwnd, DWMWA_WINDOW_CORNER_PREFERENCE, &pref as *const _ as *const c_void, 4).is_ok();
-            if dwm_round {
-                let c = GREEN;
-                let _ = DwmSetWindowAttribute(hwnd, DWMWA_BORDER_COLOR, &c as *const _ as *const c_void, 4);
-            }
-            let field = CreateSolidBrush(FIELD);
-            FIELD_BRUSH.set(field.0 as isize);
+            let pref = DWMWCP_DONOTROUND;
+            let dwm = DwmSetWindowAttribute(hwnd, DWMWA_WINDOW_CORNER_PREFERENCE, &pref as *const _ as *const c_void, 4).is_ok();
+            let bubble = Bubble::create().ok();
             UI.with(|c| {
                 *c.borrow_mut() = Some(Ui {
                     edit,
                     dpi: 0,
-                    font_edit: HFONT::default(),
-                    font_status: HFONT::default(),
-                    bg: CreateSolidBrush(BG),
-                    field,
-                    status: HINT.into(),
-                    color: GREY,
-                    field_rect: RECT::default(),
-                    status_rect: RECT::default(),
-                    edit_line: 20,
-                    status_line: 14,
-                    dwm_round,
-                    arrow: "->",
+                    style: Style::Glass,
+                    font: HFONT::default(),
+                    edit_line: 24,
+                    geo: Geo { w: 640, h: 80, edit: RECT::default(), radius: 0.0, alpha: 255, scale: 1.0 },
+                    status: Status::Hint,
+                    fix: None,
+                    dwm,
+                    game: RECT::default(),
+                    bubble,
                 })
             });
-            apply_dpi(hwnd, dpi_of(hwnd));
             Ok(Self { hwnd, edit })
         }
     }
@@ -165,21 +144,23 @@ impl Overlay {
         unsafe { IsWindowVisible(self.hwnd).as_bool() }
     }
 
-    pub fn show_over(&self, game_rect: RECT) {
+    pub fn show_over(&self, game_rect: RECT, style: Style, spot: Option<Spot>) {
         let dpi = dpi_for_rect(&game_rect);
-        apply_dpi(self.hwnd, dpi);
-        let height = ui(|u| height_for(u)).unwrap_or(80);
-        let gw = game_rect.right - game_rect.left;
-        let gh = game_rect.bottom - game_rect.top;
-        let width = scale(640, dpi).min(scale(360, dpi).max(gw - scale(40, dpi)));
-        let x = game_rect.left + (gw - width) / 2;
-        let y = (game_rect.top + gh * 70 / 100).min(game_rect.bottom - height - scale(8, dpi)).max(game_rect.top);
+        prepare(self.hwnd, style, dpi);
+        let Some((w, h)) = ui(|u| {
+            u.game = game_rect;
+            u.geo = style::geometry(style, dpi, game_rect.right - game_rect.left, u.edit_line);
+            (u.geo.w, u.geo.h)
+        }) else {
+            return;
+        };
+        let (x, y) = style::place(style, game_rect, w, h, spot);
         unsafe {
-            let _ = SetWindowPos(self.hwnd, Some(HWND_TOPMOST), x, y, width, height, SWP_NOACTIVATE);
+            let _ = SetWindowPos(self.hwnd, Some(HWND_TOPMOST), x, y, w, h, SWP_NOACTIVATE);
         }
-        layout(self.hwnd);
+        shape(self.hwnd);
         crate::win::set_window_text(self.edit, "");
-        self.set_status(HINT, GREY);
+        self.set_status(Status::Hint);
         unsafe {
             let _ = ShowWindow(self.hwnd, SW_SHOW);
         }
@@ -199,6 +180,7 @@ impl Overlay {
             }
             let _ = ShowWindow(self.hwnd, SW_HIDE);
         }
+        hide_bubble();
     }
 
     pub fn timer(&self, id: usize, ms: u32) {
@@ -222,8 +204,7 @@ impl Overlay {
     pub fn text(&self) -> (Vec<char>, usize) {
         let units = window_text(self.edit);
         let (_, end) = self.selection();
-        let caret = char_index(&units, end);
-        (chars_from_utf16(&units), caret)
+        (chars_from_utf16(&units), char_index(&units, end))
     }
 
     pub fn has_selection(&self) -> bool {
@@ -251,147 +232,215 @@ impl Overlay {
         send(self.edit, EM_SETSEL, c16 as usize, c16);
     }
 
-    pub fn arrow(&self) -> &'static str {
-        ui(|u| u.arrow).unwrap_or("->")
-    }
-
-    pub fn set_status(&self, text: &str, color: COLORREF) {
+    pub fn set_status(&self, status: Status) {
         ui(|u| {
-            u.status = text.to_string();
-            u.color = color;
+            u.status = status;
+            u.fix = None;
         });
+        hide_bubble();
+        self.kill_timer(T_STATUS);
         unsafe {
             let _ = InvalidateRect(Some(self.hwnd), None, false);
         }
     }
 
-    pub fn flash(&self, text: &str, color: COLORREF) {
-        self.set_status(text, color);
+    pub fn flash(&self, status: Status, fix: Option<(usize, usize, String)>) {
+        ui(|u| {
+            u.status = status;
+            u.fix = fix;
+        });
+        unsafe {
+            let _ = InvalidateRect(Some(self.hwnd), None, false);
+        }
+        show_bubble(self.hwnd);
         self.kill_timer(T_STATUS);
-        self.timer(T_STATUS, 2400);
+        self.timer(T_STATUS, 2600);
     }
 }
 
-fn height_for(u: &Ui) -> i32 {
-    let s = |v| scale(v, u.dpi);
-    s(PAD_TOP) + u.edit_line + 2 * s(FIELD_PAD_Y) + s(GAP) + u.status_line + s(PAD_BOTTOM)
-}
-
-fn apply_dpi(hwnd: HWND, dpi: u32) {
-    let Some((edit, old_edit, old_status, changed)) = ui(|u| {
-        if u.dpi == dpi {
-            return (u.edit, HFONT::default(), HFONT::default(), false);
+fn prepare(hwnd: HWND, style: Style, dpi: u32) {
+    let Some((edit, old, changed)) = ui(|u| {
+        if u.dpi == dpi && u.style == style && !u.font.is_invalid() {
+            return (u.edit, HFONT::default(), false);
         }
-        let old = (u.font_edit, u.font_status);
-        u.font_edit = ui_font(13.0, dpi, 400);
-        u.font_status = ui_font(9.0, dpi, 400);
+        let old = u.font;
+        let (pt, weight) = style::edit_font(style);
+        u.font = ui_font(pt, dpi, weight);
         u.dpi = dpi;
-        (u.edit, old.0, old.1, true)
+        u.style = style;
+        (u.edit, old, true)
     }) else {
         return;
     };
     if !changed {
         return;
     }
-    let (font_edit, font_status) = ui(|u| (u.font_edit, u.font_status)).unwrap_or_default();
-    set_font(edit, font_edit);
-    let margin = scale(4, dpi) as isize;
-    send(edit, EM_SETMARGINS, (EC_LEFTMARGIN | EC_RIGHTMARGIN) as usize, margin | (margin << 16));
-    let edit_line = line_height(hwnd, font_edit);
-    let status_line = line_height(hwnd, font_status);
-    let arrow = if has_glyphs(hwnd, font_status, "→") { "→" } else { "->" };
-    ui(|u| {
-        u.edit_line = edit_line;
-        u.status_line = status_line;
-        u.arrow = arrow;
-    });
+    let lk = look(style);
+    EDIT_FG.set(lk.text.colorref().0);
+    EDIT_BG.set(lk.field.colorref().0);
     unsafe {
-        for f in [old_edit, old_status] {
-            if !f.is_invalid() {
-                let _ = DeleteObject(HGDIOBJ(f.0));
-            }
+        let brush = CreateSolidBrush(lk.field.colorref());
+        let prev = FIELD_BRUSH.replace(brush.0 as isize);
+        if prev != 0 {
+            let _ = DeleteObject(HGDIOBJ(prev as *mut c_void));
+        }
+    }
+    let font = ui(|u| u.font).unwrap_or_default();
+    set_font(edit, font);
+    let margin = scale(2, dpi) as isize;
+    send(edit, EM_SETMARGINS, (EC_LEFTMARGIN | EC_RIGHTMARGIN) as usize, margin | (margin << 16));
+    let line = line_height(hwnd, font);
+    ui(|u| u.edit_line = line);
+    if !old.is_invalid() {
+        unsafe {
+            let _ = DeleteObject(HGDIOBJ(old.0));
         }
     }
 }
 
-fn layout(hwnd: HWND) {
-    let mut rc = RECT::default();
-    unsafe {
-        let _ = GetClientRect(hwnd, &mut rc);
-    }
-    let w = rc.right;
-    let Some((edit, er, h, dwm_round, dpi)) = ui(|u| {
-        let s = |v| scale(v, u.dpi);
-        let field = RECT { left: s(PAD_X), top: s(PAD_TOP), right: w - s(PAD_X), bottom: s(PAD_TOP) + u.edit_line + 2 * s(FIELD_PAD_Y) };
-        let er = RECT {
-            left: field.left + s(FIELD_PAD_X),
-            top: field.top + s(FIELD_PAD_Y),
-            right: field.right - s(FIELD_PAD_X),
-            bottom: field.top + s(FIELD_PAD_Y) + u.edit_line,
-        };
-        u.status_rect = RECT { left: s(PAD_X) + s(4), top: field.bottom + s(GAP), right: w - s(PAD_X), bottom: field.bottom + s(GAP) + u.status_line };
-        u.field_rect = field;
-        (u.edit, er, height_for(u), u.dwm_round, u.dpi)
-    }) else {
+fn shape(hwnd: HWND) {
+    let Some((edit, er, w, h, style, dwm, alpha, radius)) =
+        ui(|u| (u.edit, u.geo.edit, u.geo.w, u.geo.h, u.style, u.dwm, u.geo.alpha, u.geo.radius))
+    else {
         return;
     };
     unsafe {
         let _ = MoveWindow(edit, er.left, er.top, er.right - er.left, er.bottom - er.top, true);
-        if !dwm_round {
-            let r = scale(RADIUS, dpi);
-            SetWindowRgn(hwnd, Some(CreateRoundRectRgn(0, 0, w + 1, h.max(rc.bottom) + 1, r, r)), true);
+        let _ = SetLayeredWindowAttributes(hwnd, COLORREF(0), alpha, LWA_ALPHA);
+        let use_dwm = dwm && style == Style::Glass;
+        if dwm {
+            let pref = if use_dwm { DWMWCP_ROUND } else { DWMWCP_DONOTROUND };
+            let _ = DwmSetWindowAttribute(hwnd, DWMWA_WINDOW_CORNER_PREFERENCE, &pref as *const _ as *const c_void, 4);
+            let border = crate::gfx::hex(0x2A2D36, 1.0).colorref();
+            let _ = DwmSetWindowAttribute(hwnd, DWMWA_BORDER_COLOR, &border as *const _ as *const c_void, 4);
+        }
+        let r = (radius * 2.0).round() as i32;
+        if use_dwm || r == 0 {
+            SetWindowRgn(hwnd, None, true);
+        } else {
+            SetWindowRgn(hwnd, Some(CreateRoundRectRgn(0, 0, w + 1, h + 1, r, r)), true);
         }
         let _ = InvalidateRect(Some(hwnd), None, false);
     }
 }
 
-fn draw(dc: HDC, w: i32, h: i32, u: &Ui) {
-    let s = |v| scale(v, u.dpi);
-    unsafe {
-        FillRect(dc, &RECT { left: 0, top: 0, right: w, bottom: h }, u.bg);
-        let old_brush = SelectObject(dc, HGDIOBJ(u.field.0));
-        let old_pen = SelectObject(dc, GetStockObject(NULL_PEN));
-        let f = u.field_rect;
-        let _ = RoundRect(dc, f.left, f.top, f.right + 1, f.bottom + 1, s(FIELD_RADIUS), s(FIELD_RADIUS));
-        SetBkMode(dc, TRANSPARENT);
-        SetTextColor(dc, u.color);
-        let old_font = SelectObject(dc, HGDIOBJ(u.font_status.0));
-        let mut text: Vec<u16> = u.status.encode_utf16().collect();
-        let mut sr = u.status_rect;
-        DrawTextW(dc, &mut text, &mut sr, DT_SINGLELINE | DT_VCENTER | DT_END_ELLIPSIS | DT_NOPREFIX);
-        let pen = CreatePen(PS_INSIDEFRAME, s(2).max(1), GREEN);
-        SelectObject(dc, HGDIOBJ(pen.0));
-        SelectObject(dc, GetStockObject(NULL_BRUSH));
-        let _ = RoundRect(dc, 0, 0, w, h, s(RADIUS), s(RADIUS));
-        SelectObject(dc, old_font);
-        SelectObject(dc, old_pen);
-        SelectObject(dc, old_brush);
-        let _ = DeleteObject(HGDIOBJ(pen.0));
+fn underline(edit: HWND, er: &RECT, fix: &Option<(usize, usize, String)>) -> Option<(f32, f32)> {
+    let (start, len, word) = fix.as_ref()?;
+    let units = window_text(edit);
+    let chars = chars_from_utf16(&units);
+    if start + len > chars.len() || chars[*start..start + len].iter().collect::<String>() != *word {
+        return None;
     }
+    let pos = |i: usize| -> Option<i32> {
+        let r = send(edit, EM_POSFROMCHAR, utf16_index(&chars, i), 0);
+        (r != -1).then_some(loword(r as usize) as i16 as i32)
+    };
+    let x1 = pos(*start)?;
+    let x2 = match pos(start + len) {
+        Some(x) if start + len < chars.len() => x,
+        _ => {
+            let last = pos(start + len - 1)?;
+            let units: Vec<u16> = chars[start + len - 1].to_string().encode_utf16().collect();
+            let mut size = SIZE::default();
+            unsafe {
+                let dc = GetDC(Some(edit));
+                let font = ui(|u| u.font).unwrap_or_default();
+                let old = SelectObject(dc, HGDIOBJ(font.0));
+                let _ = GetTextExtentPoint32W(dc, &units, &mut size);
+                SelectObject(dc, old);
+                ReleaseDC(Some(edit), dc);
+            }
+            last + size.cx
+        }
+    };
+    let left = (er.left + x1).max(er.left) as f32;
+    let right = (er.left + x2).min(er.right) as f32;
+    (right > left).then_some((left, right))
+}
+
+fn hide_bubble() {
+    UI.with(|c| {
+        if let Ok(g) = c.try_borrow()
+            && let Some(u) = g.as_ref()
+            && let Some(b) = &u.bubble
+        {
+            b.hide();
+        }
+    });
+}
+
+fn show_bubble(hwnd: HWND) {
+    let Some((style, status, fix, edit, er, s)) = ui(|u| (u.style, u.status.clone(), u.fix.clone(), u.edit, u.geo.edit, u.geo.scale)) else {
+        return;
+    };
+    let Some(kind) = bubble_kind(style) else { return };
+    if status == Status::Hint {
+        hide_bubble();
+        return;
+    }
+    let mut wr = RECT::default();
+    unsafe {
+        let _ = GetWindowRect(hwnd, &mut wr);
+    }
+    let (x, bottom, arrow) = match kind {
+        BubbleKind::Toast => (wr.left, wr.top - (6.0 * s) as i32, 0.0),
+        BubbleKind::Tooltip => {
+            let anchor = underline(edit, &er, &fix).map(|(a, b)| (a + b) / 2.0).unwrap_or(er.left as f32 + 30.0 * s);
+            let ax = wr.left + anchor as i32;
+            let left = ax - (24.0 * s) as i32;
+            (left, wr.top + (2.0 * s) as i32, 24.0 * s)
+        }
+    };
+    UI.with(|c| {
+        if let Ok(g) = c.try_borrow()
+            && let Some(u) = g.as_ref()
+            && let Some(b) = &u.bubble
+        {
+            b.show(&kind, &status, x, bottom, s, arrow);
+        }
+    });
+}
+
+fn relayout(hwnd: HWND, dpi: u32) {
+    let Some((style, game)) = ui(|u| (u.style, u.game)) else { return };
+    prepare(hwnd, style, dpi);
+    let Some((w, h)) = ui(|u| {
+        u.geo = style::geometry(style, dpi, game.right - game.left, u.edit_line);
+        (u.geo.w, u.geo.h)
+    }) else {
+        return;
+    };
+    unsafe {
+        let mut wr = RECT::default();
+        let _ = GetWindowRect(hwnd, &mut wr);
+        let _ = SetWindowPos(hwnd, None, wr.left, wr.top, w, h, SWP_NOZORDER | SWP_NOACTIVATE);
+    }
+    shape(hwnd);
 }
 
 fn paint(hwnd: HWND) {
+    let snapshot = ui(|u| (u.style, Geo { w: u.geo.w, h: u.geo.h, edit: u.geo.edit, radius: u.geo.radius, alpha: u.geo.alpha, scale: u.geo.scale }, u.status.clone(), u.fix.clone(), u.edit, u.dwm));
     unsafe {
         let mut ps = PAINTSTRUCT::default();
         let hdc = BeginPaint(hwnd, &mut ps);
         let mut rc = RECT::default();
         let _ = GetClientRect(hwnd, &mut rc);
-        let (w, h) = (rc.right.max(1), rc.bottom.max(1));
-        let mem = CreateCompatibleDC(Some(hdc));
-        let bmp = CreateCompatibleBitmap(hdc, w, h);
-        let old = SelectObject(mem, HGDIOBJ(bmp.0));
-        let drawn = UI.with(|c| match c.try_borrow() {
-            Ok(g) => g.as_ref().map(|u| draw(mem, w, h, u)).is_some(),
-            Err(_) => false,
-        });
-        if drawn {
-            let _ = BitBlt(hdc, 0, 0, w, h, Some(mem), 0, 0, SRCCOPY);
+        let mut ok = true;
+        if let Some((style, geo, status, fix, edit, dwm)) = snapshot {
+            let line = if style == Style::Capsule && matches!(status, Status::Fixed { .. }) { underline(edit, &geo.edit, &fix) } else { None };
+            let square = dwm && style == Style::Glass;
+            ok = match Painter::begin(hdc, rc.right.max(1), rc.bottom.max(1), false) {
+                Some(p) => {
+                    style::paint(&p, style, &geo, &status, None, square, line);
+                    p.end()
+                }
+                None => false,
+            };
         }
-        SelectObject(mem, old);
-        let _ = DeleteObject(HGDIOBJ(bmp.0));
-        let _ = DeleteDC(mem);
         let _ = EndPaint(hwnd, &ps);
-        if !drawn {
+        let tries = PAINT_RETRY.get();
+        PAINT_RETRY.set(if ok { 0 } else { tries.saturating_add(1) });
+        if !ok && tries < 2 {
             let _ = InvalidateRect(Some(hwnd), None, false);
         }
     }
@@ -480,6 +529,9 @@ unsafe extern "system" fn edit_proc(hwnd: HWND, msg: u32, wp: WPARAM, lp: LPARAM
                 {
                     with_app(|a| a.on_typed(c));
                 }
+                if let Some(p) = parent_of(hwnd) {
+                    let _ = InvalidateRect(Some(p), None, false);
+                }
                 r
             }
             WM_NCDESTROY => {
@@ -501,17 +553,57 @@ unsafe extern "system" fn overlay_proc(hwnd: HWND, msg: u32, wp: WPARAM, lp: LPA
             WM_ERASEBKGND => LRESULT(1),
             WM_CTLCOLOREDIT => {
                 let dc = HDC(wp.0 as *mut c_void);
-                SetTextColor(dc, WHITE);
-                SetBkColor(dc, FIELD);
+                SetTextColor(dc, COLORREF(EDIT_FG.get()));
+                SetBkColor(dc, COLORREF(EDIT_BG.get()));
                 LRESULT(FIELD_BRUSH.get())
+            }
+            WM_NCHITTEST => {
+                let hit = DefWindowProcW(hwnd, msg, wp, lp);
+                if hit.0 as u32 != HTCLIENT {
+                    return hit;
+                }
+                let mut pt = POINT { x: loword(lp.0 as usize) as i16 as i32, y: hiword(lp.0 as usize) as i16 as i32 };
+                let _ = ScreenToClient(hwnd, &mut pt);
+                let er = ui(|u| u.geo.edit).unwrap_or_default();
+                if pt.x >= er.left && pt.x < er.right && pt.y >= er.top && pt.y < er.bottom { hit } else { LRESULT(HTCAPTION as isize) }
+            }
+            WM_ENTERSIZEMOVE => {
+                let mut wr = RECT::default();
+                let _ = GetWindowRect(hwnd, &mut wr);
+                MOVE_FROM.set((wr.left, wr.top));
+                LRESULT(0)
+            }
+            WM_EXITSIZEMOVE => {
+                let mut wr = RECT::default();
+                let _ = GetWindowRect(hwnd, &mut wr);
+                let moved = MOVE_FROM.replace((i32::MIN, i32::MIN)) != (wr.left, wr.top);
+                if let Some((style, game, edit)) = ui(|u| (u.style, u.game, u.edit)) {
+                    if moved {
+                        let spot = style::spot_of(game, wr.left, wr.top);
+                        with_app(|a| a.remember_spot(style, Some(spot)));
+                    }
+                    let _ = SetFocus(Some(edit));
+                }
+                hide_bubble();
+                LRESULT(0)
+            }
+            WM_NCLBUTTONDBLCLK if wp.0 as u32 == HTCAPTION => {
+                if let Some((style, game, w, h, edit)) = ui(|u| (u.style, u.game, u.geo.w, u.geo.h, u.edit)) {
+                    with_app(|a| a.remember_spot(style, None));
+                    let (x, y) = style::place(style, game, w, h, None);
+                    let _ = SetWindowPos(hwnd, None, x, y, 0, 0, SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
+                    let _ = SetFocus(Some(edit));
+                }
+                LRESULT(0)
             }
             WM_TIMER => {
                 if wp.0 == T_STATUS {
                     let _ = KillTimer(Some(hwnd), T_STATUS);
                     ui(|u| {
-                        u.status = HINT.into();
-                        u.color = GREY;
+                        u.status = Status::Hint;
+                        u.fix = None;
                     });
+                    hide_bubble();
                     let _ = InvalidateRect(Some(hwnd), None, false);
                 } else {
                     with_app(|a| a.on_overlay_timer(wp.0));
@@ -526,8 +618,7 @@ unsafe extern "system" fn overlay_proc(hwnd: HWND, msg: u32, wp: WPARAM, lp: LPA
                 LRESULT(0)
             }
             WM_DPICHANGED => {
-                apply_dpi(hwnd, hiword(wp.0) as u32);
-                layout(hwnd);
+                relayout(hwnd, hiword(wp.0) as u32);
                 LRESULT(0)
             }
             WM_ACTIVATE => {

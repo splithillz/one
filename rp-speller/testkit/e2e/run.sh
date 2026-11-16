@@ -236,7 +236,7 @@ shot settings
 xdotool key Escape
 sleep 1
 open_settings
-for _ in 1 2 3 4 5 6 7; do xdotool key Tab; done
+xdotool key Tab
 xdotool key space Return
 check "autocorrect switched off" wait_file "$APPDIR/config.json" '"Autocorrect": false' 4
 focus_game
@@ -250,12 +250,14 @@ check "no fixes and no requests while off" test "$(wc -l < "$RELAYLOG")" -eq "$r
 xdotool key Escape
 sleep 1
 open_settings
-for _ in 1 2 3 4 5 6 7; do xdotool key Tab; done
+xdotool key Tab
 xdotool key space Return
 check "autocorrect back on" wait_file "$APPDIR/config.json" '"Autocorrect": true' 4
 
 say "10. settings: change the hotkey"
 open_settings
+xdotool key Tab Tab space
+sleep 0.3
 xdotool key F8
 sleep 0.3
 xdotool key Return
@@ -273,6 +275,8 @@ xdotool key F7
 sleep 1.5
 check "F7 is a normal key again" test "$(count "$GAMELOG" "key down vk=0x76")" -gt "$f7_before"
 open_settings
+xdotool key Tab Tab space
+sleep 0.3
 xdotool key F7
 sleep 0.3
 xdotool key Return
@@ -319,8 +323,10 @@ say "13. typing mode (letter by letter)"
 check "game window restarts" start_game
 sleep 1
 open_settings
-for _ in 1 2 3 4 5; do xdotool key Tab; done
-xdotool key Down Tab Return
+for _ in 1 2 3 4; do xdotool key Tab; done
+xdotool key Right
+sleep 0.3
+xdotool key Return
 check "input mode saved" wait_file "$APPDIR/config.json" '"InputMode": "type"' 4
 focus_game
 sent_before=$(count "$GAMELOG" " sent: ")
@@ -334,8 +340,10 @@ check "typed message sent" wait_more "$GAMELOG" " sent: " "$sent_before" 8
 check "typed text arrived" test "$(last_sent)" = "хорошо"
 check "no clipboard paste used" test "$(count "$GAMELOG" "paste:")" -eq "$paste_before"
 open_settings
-for _ in 1 2 3 4 5; do xdotool key Tab; done
-xdotool key Up Tab Return
+for _ in 1 2 3 4; do xdotool key Tab; done
+xdotool key Left
+sleep 0.3
+xdotool key Return
 check "input mode back to paste" wait_file "$APPDIR/config.json" '"InputMode": "paste"' 4
 
 say "14. words survive a restart"
@@ -360,7 +368,78 @@ check "kept word left alone, no requests" test "$(wc -l < "$RELAYLOG")" -eq "$re
 xdotool key Escape
 sleep 1
 
-say "15. health"
+say "15. overlay styles: switch, drag, reset"
+overlay_rect() {
+    rm -f "$WORK/rect.txt"
+    poke overlay-rect "$(winpath "$WORK/rect.txt")"
+    wait_file "$WORK/rect.txt" "^-?[0-9]" 8 && cat "$WORK/rect.txt"
+}
+style_round() {
+    local st=$1 key=$2 word=$3 fixed=$4 before
+    open_settings
+    xdotool key "$key"
+    sleep 0.3
+    xdotool key Return
+    check "style $st saved" wait_file "$APPDIR/config.json" "\"Style\": \"$st\"" 4
+    focus_game
+    before=$(count "$APPLOG" "style $st")
+    xdotool key F7
+    check "overlay opens as $st" wait_more "$APPLOG" "style $st" "$before" 6
+    sleep 1
+    prime
+    before=$(count "$APPLOG" "fixed: $word → $fixed")
+    type_ru "$word "
+    check "$st: word fixed" wait_more "$APPLOG" "fixed: $word → $fixed" "$before" 6
+    sleep 0.6
+    shot "style-$st"
+    xdotool key Escape
+    sleep 1
+}
+style_round chat Right "сабака" "собака"
+style_round capsule Right "малако" "молоко"
+open_settings
+xdotool key Left Left
+sleep 0.3
+xdotool key Return
+check "style glass saved" wait_file "$APPDIR/config.json" '"Style": "glass"' 4
+focus_game
+xdotool key F7
+sleep 1.5
+read -r l t r b v <<< "$(overlay_rect)"
+check "overlay rect known" test "${v:-0}" = 1
+gx=$((l + 24)); gy=$((b - 8))
+xdotool mousemove "$gx" "$gy" mousedown 1
+sleep 0.2
+xdotool mousemove $((gx + 10)) $((gy - 10))
+sleep 0.2
+xdotool mousemove $((gx + 60)) $((gy - 120))
+sleep 0.3
+xdotool mouseup 1
+check "dragged position saved" wait_file "$APPDIR/config.json" '"Glass": \{' 4
+sleep 0.5
+prime
+before=$(count "$APPLOG" "fixed: карова → корова")
+type_ru "карова "
+check "typing works after the drag" wait_more "$APPLOG" "fixed: карова → корова" "$before" 6
+shot overlay-dragged
+read -r l2 t2 r2 b2 v2 <<< "$(overlay_rect)"
+check "overlay moved by the drag" test "$((l2 - l)),$((t2 - t))" = "60,-120"
+xdotool key Escape
+sleep 1
+focus_game
+xdotool key F7
+sleep 1.5
+read -r l3 t3 r3 b3 v3 <<< "$(overlay_rect)"
+check "overlay reopens where it was dragged" test "$l3,$t3" = "$l2,$t2"
+xdotool mousemove $((l3 + 24)) $((b3 - 8)) click --repeat 2 --delay 90 1
+sleep 0.8
+check "double click resets the position" wait_file "$APPDIR/config.json" '"Glass": null' 4
+read -r l4 t4 r4 b4 v4 <<< "$(overlay_rect)"
+check "overlay back at the default place" test "$l4,$t4" = "$l,$t"
+xdotool key Escape
+sleep 1
+
+say "16. health"
 check "app still running" alive
 check "no crashes" bash -c "! grep -qE 'Unhandled|page fault' '$WORK/wine.out'"
 check "no panics" bash -c "! grep -q 'panic' '$APPLOG'"

@@ -23,7 +23,7 @@ use windows::Win32::System::Registry::{RegGetValueW, HKEY_LOCAL_MACHINE, RRF_RT_
 use windows::Win32::UI::HiDpi::{GetDpiForSystem, SetProcessDpiAwarenessContext, DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2};
 use windows::Win32::UI::Input::KeyboardAndMouse::{
     MapVirtualKeyW, SendInput, INPUT, INPUT_0, INPUT_KEYBOARD, INPUT_MOUSE, KEYBDINPUT, KEYBD_EVENT_FLAGS, KEYEVENTF_EXTENDEDKEY,
-    KEYEVENTF_KEYUP, KEYEVENTF_UNICODE, MAPVK_VK_TO_VSC, MOUSEEVENTF_LEFTDOWN, MOUSEEVENTF_LEFTUP, MOUSEINPUT, VIRTUAL_KEY,
+    KEYEVENTF_KEYUP, KEYEVENTF_UNICODE, MAPVK_VK_TO_VSC, MOUSEEVENTF_LEFTDOWN, MOUSEEVENTF_LEFTUP, MOUSEINPUT, MOUSE_EVENT_FLAGS, VIRTUAL_KEY,
 };
 use windows::Win32::UI::WindowsAndMessaging::{
     CreateWindowExW, DefWindowProcW, FindWindowW, GetClassNameW, GetForegroundWindow, GetSystemMetrics, GetWindowRect, IsWindowVisible,
@@ -36,7 +36,8 @@ pub const VK_RETURN: u16 = 0x0D;
 pub const VK_CONTROL: u16 = 0x11;
 pub const VK_ESCAPE: u16 = 0x1B;
 pub const VK_SPACE: u16 = 0x20;
-pub const VK_UP: u16 = 0x26;
+pub const VK_LEFT: u16 = 0x25;
+pub const VK_RIGHT: u16 = 0x27;
 pub const VK_DOWN: u16 = 0x28;
 pub const VK_A: u16 = 0x41;
 pub const VK_F7: u16 = 0x76;
@@ -89,19 +90,52 @@ pub fn type_text(s: &str) {
     }
 }
 
-pub fn click(x: i32, y: i32) {
+fn button(flags: MOUSE_EVENT_FLAGS) {
+    send(&[INPUT {
+        r#type: INPUT_MOUSE,
+        Anonymous: INPUT_0 { mi: MOUSEINPUT { dx: 0, dy: 0, mouseData: 0, dwFlags: flags, time: 0, dwExtraInfo: 0 } },
+    }]);
+}
+
+fn cursor(x: i32, y: i32) {
     unsafe {
         let _ = SetCursorPos(x, y);
     }
+}
+
+pub fn click(x: i32, y: i32) {
+    cursor(x, y);
     sleep(50);
-    let m = |flags| INPUT {
-        r#type: INPUT_MOUSE,
-        Anonymous: INPUT_0 { mi: MOUSEINPUT { dx: 0, dy: 0, mouseData: 0, dwFlags: flags, time: 0, dwExtraInfo: 0 } },
-    };
-    send(&[m(MOUSEEVENTF_LEFTDOWN)]);
+    button(MOUSEEVENTF_LEFTDOWN);
     sleep(40);
-    send(&[m(MOUSEEVENTF_LEFTUP)]);
+    button(MOUSEEVENTF_LEFTUP);
     sleep(150);
+}
+
+pub fn double_click(x: i32, y: i32) {
+    cursor(x, y);
+    sleep(80);
+    for _ in 0..2 {
+        button(MOUSEEVENTF_LEFTDOWN);
+        sleep(30);
+        button(MOUSEEVENTF_LEFTUP);
+        sleep(70);
+    }
+    sleep(200);
+}
+
+pub fn drag(x1: i32, y1: i32, x2: i32, y2: i32) {
+    cursor(x1, y1);
+    sleep(80);
+    button(MOUSEEVENTF_LEFTDOWN);
+    sleep(150);
+    for i in 1..=12 {
+        cursor(x1 + (x2 - x1) * i / 12, y1 + (y2 - y1) * i / 12);
+        sleep(30);
+    }
+    sleep(150);
+    button(MOUSEEVENTF_LEFTUP);
+    sleep(300);
 }
 
 fn wide(s: &str) -> Vec<u16> {

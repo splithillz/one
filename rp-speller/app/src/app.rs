@@ -3,7 +3,7 @@ use std::mem::size_of;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicU32, Ordering};
 
-use rp_speller_core::config::Config;
+use rp_speller_core::config::{Config, Spot, Style};
 use rp_speller_core::hotkey;
 use rp_speller_core::{Corrector, Edit, WordStore};
 use windows::core::{w, PCWSTR};
@@ -20,9 +20,10 @@ use windows::Win32::UI::WindowsAndMessaging::{
 };
 
 use crate::net::{take_done, Done, Worker, WM_SPELLER};
-use crate::overlay::{Overlay, GREEN, GREY, T_ENTER, T_FLUSH};
+use crate::overlay::{Overlay, T_ENTER, T_FLUSH};
+use crate::style::Status;
 use crate::tray::{Tray, WM_TRAY};
-use crate::win::{hinstance, hiword, loword, message_box, shell_open, wide};
+use crate::win::{hinstance, hiword, loword, message_box, shell_open};
 use crate::{clipboard, game, log, settings};
 
 const MAIN_CLASS: PCWSTR = w!("RPSpellerMain");
@@ -69,6 +70,7 @@ pub struct App {
     sending: bool,
     waiting_enter: bool,
     flush_armed: bool,
+    shutting_down: bool,
     clip_restore: Option<(String, Option<String>)>,
 }
 
@@ -106,6 +108,23 @@ impl App {
         self.apply_settings();
     }
 
+    pub fn remember_spot(&mut self, style: Style, spot: Option<Spot>) {
+        self.cfg.positions.set(style, spot);
+        self.save_config();
+    }
+
+    pub fn suspend_hotkey(&mut self) {
+        unsafe {
+            let _ = UnregisterHotKey(Some(self.main), HOTKEY_ID);
+        }
+    }
+
+    pub fn resume_hotkey(&mut self) {
+        if !self.shutting_down {
+            self.register_hotkey(false);
+        }
+    }
+
     pub fn apply_form(&mut self, cfg: Config) {
         self.cfg = cfg;
         self.save_config();
@@ -123,7 +142,8 @@ impl App {
         match self.game {
             Some(g) => {
                 self.chat_opened = game::open_chat(&self.cfg, g);
-                log::write(format!("hotkey: game found, chat opened: {}", self.chat_opened));
+                let style = format!("{:?}", self.cfg.style).to_lowercase();
+                log::write(format!("hotkey: game found, chat opened: {}, style {style}", self.chat_opened));
             }
             None => log::write("hotkey: game window not found"),
         }
@@ -131,7 +151,8 @@ impl App {
         self.sending = false;
         self.waiting_enter = false;
         self.flush_armed = false;
-        self.overlay.show_over(game::bounds(self.game));
+        let style = self.cfg.style;
+        self.overlay.show_over(game::bounds(self.game), style, self.cfg.positions.get(style));
     }
 
     pub fn on_typed(&mut self, c: char) {
@@ -152,9 +173,12 @@ impl App {
         let Some(last) = edits.last() else { return };
         self.overlay.apply_edits(&edits);
         let shown = edits.iter().find(|e| e.undoable).unwrap_or(last);
-        let tail = if shown.undoable { "   ·   Backspace — вернуть" } else { "" };
-        let arrow = self.overlay.arrow();
-        self.overlay.flash(&format!("{} {arrow} {}{tail}", shown.from, shown.text), GREEN);
+        let shift: isize = edits.iter().filter(|e| e.start < shown.start).map(|e| e.text_len() as isize - e.len as isize).sum();
+        let start = (shown.start as isize + shift).max(0) as usize;
+        self.overlay.flash(
+            Status::Fixed { from: shown.from.clone(), to: shown.text.clone(), undoable: shown.undoable },
+            Some((start, shown.text_len(), shown.text.clone())),
+        );
         let list: Vec<String> = edits.iter().map(|e| format!("{} → {}", e.from, e.text)).collect();
         log::write(format!("fixed: {}", list.join(", ")));
     }
@@ -166,7 +190,7 @@ impl App {
         let (text, caret) = self.overlay.text();
         let Some(undo) = self.corrector.backspace(&text, caret) else { return false };
         self.overlay.apply_edits(std::slice::from_ref(&undo));
-        self.overlay.flash(&format!("вернул «{}» — больше не трогаю это слово", undo.text), GREY);
+        self.overlay.flash(Status::Kept(undo.text.clone()), None);
         log::write(format!("kept: {}", undo.text));
         true
     }
@@ -228,7 +252,7 @@ impl App {
         self.sending = true;
         self.overlay.kill_timer(T_FLUSH);
         self.flush_armed = false;
-        self.overlay.set_status("проверяю…", GREY);
+        self.overlay.set_status(Status::Checking);
         let (text, _) = self.overlay.text();
         self.corrector.prepare_finish(&text);
         self.flush();
@@ -329,6 +353,7 @@ impl App {
     }
 
     fn shutdown(&mut self) {
+        self.shutting_down = true;
         self.restore_clipboard();
         self.save_store();
         unsafe {
@@ -343,12 +368,16 @@ impl App {
 fn open_settings() {
     if let Some((cfg, small, big)) = with_app(|a| (a.cfg.clone(), a.icon_small, a.icon_big)) {
         settings::open(&cfg, small, big);
+        if settings::hwnd().is_some() {
+            with_app(|a| a.suspend_hotkey());
+        }
     }
 }
 
 fn exit(main: HWND) {
-    with_app(|a| a.shutdown());
+    with_app(|a| a.shutting_down = true);
     settings::close();
+    with_app(|a| a.shutdown());
     unsafe {
         let _ = DestroyWindow(main);
     }
@@ -491,6 +520,9 @@ pub fn run() -> i32 {
                 Config::default()
             }
         };
+        if !crate::gfx::init(&crate::win::ui_face()) {
+            log::write("Direct2D is not available");
+        }
         let icon_small = load_icon(LIM_SMALL);
         let icon_big = load_icon(LIM_LARGE);
         let wc = WNDCLASSEXW {
@@ -536,6 +568,7 @@ pub fn run() -> i32 {
             sending: false,
             waiting_enter: false,
             flush_armed: false,
+            shutting_down: false,
             clip_restore: None,
         };
         APP.with(|c| *c.borrow_mut() = Some(app));
@@ -567,7 +600,6 @@ pub fn run() -> i32 {
             DispatchMessageW(&msg);
         }
         APP.with(|c| c.borrow_mut().take());
-        let _ = wide("");
         0
     }
 }

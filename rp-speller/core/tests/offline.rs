@@ -3,7 +3,7 @@ mod common;
 use std::fs;
 
 use common::{apply_all, backspace, chars, form_decode, type_str, Fake, TBox};
-use rp_speller_core::config::{Config, InputMode};
+use rp_speller_core::config::{Config, InputMode, Spot, Style};
 use rp_speller_core::hotkey::{self, Hotkey, MOD_ALT, MOD_CONTROL, MOD_SHIFT};
 use rp_speller_core::speller::{form_body, parse_response, Speller};
 use rp_speller_core::store::CAP;
@@ -294,6 +294,30 @@ fn config_defaults_partial_and_round_trip() {
     assert_eq!(Config::load(&path).unwrap(), c2);
     fs::write(&path, "{broken").unwrap();
     assert!(Config::load(&path).is_err());
+    fs::remove_dir_all(&dir).unwrap();
+}
+
+#[test]
+fn style_and_positions_round_trip() {
+    let dir = temp_dir("style");
+    let path = dir.join("config.json");
+    fs::create_dir_all(&dir).unwrap();
+    fs::write(&path, r#"{"Style":"chat","Positions":{"Chat":{"x":0.02,"y":0.2}}}"#).unwrap();
+    let c = Config::load(&path).unwrap();
+    assert_eq!(c.style, Style::Chat);
+    assert_eq!(c.positions.get(Style::Chat), Some(Spot { x: 0.02, y: 0.2 }));
+    assert_eq!(c.positions.get(Style::Glass), None);
+    fs::write(&path, r#"{"Style":"neon"}"#).unwrap();
+    assert_eq!(Config::load(&path).unwrap().style, Style::Glass);
+    let mut c2 = Config { style: Style::Capsule, ..Config::default() };
+    c2.positions.set(Style::Capsule, Some(Spot { x: 9.0, y: f32::NAN }));
+    assert_eq!(c2.positions.get(Style::Capsule), None);
+    c2.positions.set(Style::Capsule, Some(Spot { x: 9.0, y: 0.5 }));
+    assert_eq!(c2.positions.get(Style::Capsule), Some(Spot { x: 1.5, y: 0.5 }));
+    c2.save(&path).unwrap();
+    assert_eq!(Config::load(&path).unwrap(), c2);
+    assert!(fs::read_to_string(&path).unwrap().contains("\"Style\": \"capsule\""));
+    assert_eq!(Style::ALL.map(Style::index), [0, 1, 2]);
     fs::remove_dir_all(&dir).unwrap();
 }
 

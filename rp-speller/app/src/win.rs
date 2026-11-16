@@ -2,9 +2,9 @@ use std::ffi::c_void;
 use std::mem::size_of;
 
 use windows::core::{w, PCWSTR};
-use windows::Win32::Foundation::{COLORREF, HINSTANCE, HWND, LPARAM, RECT, SIZE, WPARAM};
+use windows::Win32::Foundation::{HINSTANCE, HWND, LPARAM, RECT, WPARAM};
 use windows::Win32::Graphics::Gdi::{
-    CreateFontIndirectW, GetDC, GetGlyphIndicesW, GGI_MARK_NONEXISTING_GLYPHS, GetMonitorInfoW, GetTextExtentPoint32W, GetTextMetricsW, MonitorFromPoint, MonitorFromRect, ReleaseDC,
+    CreateFontIndirectW, GetDC, GetMonitorInfoW, GetTextMetricsW, MonitorFromPoint, MonitorFromRect, ReleaseDC,
     SelectObject, CLEARTYPE_QUALITY, DEFAULT_CHARSET, HFONT, HGDIOBJ, MONITORINFO, MONITOR_DEFAULTTONEAREST, MONITOR_DEFAULTTOPRIMARY,
     TEXTMETRICW,
 };
@@ -25,10 +25,6 @@ pub fn wide(s: &str) -> Vec<u16> {
 
 pub fn hinstance() -> HINSTANCE {
     unsafe { GetModuleHandleW(None).map(|m| HINSTANCE(m.0)).unwrap_or_default() }
-}
-
-pub const fn rgb(r: u8, g: u8, b: u8) -> COLORREF {
-    COLORREF(r as u32 | (g as u32) << 8 | (b as u32) << 16)
 }
 
 pub fn scale(v: i32, dpi: u32) -> i32 {
@@ -146,11 +142,14 @@ fn system_message_font(dpi: u32) -> Option<LOGFONTW> {
     (ok && ncm.lfMessageFont.lfHeight != 0 && ncm.lfMessageFont.lfFaceName[0] != 0).then_some(ncm.lfMessageFont)
 }
 
-pub fn message_font(dpi: u32) -> HFONT {
-    match system_message_font(dpi) {
-        Some(lf) => unsafe { CreateFontIndirectW(&lf) },
-        None => create_font("Segoe UI", 9.0, dpi, 400),
-    }
+pub fn ui_face() -> String {
+    system_message_font(96)
+        .map(|lf| {
+            let n = lf.lfFaceName.iter().position(|&c| c == 0).unwrap_or(lf.lfFaceName.len());
+            String::from_utf16_lossy(&lf.lfFaceName[..n])
+        })
+        .filter(|f| !f.is_empty())
+        .unwrap_or_else(|| "Segoe UI".into())
 }
 
 pub fn ui_font(points: f32, dpi: u32, weight: i32) -> HFONT {
@@ -171,32 +170,6 @@ pub fn ui_font(points: f32, dpi: u32, weight: i32) -> HFONT {
 
 pub fn set_font(hwnd: HWND, font: HFONT) {
     send(hwnd, WM_SETFONT, font.0 as usize, 1);
-}
-
-pub fn text_size(hwnd: HWND, font: HFONT, s: &str) -> SIZE {
-    let units: Vec<u16> = s.encode_utf16().collect();
-    let mut size = SIZE::default();
-    unsafe {
-        let dc = GetDC(Some(hwnd));
-        let old = SelectObject(dc, HGDIOBJ(font.0));
-        let _ = GetTextExtentPoint32W(dc, &units, &mut size);
-        SelectObject(dc, old);
-        ReleaseDC(Some(hwnd), dc);
-    }
-    size
-}
-
-pub fn has_glyphs(hwnd: HWND, font: HFONT, s: &str) -> bool {
-    let units: Vec<u16> = s.encode_utf16().collect();
-    let mut idx = vec![0u16; units.len()];
-    unsafe {
-        let dc = GetDC(Some(hwnd));
-        let old = SelectObject(dc, HGDIOBJ(font.0));
-        let n = GetGlyphIndicesW(dc, PCWSTR(units.as_ptr()), units.len() as i32, idx.as_mut_ptr(), GGI_MARK_NONEXISTING_GLYPHS);
-        SelectObject(dc, old);
-        ReleaseDC(Some(hwnd), dc);
-        n as usize == units.len() && idx.iter().all(|&g| g != 0xFFFF)
-    }
 }
 
 pub fn line_height(hwnd: HWND, font: HFONT) -> i32 {

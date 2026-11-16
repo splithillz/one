@@ -17,7 +17,66 @@ pub enum InputMode {
     Paste,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum Style {
+    Chat,
+    Capsule,
+    #[default]
+    #[serde(other)]
+    Glass,
+}
+
+impl Style {
+    pub const ALL: [Style; 3] = [Style::Glass, Style::Chat, Style::Capsule];
+
+    pub fn title(self) -> &'static str {
+        match self {
+            Style::Glass => "Стекло",
+            Style::Chat => "Как чат игры",
+            Style::Capsule => "Капсула",
+        }
+    }
+
+    pub fn index(self) -> usize {
+        Style::ALL.iter().position(|s| *s == self).unwrap_or(0)
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+pub struct Spot {
+    pub x: f32,
+    pub y: f32,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "PascalCase", default)]
+pub struct Spots {
+    pub glass: Option<Spot>,
+    pub chat: Option<Spot>,
+    pub capsule: Option<Spot>,
+}
+
+impl Spots {
+    pub fn get(&self, style: Style) -> Option<Spot> {
+        match style {
+            Style::Glass => self.glass,
+            Style::Chat => self.chat,
+            Style::Capsule => self.capsule,
+        }
+    }
+
+    pub fn set(&mut self, style: Style, spot: Option<Spot>) {
+        let spot = spot.filter(|s| s.x.is_finite() && s.y.is_finite()).map(|s| Spot { x: s.x.clamp(-0.5, 1.5), y: s.y.clamp(-0.5, 1.5) });
+        match style {
+            Style::Glass => self.glass = spot,
+            Style::Chat => self.chat = spot,
+            Style::Capsule => self.capsule = spot,
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "PascalCase", default)]
 pub struct Config {
     pub hotkey: String,
@@ -29,6 +88,8 @@ pub struct Config {
     pub submit: bool,
     pub autocorrect: bool,
     pub words: Vec<String>,
+    pub style: Style,
+    pub positions: Spots,
 }
 
 impl Default for Config {
@@ -43,6 +104,8 @@ impl Default for Config {
             submit: true,
             autocorrect: true,
             words: ["лспд", "сасд", "вайнвуд", "палето"].map(String::from).to_vec(),
+            style: Style::Glass,
+            positions: Spots::default(),
         }
     }
 }
