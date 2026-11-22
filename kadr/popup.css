@@ -297,6 +297,8 @@ svg { display: block; }
 .touch .only-touch { display: flex; }
 
 /* ---------- шторка внутри kinoarc: сайт за ней и есть живое превью ---------- */
+/* прокрутка настроек не должна «проваливаться» в сайт под шторкой */
+[data-mode="sheet"], [data-mode="sheet"] body { overscroll-behavior: contain; }
 [data-mode="sheet"] body { width: auto; max-width: none; min-width: 0; background: rgb(var(--bg)); }
 [data-mode="sheet"] .top { padding-top: 4px; }
 [data-mode="sheet"] .hero, [data-mode="sheet"] #openSite { display: none; }

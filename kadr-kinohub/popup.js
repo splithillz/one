@@ -43,6 +43,38 @@
   function closeSheet() { try { parent.postMessage('kadr:close', '*'); } catch (e) {} }
   $('closeSheet').addEventListener('click', closeSheet);
   if (SHEET) document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeSheet(); });
+  // Шторку можно смахнуть вниз с любого места: когда настройки стоят в самом верху и палец идёт вниз, двигается
+  // сама шторка (её двигает страница сайта — content.js, сюда приходят только касания). Вбок и вверх — обычная прокрутка.
+  if (SHEET) (function () {
+    var st = null;
+    function say(m) { try { parent.postMessage(m, '*'); } catch (e) {} }
+    document.addEventListener('touchstart', function (e) {
+      st = null;
+      if (e.touches.length !== 1) return;
+      var t = e.touches[0], sc = document.scrollingElement;
+      // screenY, а не clientY: шторка едет вместе с пальцем, и координаты внутри неё почти не меняются
+      st = { x: t.screenX, y: t.screenY, at: e.timeStamp, top: !sc || sc.scrollTop <= 0, on: false, dy: 0 };
+    }, { passive: true });
+    document.addEventListener('touchmove', function (e) {
+      if (!st || !st.top) return;
+      var t = e.touches[0], dy = t.screenY - st.y, dx = t.screenX - st.x;
+      if (!st.on) {
+        if (dy < -8 || (Math.abs(dx) > 8 && Math.abs(dx) > Math.abs(dy))) { st = null; return; }
+        if (dy < 10) return;
+        st.on = true;
+      }
+      if (e.cancelable) e.preventDefault();
+      st.dy = Math.max(0, dy);
+      say({ kadr: 'drag', dy: st.dy });
+    }, { passive: false });
+    function end(e) {
+      var s0 = st;
+      st = null;
+      if (s0 && s0.on) say({ kadr: 'drop', dy: s0.dy, v: s0.dy / Math.max(1, e.timeStamp - s0.at) });
+    }
+    document.addEventListener('touchend', end);
+    document.addEventListener('touchcancel', end);
+  })();
 
   /* ---------- темы ---------- */
   var cur = { theme: K.OFF, seed: null };

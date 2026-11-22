@@ -1,0 +1,19 @@
+		{% if (!blank_page): %}
+		</div>
+		<footer>
+			<div class="kadr-foot">
+				<span class="kadr-powered">
+					<a href="https://github.com/openwrt/luci" target="_blank" rel="noreferrer">{{ version.luciname }} ({{ version.luciversion }})</a>
+					<span class="kadr-dot">·</span>
+					<a href="{{ entityencode(version.disturl ?? '#', true) }}" target="_blank" rel="noreferrer">{{ version.distname }} {{ version.distversion }} ({{ version.distrevision }})</a>
+					{% if (lua_active): %}
+					<span class="kadr-dot">·</span> {{ _('Lua compatibility mode active') }}
+					{% endif %}
+				</span>
+				<ul class="breadcrumb pull-right" id="modemenu" style="display:none"></ul>
+			</div>
+		</footer>
+		<script>L.require('menu-kadr')</script>
+		{% endif %}
+	</body>
+</html>

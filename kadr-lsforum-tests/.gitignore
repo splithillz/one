@@ -1,0 +1,4 @@
+out/
+auth/
+*cred*.json
+node_modules/

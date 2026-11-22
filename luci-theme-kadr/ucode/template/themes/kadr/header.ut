@@ -1,0 +1,91 @@
+{#
+ Kadr theme for LuCI, based on luci-theme-bootstrap.
+ Copyright 2008 Steven Barth <steven@midlink.org>
+ Copyright 2012 David Menting <david@nut-bolt.nl>
+ Copyright 2008-2022 Jo-Philipp Wich <jo@mein.io>
+ Licensed to the public under the Apache License 2.0.
+-#}
+
+{%
+	import { getuid, getspnam } from 'luci.core';
+
+	const boardinfo = ubus.call('system', 'board');
+	const hostname = striptags(boardinfo?.hostname ?? '?');
+	const pagetitle = node?.title ? striptags(_(node.title)) : '';
+
+	http.prepare_content('text/html; charset=UTF-8');
+-%}
+
+<!DOCTYPE html>
+<html lang="{{ dispatcher.lang }}" data-darkmode="true" class="kadr">
+	<head>
+		<meta charset="utf-8">
+		<title>{{ pagetitle ? `${pagetitle} · ${hostname}` : hostname }}</title>
+		<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+		<meta name="theme-color" content="#0b0c0d">
+		<meta name="color-scheme" content="dark">
+		<meta name="darkreader-lock">
+		<link rel="preload" href="{{ media }}/fonts/onest-cyrillic.woff2" as="font" type="font/woff2" crossorigin>
+		<link rel="preload" href="{{ media }}/fonts/onest-latin.woff2" as="font" type="font/woff2" crossorigin>
+		<link rel="stylesheet" href="{{ media }}/base.css">
+		<link rel="stylesheet" media="only screen and (max-device-width: 854px)" href="{{ media }}/mobile.css">
+		<link rel="stylesheet" href="{{ media }}/kadr.css">
+		<script src="{{ media }}/kadr-theme.js"></script>
+		<link rel="icon" href="{{ media }}/logo_48.png" sizes="48x48">
+		<link rel="icon" href="{{ media }}/logo.svg" sizes="any">
+		{% if (node?.css): %}
+		<link rel="stylesheet" href="{{ resource }}/{{ node.css }}">
+		{% endif %}
+		{% if (css): %}
+		<style title="text/css">{{ css }}</style>
+		{% endif %}
+		<script src="{{ dispatcher.build_url('admin/translations', dispatcher.lang) }}"></script>
+		<script src="{{ resource }}/cbi.js"></script>
+	</head>
+
+	<body class="lang_{{ dispatcher.lang }} {{ entityencode(striptags(node?.title ?? ''), true) }}" data-page="{{ entityencode(join('-', ctx.request_path), true) }}">
+		{% if (!blank_page): %}
+		<header>
+			<div class="kadr-bar">
+				<a class="brand" href="/" title="{{ hostname }}">
+					<span class="kadr-host">{{ hostname }}</span>
+				</a>
+				<ul class="nav" id="topmenu" style="display:none"></ul>
+				<div id="indicators" class="pull-right"></div>
+				<button class="kadr-ibtn kadr-palette-btn" type="button" title="{{ _('Design') }}" aria-label="{{ _('Design') }}" aria-haspopup="dialog">
+					<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18c1.1 0 1.8-.9 1.8-1.9 0-.5-.2-.9-.5-1.3-.3-.4-.5-.8-.5-1.3 0-1 .8-1.8 1.8-1.8H17a4 4 0 0 0 4-4c0-4.3-4-7.7-9-7.7Z"/><circle cx="7.5" cy="11.5" r="1.2"/><circle cx="10.5" cy="7.5" r="1.2"/><circle cx="15.5" cy="8.5" r="1.2"/></svg>
+				</button>
+				<button class="kadr-ibtn kadr-burger" type="button" title="{{ _('Menu') }}" aria-label="{{ _('Menu') }}" aria-expanded="false" aria-controls="topmenu"><span></span></button>
+			</div>
+		</header>
+
+		<div id="maincontent" class="container">
+			{% if (getuid() == 0 && getspnam('root')?.pwdp === ''): %}
+				<div class="alert-message warning">
+					<h4>{{ _('No password set!') }}</h4>
+					<p>{{ _('There is no password set on this router. Please configure a root password to protect the web interface.') }}</p>
+					{% if (dispatcher.lookup("admin/system/admin")): %}
+					  <div class="right"><a class="btn" href="{{ dispatcher.build_url("admin/system/admin") }}">{{ _('Go to password configuration...') }}</a></div>
+					{% endif %}
+				</div>
+			{% endif %}
+
+			{% if (boardinfo?.rootfs_type == "initramfs"): %}
+				<div class="alert-message warning">
+					<h4>{{ _('System running in recovery (initramfs) mode.') }}</h4>
+					<p>{{ _('No changes to settings will be stored and are lost after rebooting. This mode should only be used to install a firmware upgrade') }}</p>
+					{% if (dispatcher.lookup("admin/system/flash")): %}
+					  <div class="right"><a class="btn" href="{{ dispatcher.build_url("admin/system/flash") }}">{{ _('Go to firmware upgrade...') }}</a></div>
+					{% endif %}
+				</div>
+			{% endif %}
+
+			<noscript>
+				<div class="alert-message warning">
+					<h4>{{ _('JavaScript required!') }}</h4>
+					<p>{{ _('You must enable JavaScript in your browser or LuCI will not work properly.') }}</p>
+				</div>
+			</noscript>
+
+			<div id="tabmenu" style="display:none"></div>
+		{% endif %}

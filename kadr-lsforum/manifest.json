@@ -1,0 +1,79 @@
+{
+  "manifest_version": 3,
+  "name": "Kadr — LS Project Forum Themes",
+  "short_name": "Kadr LS",
+  "version": "1.4.1",
+  "description": "Themes and a full redesign for forum.ls-project.com — on desktop and on the phone.",
+  "icons": {
+    "16": "icons/16.png",
+    "32": "icons/32.png",
+    "48": "icons/48.png",
+    "128": "icons/128.png"
+  },
+  "permissions": [
+    "storage"
+  ],
+  "host_permissions": [
+    "*://forum.ls-project.com/*"
+  ],
+  "background": {
+    "service_worker": "bg.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "*://forum.ls-project.com/*"
+      ],
+      "exclude_matches": [
+        "*://forum.ls-project.com/admin/*"
+      ],
+      "js": [
+        "themes.js",
+        "fonts.js",
+        "content.js"
+      ],
+      "css": [
+        "skin.css"
+      ],
+      "run_at": "document_start"
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Kadr — LS Project Forum Themes",
+    "default_icon": {
+      "16": "icons/16.png",
+      "32": "icons/32.png"
+    }
+  },
+  "options_ui": {
+    "page": "popup.html",
+    "open_in_tab": true
+  },
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "popup.html",
+        "iconsets/solar.css",
+        "iconsets/remix.css"
+      ],
+      "matches": [
+        "*://forum.ls-project.com/*"
+      ]
+    }
+  ],
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "kadr-themes@lsforum",
+      "strict_min_version": "140.0",
+      "data_collection_permissions": {
+        "required": [
+          "none"
+        ]
+      }
+    },
+    "gecko_android": {
+      "strict_min_version": "142.0"
+    }
+  }
+}

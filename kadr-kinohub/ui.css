@@ -32,6 +32,10 @@ kadr-lists, kadr-toast, .kadr-tm, .kadr-tm-pill, .kadr-cast {
 :is(kadr-lists, kadr-toast, .kadr-tm, .kadr-cast) :focus-visible { outline: 2px solid rgb(var(--kd-acc)); outline-offset: 2px; }
 :where(kadr-lists, kadr-toast, .kadr-tm, .kadr-tm-pill, .kadr-cast) .k-ic { display: block; flex: none; width: 20px; height: 20px; }
 
+/* Пока открыта шторка или панель расширения (атрибут ставит kit.js, только на телефоне), сайт под ней
+   от свайпов не ездит. Место, до которого он прокручен, при этом не меняется. */
+html[data-kadr-lock] { overflow: hidden !important; overscroll-behavior: none !important; }
+
 /* ===================== шапка сайта ===================== */
 /* С кнопками расширения в шапке на узком телефоне восемь пунктов: в родном оформлении сайта они перестают
    помещаться в ряд. Чуть сужаем поля пунктов — только там и только когда кнопка «Списки» есть. */
@@ -229,6 +233,11 @@ html .player_theater .kadr-tm { display: none; }
 .kadr-tm.fold .tm-chev { transform: rotate(-90deg); }
 .kadr-tm .tm-mode { flex: none; display: flex; align-items: center; gap: 7px; height: 32px; margin-right: 6px; padding: 0 12px; border-radius: 99px; font-size: 13px; font-weight: 650; color: rgb(var(--kd-tx2)); background: rgb(255 255 255 / .06); }
 .tm-mode i { width: 7px; height: 7px; border-radius: 50%; background: rgb(var(--kd-mut)); }
+/* серия, которая сейчас играет в плеере */
+.tm-ep { flex: none; display: inline-flex; align-items: center; height: 32px; padding: 0 11px; border-radius: 99px; font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; color: rgb(var(--kd-acc-hi)); background: rgb(var(--kd-acc) / .14); }
+.tm-fold { overflow: hidden; }
+.tm-fold b { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tm-none { margin: 6px 4px 4px; padding: 11px 12px; border-radius: 13px; background: rgb(255 255 255 / .04); color: rgb(var(--kd-tx2)); font-size: 14.5px; }
 .tm-mode.auto { color: rgb(var(--kd-good)); background: rgb(var(--kd-good) / .12); }
 .tm-mode.auto i { background: currentColor; box-shadow: 0 0 0 3px rgb(var(--kd-good) / .2); }
 
@@ -286,6 +295,14 @@ html .player_theater .kadr-tm { display: none; }
   animation: kadr-rise .3s var(--kd-out) both;
 }
 .kadr-tm-pill[hidden] { display: none; }
+/* то же предупреждение, когда плеер развёрнут на весь экран: всплывающий слой браузера поверх плеера (см. timings.js) */
+.kadr-tm-pill.kadr-tm-fs {
+  position: fixed; inset: auto; top: max(16px, env(safe-area-inset-top)); left: max(16px, env(safe-area-inset-left));
+  max-width: calc(100vw - 32px); margin: 0; border: 0; overflow: hidden; z-index: 2147483647;
+  padding: 11px 18px 11px 13px; font-size: 17px; gap: 9px;
+}
+.kadr-tm-pill.kadr-tm-fs .k-ic { width: 22px; height: 22px; }
+.kadr-tm-pill.kadr-tm-fs:not(:popover-open) { display: none !important; }
 .kadr-tm-pill b { flex: none; font-weight: 800; font-variant-numeric: tabular-nums; }
 .kadr-tm-pill span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #fff; opacity: .88; }
 .kadr-tm-pill[data-st="now"] { background: rgb(26 6 6 / .92); color: rgb(var(--kd-hot)); box-shadow: inset 0 0 0 1.5px rgb(var(--kd-hot) / .8), 0 10px 26px rgb(0 0 0 / .5); }

@@ -207,7 +207,7 @@
     ':host{all:initial}' +
     '.wrap{position:fixed;inset:0;display:flex;align-items:flex-end;justify-content:center;' +
       'font:16px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-tap-highlight-color:transparent}' +
-    '.scrim{position:absolute;inset:0;background:rgb(0 0 0/.42);opacity:0;transition:opacity .3s ease}' +
+    '.scrim{position:absolute;inset:0;background:rgb(0 0 0/.42);opacity:0;transition:opacity .3s ease;touch-action:none}' +
     '.panel{position:relative;display:flex;flex-direction:column;width:100%;max-width:560px;height:76vh;height:min(76dvh,700px);' +
       'background:rgb(var(--kn-bg,11 12 13));border-radius:26px 26px 0 0;overflow:hidden;' +
       'box-shadow:0 -18px 48px rgb(0 0 0/.5),inset 0 1px 0 rgb(255 255 255/.07);' +
@@ -220,6 +220,19 @@
     '@media (min-width:600px){.panel{border-radius:26px;margin-bottom:16px}}' +
     '@media (prefers-reduced-motion:reduce){.scrim,.panel{transition:none}}';
 
+  // Пока шторка открыта, страница под ней не должна ездить от свайпов. Запоминаем, что у <html> было в style,
+  // и возвращаем как было; место, до которого страница прокручена, при этом не меняется.
+  var lockWas = null;
+  function lockPage(on) {
+    var st = document.documentElement.style;
+    if (on && !lockWas) {
+      lockWas = [st.getPropertyValue('overflow'), st.getPropertyPriority('overflow')];
+      st.setProperty('overflow', 'hidden', 'important');
+    } else if (!on && lockWas) {
+      if (lockWas[0]) st.setProperty('overflow', lockWas[0], lockWas[1]); else st.removeProperty('overflow');
+      lockWas = null;
+    }
+  }
   function openSheet(from) {
     if (sheet) return;
     var url;
@@ -243,6 +256,7 @@
     root.append(css, wrap);
     host.style.cssText = 'position:fixed;inset:0;z-index:2147483600';
     document.documentElement.appendChild(host);
+    lockPage(true);
     sheet = { host: host, wrap: wrap, panel: panel, frame: frame, from: from };
     void panel.offsetHeight; // зафиксировать стартовую позицию, чтобы анимация сработала
     wrap.classList.add('open');
@@ -277,14 +291,24 @@
     e.stopPropagation(); // иначе сайт заодно закроет своё меню
     closeSheet();
   }
+  // Сообщения от шторки (она в iframe, касания внутри неё сюда не доходят): закрыть; тянут вниз; отпустили.
   function onSheetMsg(e) {
     if (!sheet || e.source !== sheet.frame.contentWindow) return;
-    if (e.data === 'kadr:close') closeSheet();
+    var d = e.data, p = sheet.panel;
+    if (d === 'kadr:close') closeSheet();
+    else if (d && d.kadr === 'drag' && d.dy >= 0) {
+      p.style.transition = 'none';
+      p.style.transform = 'translateY(' + Math.min(2000, +d.dy || 0) + 'px)';
+    } else if (d && d.kadr === 'drop') {
+      p.style.transition = '';
+      if (d.dy > 110 || (d.dy > 24 && d.v > 0.55)) closeSheet(); else p.style.transform = '';
+    }
   }
   function closeSheet() {
     if (!sheet) return;
     var s = sheet;
     sheet = null;
+    lockPage(false);
     window.removeEventListener('keydown', onSheetKey, true);
     window.removeEventListener('message', onSheetMsg);
     s.panel.style.transform = '';

@@ -1,0 +1,13 @@
+[package]
+name = "rp-speller-core"
+description = "Typo fixing logic of RP Speller, independent of Windows"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+
+[dev-dependencies]
+ureq = { version = "3.5.2", default-features = false, features = ["rustls", "platform-verifier"] }
