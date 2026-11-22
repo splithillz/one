@@ -2,9 +2,9 @@
 
 <img src="docs/cover.png" alt="Проекты репозитория one" width="100%">
 
-**Темы «Кадр» для kinoarc, kinohub и форума LS Project, тема для роутера на OpenWrt и исправление опечаток для RP-чата.**
+**Темы «Кадр» для kinoarc, kinohub и форума LS Project и тема для роутера на OpenWrt.**
 
-[Скачать](#скачать) · [Расширения](#расширения-для-браузера) · [Роутер](#роутер-openwrt) · [RP-чат](#rp-чат-gta-v--fivem) · [Структура](#структура)
+[Скачать](#скачать) · [Расширения](#расширения-для-браузера) · [Роутер](#роутер-openwrt) · [Структура](#структура) · [two →](https://github.com/splithillz/two)
 
 </div>
 
@@ -18,10 +18,8 @@
 | **[Кадр для kinohub](extensions/kadr-kinohub/)**<br>Расширение: темы, новый дизайн, закладки и тайминги для on.kinohub.vip | **[⬇ Скачать](https://github.com/splithillz/one/raw/main/releases/kadr-themes-kinohub-v1.3.1.zip)**<br><sub>zip · 1.3.1 · 153 КБ</sub> |
 | **[Kadr для форума LS Project](extensions/kadr-lsforum/)**<br>Расширение: новый облик forum.ls-project.com, темы, Monet, стили | **[⬇ Скачать](https://github.com/splithillz/one/raw/main/releases/kadr-themes-lsforum-v1.4.1.zip)**<br><sub>zip · 1.4.1 · 209 КБ</sub> |
 | **[Кадр для LuCI](openwrt/luci-theme-kadr/)**<br>Тема для роутера на OpenWrt и для podkop | **[⬇ apk](https://github.com/splithillz/one/raw/main/releases/luci-theme-kadr-1.2.0-r1.apk)** <sub>для 25.12</sub><br>**[⬇ ipk](https://github.com/splithillz/one/raw/main/releases/luci-theme-kadr_1.2.0-r1_all.ipk)** <sub>для 24.10</sub> |
-| **[RP Speller](rp-chat/rp-speller/)**<br>Программа для Windows: исправляет опечатки в чате GTA V / FiveM | **[⬇ Скачать](https://github.com/splithillz/one/raw/main/releases/RPSpeller-0.3.0.zip)**<br><sub>zip · 0.3.0 · 911 КБ</sub> |
-| **[LS Autocorrect](rp-chat/ls-autocorrect/)**<br>Скрипт для чата сервера: исправляет опечатки, пока игрок печатает | **[⬇ Скачать](https://github.com/splithillz/one/raw/main/rp-chat/ls-autocorrect/ls-autocorrect.js)**<br><sub>ls-autocorrect.js</sub> |
 
-Все файлы сразу — в папке [`releases`](releases/).
+Все файлы сразу — в папке [`releases`](releases/). Исправление опечаток для RP-чата — RP Speller и LS Autocorrect — переехало в репозиторий [**two**](https://github.com/splithillz/two).
 
 ## Расширения для браузера
 
@@ -108,39 +106,13 @@ apk add --allow-untrusted /tmp/luci-theme-kadr-1.2.0-r1.apk
 [![Скачать ipk для OpenWrt 24.10](https://img.shields.io/badge/%D1%81%D0%BA%D0%B0%D1%87%D0%B0%D1%82%D1%8C-ipk%20%D0%B4%D0%BB%D1%8F%20OpenWrt%2024.10-0f7a52?style=for-the-badge&labelColor=1b1f23)](https://github.com/splithillz/one/raw/main/releases/luci-theme-kadr_1.2.0-r1_all.ipk)
 [![Описание и установка](https://img.shields.io/badge/%D0%BE%D0%BF%D0%B8%D1%81%D0%B0%D0%BD%D0%B8%D0%B5%20%D0%B8%20%D1%83%D1%81%D1%82%D0%B0%D0%BD%D0%BE%D0%B2%D0%BA%D0%B0-%E2%86%92-30363d?style=for-the-badge&labelColor=1b1f23)](openwrt/luci-theme-kadr/)
 
-## RP-чат (GTA V / FiveM)
+## Ещё: two
 
-### RP Speller
+RP Speller и LS Autocorrect — исправление опечаток для чата GTA V / FiveM — живут в отдельном репозитории.
 
-| Три вида окна ввода | Настройки |
-|---|---|
-| <img src="docs/rp-speller-styles.png" alt="Три вида окна ввода RP Speller" width="100%"> | <img src="docs/rp-speller-settings.png" alt="Настройки RP Speller" width="100%"> |
+<a href="https://github.com/splithillz/two"><img src="https://github.com/splithillz/two/raw/main/docs/cover.png" alt="Репозиторий two: RP Speller и LS Autocorrect" width="100%"></a>
 
-Программа для Windows, которая исправляет опечатки в том, что ты пишешь в игровой чат. Игру и сервер не трогает: работает как переводчик RP Chat Overlay — своё окно поверх игры и нажатия клавиш.
-
-- **F7** в игре открывает окно ввода. Ошибки исправляются после пробела, **Enter** вставляет текст в игровой чат и отправляет.
-- **Backspace** сразу после исправления возвращает слово, и это слово больше не исправляется. Свои слова — ники, сленг, названия — задаются в настройках.
-- Три вида окна ввода: «Стекло», «Как чат игры» и «Капсула».
-- Исправления от Яндекс.Спеллера, в сеть уходят отдельные слова, а не сообщения.
-- Один `RPSpeller.exe` на 0,7 МБ, написан на Rust. В архиве есть самопроверка для своего компьютера.
-
-[![Скачать zip 0.3.0 · 911 КБ](https://img.shields.io/badge/%D1%81%D0%BA%D0%B0%D1%87%D0%B0%D1%82%D1%8C-zip%200.3.0%20%C2%B7%20911%20%D0%9A%D0%91-0f7a52?style=for-the-badge&labelColor=1b1f23)](https://github.com/splithillz/one/raw/main/releases/RPSpeller-0.3.0.zip)
-[![Описание и установка](https://img.shields.io/badge/%D0%BE%D0%BF%D0%B8%D1%81%D0%B0%D0%BD%D0%B8%D0%B5%20%D0%B8%20%D1%83%D1%81%D1%82%D0%B0%D0%BD%D0%BE%D0%B2%D0%BA%D0%B0-%E2%86%92-30363d?style=for-the-badge&labelColor=1b1f23)](rp-chat/rp-speller/)
-
-### LS Autocorrect
-
-<img src="docs/ls-autocorrect.png" alt="Демо LS Autocorrect: опечатки исправляются прямо в чате" width="100%">
-
-Один файл `ls-autocorrect.js` без зависимостей для интерфейса чата на сервере. Исправляет опечатки у игрока, пока он печатает, как клавиатура в телефоне: «здраствуйте» → «здравствуйте».
-
-- Не трогает команды (`/me`, `/do` и любые другие), ID, цифры, латиницу, ссылки, имена с большой буквы и чатовый сленг.
-- Backspace сразу после исправления возвращает слово и запоминает его.
-- Свои слова сервера добавляются одной строкой.
-
-[![Скачать ls-autocorrect.js](https://img.shields.io/badge/%D1%81%D0%BA%D0%B0%D1%87%D0%B0%D1%82%D1%8C-ls--autocorrect.js-0f7a52?style=for-the-badge&labelColor=1b1f23)](https://github.com/splithillz/one/raw/main/rp-chat/ls-autocorrect/ls-autocorrect.js)
-[![Описание и установка](https://img.shields.io/badge/%D0%BE%D0%BF%D0%B8%D1%81%D0%B0%D0%BD%D0%B8%D0%B5%20%D0%B8%20%D1%83%D1%81%D1%82%D0%B0%D0%BD%D0%BE%D0%B2%D0%BA%D0%B0-%E2%86%92-30363d?style=for-the-badge&labelColor=1b1f23)](rp-chat/ls-autocorrect/)
-
-Демо: [`demo.html`](rp-chat/ls-autocorrect/demo.html) — скачай папку и открой файл в браузере.
+[![Открыть two](https://img.shields.io/badge/%D0%BE%D1%82%D0%BA%D1%80%D1%8B%D1%82%D1%8C-two%20%E2%86%92-9a6a00?style=for-the-badge&labelColor=1b1f23)](https://github.com/splithillz/two)
 
 ## Структура
 
@@ -153,9 +125,6 @@ one/
 │   └── kadr-lsforum-tests/  прогон Kadr по живому форуму перед выпуском
 ├── openwrt/
 │   └── luci-theme-kadr/     Кадр для LuCI
-├── rp-chat/
-│   ├── rp-speller/          RP Speller, программа для Windows на Rust
-│   └── ls-autocorrect/      LS Autocorrect, автоисправление для чата сервера
 ├── releases/                готовые архивы и пакеты
 └── docs/                    картинки для этого README и промо форума
 ```

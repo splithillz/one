@@ -1,0 +1,10 @@
+/home/user/one/rp-speller/target/x86_64-pc-windows-gnu/debug/build/windows-collections/bc3330e76f17c76f/out/windows_collections-bc3330e76f17c76f.d: /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/windows-collections-0.3.2/src/lib.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/windows-collections-0.3.2/src/bindings.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/windows-collections-0.3.2/src/iterable.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/windows-collections-0.3.2/src/map_view.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/windows-collections-0.3.2/src/vector_view.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/windows-collections-0.3.2/src/../readme.md
+
+/home/user/one/rp-speller/target/x86_64-pc-windows-gnu/debug/build/windows-collections/bc3330e76f17c76f/out/libwindows_collections-bc3330e76f17c76f.rmeta: /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/windows-collections-0.3.2/src/lib.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/windows-collections-0.3.2/src/bindings.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/windows-collections-0.3.2/src/iterable.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/windows-collections-0.3.2/src/map_view.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/windows-collections-0.3.2/src/vector_view.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/windows-collections-0.3.2/src/../readme.md
+
+/root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/windows-collections-0.3.2/src/lib.rs:
+/root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/windows-collections-0.3.2/src/bindings.rs:
+/root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/windows-collections-0.3.2/src/iterable.rs:
+/root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/windows-collections-0.3.2/src/map_view.rs:
+/root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/windows-collections-0.3.2/src/vector_view.rs:
+/root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/windows-collections-0.3.2/src/../readme.md:

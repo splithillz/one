@@ -1,0 +1,10 @@
+/home/user/one/rp-speller/target/x86_64-pc-windows-gnu/debug/build/windows-threading/08b1ed1702507ffd/out/windows_threading-08b1ed1702507ffd.d: /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/windows-threading-0.2.1/src/lib.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/windows-threading-0.2.1/src/bindings.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/windows-threading-0.2.1/src/pool.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/windows-threading-0.2.1/src/../readme.md
+
+/home/user/one/rp-speller/target/x86_64-pc-windows-gnu/debug/build/windows-threading/08b1ed1702507ffd/out/libwindows_threading-08b1ed1702507ffd.rlib: /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/windows-threading-0.2.1/src/lib.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/windows-threading-0.2.1/src/bindings.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/windows-threading-0.2.1/src/pool.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/windows-threading-0.2.1/src/../readme.md
+
+/home/user/one/rp-speller/target/x86_64-pc-windows-gnu/debug/build/windows-threading/08b1ed1702507ffd/out/libwindows_threading-08b1ed1702507ffd.rmeta: /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/windows-threading-0.2.1/src/lib.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/windows-threading-0.2.1/src/bindings.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/windows-threading-0.2.1/src/pool.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/windows-threading-0.2.1/src/../readme.md
+
+/root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/windows-threading-0.2.1/src/lib.rs:
+/root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/windows-threading-0.2.1/src/bindings.rs:
+/root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/windows-threading-0.2.1/src/pool.rs:
+/root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/windows-threading-0.2.1/src/../readme.md:

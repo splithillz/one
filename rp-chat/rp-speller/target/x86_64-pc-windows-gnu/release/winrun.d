@@ -1,0 +1,1 @@
+/home/user/one/rp-speller/target/x86_64-pc-windows-gnu/release/winrun.exe: /home/user/one/rp-speller/testkit/winrun/src/main.rs /home/user/one/rp-speller/testkit/winrun/src/relay.rs /home/user/one/rp-speller/testkit/winrun/src/run.rs /home/user/one/rp-speller/testkit/winrun/src/ui.rs

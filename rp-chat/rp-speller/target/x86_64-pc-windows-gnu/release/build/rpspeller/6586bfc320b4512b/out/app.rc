@@ -1,0 +1,30 @@
+#pragma code_page(65001)
+#include <winver.h>
+1 ICON "/home/user/one/rp-speller/app/res/app.ico"
+1 24 "/home/user/one/rp-speller/target/x86_64-pc-windows-gnu/release/build/rpspeller/6586bfc320b4512b/out/app.manifest"
+1 VERSIONINFO
+FILEVERSION 0,2,0,0
+PRODUCTVERSION 0,2,0,0
+FILEFLAGSMASK 0x3f
+FILEFLAGS 0x0
+FILEOS VOS_NT_WINDOWS32
+FILETYPE VFT_APP
+FILESUBTYPE VFT2_UNKNOWN
+BEGIN
+  BLOCK "StringFileInfo"
+  BEGIN
+    BLOCK "041904B0"
+    BEGIN
+      VALUE "FileDescription", "RP Speller — исправление опечаток в чате GTA V / FiveM"
+      VALUE "FileVersion", "0.2.0"
+      VALUE "InternalName", "RPSpeller"
+      VALUE "OriginalFilename", "RPSpeller.exe"
+      VALUE "ProductName", "RP Speller"
+      VALUE "ProductVersion", "0.2.0"
+    END
+  END
+  BLOCK "VarFileInfo"
+  BEGIN
+    VALUE "Translation", 0x419, 1200
+  END
+END

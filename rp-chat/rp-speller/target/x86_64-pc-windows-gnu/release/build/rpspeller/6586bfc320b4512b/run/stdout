@@ -1,0 +1,2 @@
+cargo:rerun-if-changed=res
+cargo:rustc-link-arg-bins=/home/user/one/rp-speller/target/x86_64-pc-windows-gnu/release/build/rpspeller/6586bfc320b4512b/out/app.lib
