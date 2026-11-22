@@ -123,37 +123,39 @@ return baseclass.extend({
 			groups[name].forEach((t) => tiles.push(tile(t)));
 		});
 
-		this.fxSeg = E('div', { 'class': 'kadr-seg', 'role': 'radiogroup', 'aria-labelledby': 'kadr-fx-label' },
-			[ [ 'plain', 'Обычный' ], [ 'glass', 'Стекло' ], [ 'material', 'Material' ] ].map(([ id, label ]) =>
-				E('button', { 'type': 'button', 'role': 'radio', 'data-fx': id, 'click': () => this.setOption({ fx: id }) }, [ label ])));
+		this.segs = {
+			fx: this.segment('kadr-fx-label', 'fx', [ [ 'plain', 'Обычный' ], [ 'glass', 'Стекло' ], [ 'material', 'Material' ] ]),
+			dividers: this.segment('kadr-div-label', 'dividers', [ [ 'none', 'Скрыть' ], [ 'line', 'Линия' ], [ 'segments', 'Сегменты' ] ]),
+			bugLook: this.segment('kadr-look-label', 'bugLook', [ [ 'color', 'Цветные' ], [ 'pixel', 'Пиксели' ], [ 'mono', 'Силуэты' ] ])
+		};
 
-		this.fxSeg.addEventListener('keydown', (ev) => {
-			const step = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[ev.key];
-			if (!step)
-				return;
-			const buttons = Array.from(this.fxSeg.querySelectorAll('button'));
-			const next = buttons[(buttons.findIndex((b) => b.getAttribute('aria-checked') === 'true') + step + buttons.length) % buttons.length];
-			ev.preventDefault();
-			this.setOption({ fx: next.getAttribute('data-fx') });
-			next.focus();
-		});
+		this.switches = {
+			shadows: this.switcher('kadr-shadow-label', 'shadows'),
+			bugs: this.switcher('kadr-bugs-label', 'bugs'),
+			bugWalk: this.switcher('kadr-walk-label', 'bugWalk')
+		};
 
-		this.shadowSwitch = E('button', { 'class': 'kadr-switch', 'type': 'button', 'role': 'switch', 'aria-labelledby': 'kadr-shadow-label',
-			'click': () => this.setOption({ shadows: !window.KadrTheme.get().shadows }) });
+		this.lookRow = E('div', { 'class': 'kadr-opt wide' }, [ E('span', { 'id': 'kadr-look-label' }, [ 'Вид жуков' ]), this.segs.bugLook ]);
 
 		this.palette = E('div', { 'class': 'kadr-sheet kadr-palette', 'role': 'dialog', 'aria-label': _('Design') }, [
 			E('div', { 'class': 'kadr-grip' }),
 			E('div', { 'class': 'kadr-sheet-head' }, [
 				E('strong', {}, [ _('Design') ]),
-				E('span', { 'class': 'kadr-chip' }, [ 'Кадр' ]),
 				E('button', { 'class': 'kadr-ibtn kadr-close', 'type': 'button', 'aria-label': _('Close'), 'click': () => this.setPalette(false) })
 			]),
 			E('div', { 'class': 'kadr-tiles', 'role': 'radiogroup' }, tiles),
 			E('div', { 'class': 'kadr-opts' }, [
-				E('div', { 'class': 'kadr-opt' }, [ E('span', { 'id': 'kadr-fx-label' }, [ 'Стиль' ]), this.fxSeg ]),
-				E('div', { 'class': 'kadr-opt' }, [ E('span', { 'id': 'kadr-shadow-label' }, [ 'Тени' ]), this.shadowSwitch ])
+				E('div', { 'class': 'kadr-opt wide' }, [ E('span', { 'id': 'kadr-fx-label' }, [ 'Стиль' ]), this.segs.fx ]),
+				E('div', { 'class': 'kadr-opt wide' }, [ E('span', { 'id': 'kadr-div-label' }, [ 'Разделители' ]), this.segs.dividers ]),
+				E('div', { 'class': 'kadr-opt' }, [ E('span', { 'id': 'kadr-shadow-label' }, [ 'Тени' ]), this.switches.shadows ])
 			]),
-			E('p', { 'class': 'kadr-sheet-note' }, [ 'Тема и стиль запоминаются в этом браузере.' ])
+			E('span', { 'class': 'kadr-tiles-group kadr-opts-title' }, [ 'Жуки' ]),
+			E('div', { 'class': 'kadr-opts' }, [
+				E('div', { 'class': 'kadr-opt' }, [ E('span', { 'id': 'kadr-bugs-label' }, [ 'Бегают по экрану' ]), this.switches.bugs ]),
+				E('div', { 'class': 'kadr-opt' }, [ E('span', { 'id': 'kadr-walk-label' }, [ 'Ходят по кнопкам' ]), this.switches.bugWalk ]),
+				this.lookRow
+			]),
+			E('p', { 'class': 'kadr-sheet-note' }, [ 'Всё запоминается в этом браузере.' ])
 		]);
 
 		this.syncOptions();
@@ -207,16 +209,45 @@ return baseclass.extend({
 		this.syncOptions();
 	},
 
+	segment(labelId, key, items) {
+		const seg = E('div', { 'class': 'kadr-seg', 'role': 'radiogroup', 'aria-labelledby': labelId },
+			items.map(([ id, label ]) => E('button', { 'type': 'button', 'role': 'radio', 'data-value': id, 'click': () => this.setOption({ [key]: id }) }, [ label ])));
+
+		seg.addEventListener('keydown', (ev) => {
+			const step = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[ev.key];
+			if (!step)
+				return;
+			const buttons = Array.from(seg.querySelectorAll('button'));
+			const next = buttons[(buttons.findIndex((b) => b.getAttribute('aria-checked') === 'true') + step + buttons.length) % buttons.length];
+			ev.preventDefault();
+			this.setOption({ [key]: next.getAttribute('data-value') });
+			next.focus();
+		});
+
+		return seg;
+	},
+
+	switcher(labelId, key) {
+		return E('button', { 'class': 'kadr-switch', 'type': 'button', 'role': 'switch', 'aria-labelledby': labelId,
+			'click': () => this.setOption({ [key]: !window.KadrTheme.get()[key] }) });
+	},
+
 	syncOptions() {
 		const state = window.KadrTheme.get();
 
-		this.fxSeg.querySelectorAll('button').forEach((b) => {
-			const on = b.getAttribute('data-fx') === state.fx;
-			b.setAttribute('aria-checked', on ? 'true' : 'false');
-			b.tabIndex = on ? 0 : -1;
+		Object.keys(this.segs).forEach((key) => {
+			this.segs[key].querySelectorAll('button').forEach((b) => {
+				const on = b.getAttribute('data-value') === state[key];
+				b.setAttribute('aria-checked', on ? 'true' : 'false');
+				b.tabIndex = on ? 0 : -1;
+			});
 		});
 
-		this.shadowSwitch.setAttribute('aria-checked', state.shadows ? 'true' : 'false');
+		Object.keys(this.switches).forEach((key) => {
+			this.switches[key].setAttribute('aria-checked', state[key] ? 'true' : 'false');
+		});
+
+		this.lookRow.setAttribute('aria-disabled', state.bugs || state.bugWalk ? 'false' : 'true');
 	},
 
 	swipeToClose(el, close, active) {

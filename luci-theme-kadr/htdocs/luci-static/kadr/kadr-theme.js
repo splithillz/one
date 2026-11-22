@@ -3,6 +3,10 @@
 
 	var KEY = 'kadr-luci-theme';
 	var FX = ['plain', 'glass', 'material'];
+	var DIVIDERS = ['none', 'line', 'segments'];
+	var LOOKS = ['color', 'pixel', 'mono'];
+	var SELF = g.document.currentScript ? g.document.currentScript.src : '';
+	var bugsLoading = false;
 	var THEMES = [
 		{ id: 'mint',   name: 'Мята',   bg: '#0b0c0d', s1: '#141618', s2: '#1c1f21', s3: '#24282a', acc: '#3fe0a1', ink: '#06281b' },
 		{ id: 'noir',   name: 'Noir',   bg: '#060606', s1: '#111111', s2: '#191919', s3: '#242424', acc: '#e9e9e9', ink: '#111111' },
@@ -76,7 +80,11 @@
 			theme: typeof s.theme === 'string' ? s.theme : 'mint',
 			seed: typeof s.seed === 'string' ? s.seed : '',
 			fx: FX.indexOf(s.fx) > -1 ? s.fx : 'plain',
-			shadows: s.shadows !== false
+			shadows: s.shadows !== false,
+			dividers: DIVIDERS.indexOf(s.dividers) > -1 ? s.dividers : 'line',
+			bugs: s.bugs === true,
+			bugWalk: s.bugWalk === true,
+			bugLook: LOOKS.indexOf(s.bugLook) > -1 ? s.bugLook : 'color'
 		};
 	}
 
@@ -117,10 +125,34 @@
 		root.setAttribute('data-darkmode', light ? 'false' : 'true');
 		root.setAttribute('data-kadr-fx', state.fx);
 		root.setAttribute('data-kadr-shadows', state.shadows ? 'on' : 'off');
+		root.setAttribute('data-kadr-dividers', state.dividers);
 		var meta = g.document.querySelector('meta[name="theme-color"]');
 		if (meta)
 			meta.setAttribute('content', t.bg);
+		var scheme = g.document.querySelector('meta[name="color-scheme"]');
+		if (scheme)
+			scheme.setAttribute('content', light ? 'light' : 'dark');
+		bugs(state);
 		return t;
+	}
+
+	function bugs(state) {
+		if (g.KadrBugs) {
+			g.KadrBugs.update(state);
+			return;
+		}
+		if (!(state.bugs || state.bugWalk) || bugsLoading || !SELF)
+			return;
+		bugsLoading = true;
+		var s = g.document.createElement('script');
+		s.src = SELF.replace(/kadr-theme\.js(\?.*)?$/, 'kadr-bugs.js');
+		s.async = true;
+		s.onload = function () {
+			if (g.KadrBugs)
+				g.KadrBugs.update(g.KadrTheme.get());
+		};
+		s.onerror = function () { bugsLoading = false; };
+		g.document.head.appendChild(s);
 	}
 
 	var state = load();
