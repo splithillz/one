@@ -10,16 +10,16 @@
 
 ## Скачать
 
-Название проекта ведёт на его страницу: описание, установка, что нового. Ссылка в колонке «Скачать» сразу скачивает готовый файл.
+Название проекта открывает его страницу: описание, установка, что нового. «⬇ Скачать» сразу скачивает готовый файл.
 
-| Проект | Что это | Скачать |
-|---|---|---|
-| [**Кадр для kinoarc**](extensions/kadr-kinoarc/) | Расширение для браузера: родные темы kinoarc.net и свой аватар | [⬇ zip · 1.3.1 · 44 КБ](https://github.com/splithillz/one/raw/main/releases/kadr-themes-kinoarc-v1.3.1.zip) |
-| [**Кадр для kinohub**](extensions/kadr-kinohub/) | Расширение для браузера: темы, новый дизайн, закладки и тайминги для on.kinohub.vip | [⬇ zip · 1.3.1 · 153 КБ](https://github.com/splithillz/one/raw/main/releases/kadr-themes-kinohub-v1.3.1.zip) |
-| [**Kadr для форума LS Project**](extensions/kadr-lsforum/) | Расширение для браузера: новый облик forum.ls-project.com, темы, Monet, стили | [⬇ zip · 1.4.1 · 209 КБ](https://github.com/splithillz/one/raw/main/releases/kadr-themes-lsforum-v1.4.1.zip) |
-| [**Кадр для LuCI**](openwrt/luci-theme-kadr/) | Тема для веб-интерфейса роутера на OpenWrt и для podkop | [⬇ apk · для OpenWrt 25.12](https://github.com/splithillz/one/raw/main/releases/luci-theme-kadr-1.2.0-r1.apk)<br>[⬇ ipk · для OpenWrt 24.10](https://github.com/splithillz/one/raw/main/releases/luci-theme-kadr_1.2.0-r1_all.ipk) |
-| [**RP Speller**](rp-chat/rp-speller/) | Программа для Windows: исправляет опечатки в чате GTA V / FiveM | [⬇ zip · 0.3.0 · 911 КБ](https://github.com/splithillz/one/raw/main/releases/RPSpeller-0.3.0.zip) |
-| [**LS Autocorrect**](rp-chat/ls-autocorrect/) | Скрипт для чата сервера: исправляет опечатки, пока игрок печатает | [⬇ ls-autocorrect.js](https://github.com/splithillz/one/raw/main/rp-chat/ls-autocorrect/ls-autocorrect.js) |
+| Проект | Скачать |
+|---|---|
+| **[Кадр для kinoarc](extensions/kadr-kinoarc/)**<br>Расширение: родные темы kinoarc.net и свой аватар | **[⬇ Скачать](https://github.com/splithillz/one/raw/main/releases/kadr-themes-kinoarc-v1.3.1.zip)**<br><sub>zip · 1.3.1 · 44 КБ</sub> |
+| **[Кадр для kinohub](extensions/kadr-kinohub/)**<br>Расширение: темы, новый дизайн, закладки и тайминги для on.kinohub.vip | **[⬇ Скачать](https://github.com/splithillz/one/raw/main/releases/kadr-themes-kinohub-v1.3.1.zip)**<br><sub>zip · 1.3.1 · 153 КБ</sub> |
+| **[Kadr для форума LS Project](extensions/kadr-lsforum/)**<br>Расширение: новый облик forum.ls-project.com, темы, Monet, стили | **[⬇ Скачать](https://github.com/splithillz/one/raw/main/releases/kadr-themes-lsforum-v1.4.1.zip)**<br><sub>zip · 1.4.1 · 209 КБ</sub> |
+| **[Кадр для LuCI](openwrt/luci-theme-kadr/)**<br>Тема для роутера на OpenWrt и для podkop | **[⬇ apk](https://github.com/splithillz/one/raw/main/releases/luci-theme-kadr-1.2.0-r1.apk)** <sub>для 25.12</sub><br>**[⬇ ipk](https://github.com/splithillz/one/raw/main/releases/luci-theme-kadr_1.2.0-r1_all.ipk)** <sub>для 24.10</sub> |
+| **[RP Speller](rp-chat/rp-speller/)**<br>Программа для Windows: исправляет опечатки в чате GTA V / FiveM | **[⬇ Скачать](https://github.com/splithillz/one/raw/main/releases/RPSpeller-0.3.0.zip)**<br><sub>zip · 0.3.0 · 911 КБ</sub> |
+| **[LS Autocorrect](rp-chat/ls-autocorrect/)**<br>Скрипт для чата сервера: исправляет опечатки, пока игрок печатает | **[⬇ Скачать](https://github.com/splithillz/one/raw/main/rp-chat/ls-autocorrect/ls-autocorrect.js)**<br><sub>ls-autocorrect.js</sub> |
 
 Все файлы сразу — в папке [`releases`](releases/).
 
