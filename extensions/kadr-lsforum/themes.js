@@ -74,8 +74,8 @@
     for (var i = 0; i < 60 && contrast(x, bg) < min; i++) { h[2] = Math.max(0, Math.min(1, h[2] + step)); x = fromHsl(h[0], h[1], h[2]); }
     return x;
   }
-  function liftColor(c, state, light) {
-    var t = resolve(state);
+  function liftColor(c, state, light, base) {
+    var t = resolve(state) || base;
     if (!t || !c) return null;
     var x = textOn(c, light ? [236, 236, 242] : palette(t).s2, 4.5);
     return x === c ? null : x;
@@ -217,6 +217,7 @@
     var D = 'html:not([data-focus-scheme="light"]) ';
     out += 'html:root:root{--kd-bar-acc:' + t0.acc + '}' + (t0.scheme === 'light' ? 'html #ipsLayout_footer #elCopyright{opacity:1}' : '') +
       'html:not(.kadr-rd) .ipsType_sectionTitle.ipsType_sectionTitle{background:rgb(var(--theme-light_button)) none !important}' +
+      'html .ipsReactOverview ul img{border-color:rgb(var(--theme-area_background_reset))}' +
       'html .lsp-server-widget.lsp-server-widget{--lsp-accent:' + t0.acc + '}' +
       'html .lsp-server-widget .lsp-join-button.lsp-join-button{background:rgba(' + a + ', .16) !important;border-color:rgba(' + a + ', .55) !important;color:' + hex(p0.accHi) + ' !important}' +
       'html .lsp-server-widget .lsp-join-button.lsp-join-button:hover{background:rgba(' + a + ', .28) !important;border-color:' + t0.acc + ' !important;color:' + hex(p0.acc50) + ' !important}' +

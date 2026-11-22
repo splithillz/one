@@ -1,15 +1,24 @@
-Icon sets used by Kadr (iconsets/solar.css, iconsets/remix.css)
+Icons used by Kadr: the icon sets (iconsets/solar.css, iconsets/remix.css) and the group icons next to
+nicknames (skin.css, [data-kadr-gi] rules)
 
 Solar Icon Set by 480 Design
 https://www.figma.com/community/file/1166831539721848736
 License: Creative Commons Attribution 4.0 International (CC BY 4.0)
 https://creativecommons.org/licenses/by/4.0/
 Changes: the Linear style icons are embedded as CSS masks; colours and sizes are set by the page.
+Group icons use the Bold style (crown, shield, shield star, wrench, server, verified check, bank, star,
+megaphone, flag, incognito, case round, home 2, medal ribbon star) embedded as CSS masks; the level shields
+are the Bold minimalistic shield with a digit cut out of it.
 
 Remix Icon by Remix Design
 https://github.com/Remix-Design/RemixIcon
 License: Apache License 2.0, full text below.
 Changes: the Line style icons are embedded as CSS masks; colours and sizes are set by the page.
+
+Tabler Icons by Paweł Kuna
+https://github.com/tabler/tabler-icons
+License: MIT, full text below.
+Changes: the filled headset icon is embedded as a CSS mask (group icon for support); colour and size are set by the page.
 
 ----------------------------------------------------------------------
 
@@ -204,3 +213,27 @@ Changes: the Line style icons are embedded as CSS masks; colours and sizes are s
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
    See the License for the specific language governing permissions and
    limitations under the License.
+
+----------------------------------------------------------------------
+
+Tabler Icons — MIT License
+
+Copyright (c) 2020-2026 Paweł Kuna
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
