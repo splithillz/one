@@ -48,7 +48,9 @@
 
 ## Установка
 
-Готовые пакеты лежат в папке `dist` в корне репозитория.
+Готовые пакеты лежат в папке [`releases`](../../releases/) в корне репозитория:
+- [`luci-theme-kadr-1.2.0-r1.apk`](../../releases/luci-theme-kadr-1.2.0-r1.apk) — для OpenWrt 25.12;
+- [`luci-theme-kadr_1.2.0-r1_all.ipk`](../../releases/luci-theme-kadr_1.2.0-r1_all.ipk) — для OpenWrt 24.10.
 
 ### OpenWrt 25.12 (apk)
 
@@ -159,7 +161,7 @@ opkg install /tmp/luci-theme-kadr_1.2.0-r1_all.ipk
 python3 build.py
 ```
 
-Пакеты появятся в `dist` в корне репозитория:
+Пакеты появятся в `releases` в корне репозитория:
 - `.ipk` — для opkg;
 - `.apk` — классический формат apk v2, apk-tools 3 ставит его с `--allow-untrusted`;
 - `.tar.gz` — те же файлы для ручной раскладки в `/`.

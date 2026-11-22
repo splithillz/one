@@ -200,7 +200,7 @@ def build_tarball(files, outdir):
 
 
 def main():
-    outdir = sys.argv[1] if len(sys.argv) > 1 else os.path.join(os.path.dirname(HERE), "dist")
+    outdir = sys.argv[1] if len(sys.argv) > 1 else os.path.normpath(os.path.join(HERE, "..", "..", "releases"))
     os.makedirs(outdir, exist_ok=True)
     files = layout()
     for p in (build_ipk(files, outdir), build_apk(files, outdir), build_tarball(files, outdir)):
