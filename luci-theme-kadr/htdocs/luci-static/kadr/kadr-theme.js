@@ -2,6 +2,7 @@
 	'use strict';
 
 	var KEY = 'kadr-luci-theme';
+	var FX = ['plain', 'glass', 'material'];
 	var THEMES = [
 		{ id: 'mint',   name: 'Мята',   bg: '#0b0c0d', s1: '#141618', s2: '#1c1f21', s3: '#24282a', acc: '#3fe0a1', ink: '#06281b' },
 		{ id: 'noir',   name: 'Noir',   bg: '#060606', s1: '#111111', s2: '#191919', s3: '#242424', acc: '#e9e9e9', ink: '#111111' },
@@ -12,7 +13,13 @@
 		{ id: 'grape',  name: 'Grape',  bg: '#0d0911', s1: '#17111d', s2: '#201828', s3: '#2b2135', acc: '#c79bff', ink: '#220c3a' },
 		{ id: 'rose',   name: 'Rose',   bg: '#110a0e', s1: '#1c1218', s2: '#261a21', s3: '#32222b', acc: '#f394c4', ink: '#36091f' },
 		{ id: 'spark',  name: 'Spark',  bg: '#0e0c07', s1: '#1a170e', s2: '#231f14', s3: '#2e291b', acc: '#e8be5e', ink: '#2b1e05' },
-		{ id: 'frost',  name: 'Frost',  bg: '#091016', s1: '#101a22', s2: '#16232d', s3: '#1e2e3a', acc: '#6dd3c8', ink: '#052522' }
+		{ id: 'frost',  name: 'Frost',  bg: '#091016', s1: '#101a22', s2: '#16232d', s3: '#1e2e3a', acc: '#6dd3c8', ink: '#052522' },
+		{ id: 'monet-white', name: 'Monet White', short: 'White', group: 'Monet', scheme: 'light',
+			bg: '#f9f9ff', s1: '#ffffff', s2: '#ededf4', s3: '#e2e2e9', acc: '#445e91', ink: '#ffffff', tx: '#1a1b20', tx2: '#44474f', mut: '#74777f' },
+		{ id: 'monet-dark', name: 'Monet Dark', short: 'Dark', group: 'Monet',
+			bg: '#111318', s1: '#1e1f25', s2: '#282a2f', s3: '#33353a', acc: '#adc6ff', ink: '#102f60', tx: '#e2e2e9', tx2: '#c4c6d0', mut: '#8e9099' },
+		{ id: 'monet-black', name: 'Monet Black', short: 'Black', group: 'Monet',
+			bg: '#000000', s1: '#111318', s2: '#1e1f25', s3: '#2f3036', acc: '#adc6ff', ink: '#102f60', tx: '#e2e2e9', tx2: '#c4c6d0', mut: '#8e9099' }
 	];
 
 	function rgb(hex) {
@@ -63,14 +70,22 @@
 		};
 	}
 
+	function clean(s) {
+		s = s || {};
+		return {
+			theme: typeof s.theme === 'string' ? s.theme : 'mint',
+			seed: typeof s.seed === 'string' ? s.seed : '',
+			fx: FX.indexOf(s.fx) > -1 ? s.fx : 'plain',
+			shadows: s.shadows !== false
+		};
+	}
+
 	function load() {
 		try {
-			var s = JSON.parse(g.localStorage.getItem(KEY) || 'null');
-			if (s && typeof s.theme === 'string')
-				return { theme: s.theme, seed: typeof s.seed === 'string' ? s.seed : '' };
+			return clean(JSON.parse(g.localStorage.getItem(KEY) || 'null'));
 		}
 		catch (e) {}
-		return { theme: 'mint', seed: '' };
+		return clean();
 	}
 
 	function save(state) {
@@ -90,11 +105,18 @@
 	}
 
 	function apply(state) {
-		var t = resolve(state), root = g.document.documentElement;
-		['bg', 's1', 's2', 's3', 'acc', 'ink'].forEach(function (k) {
-			root.style.setProperty('--k-' + k, rgb(t[k]).join(' '));
+		var t = resolve(state), root = g.document.documentElement, light = t.scheme === 'light';
+		['bg', 's1', 's2', 's3', 'acc', 'ink', 'tx', 'tx2', 'mut'].forEach(function (k) {
+			if (t[k])
+				root.style.setProperty('--k-' + k, rgb(t[k]).join(' '));
+			else
+				root.style.removeProperty('--k-' + k);
 		});
 		root.setAttribute('data-kadr-theme', t.id);
+		root.setAttribute('data-kadr-scheme', light ? 'light' : 'dark');
+		root.setAttribute('data-darkmode', light ? 'false' : 'true');
+		root.setAttribute('data-kadr-fx', state.fx);
+		root.setAttribute('data-kadr-shadows', state.shadows ? 'on' : 'off');
 		var meta = g.document.querySelector('meta[name="theme-color"]');
 		if (meta)
 			meta.setAttribute('content', t.bg);
@@ -109,7 +131,10 @@
 		resolve: resolve,
 		get: function () { return state; },
 		set: function (next) {
-			state = { theme: next.theme, seed: next.seed || '' };
+			var merged = {};
+			Object.keys(state).forEach(function (k) { merged[k] = state[k]; });
+			Object.keys(next || {}).forEach(function (k) { merged[k] = next[k]; });
+			state = clean(merged);
 			save(state);
 			return apply(state);
 		}

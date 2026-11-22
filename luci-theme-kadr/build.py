@@ -8,7 +8,7 @@ import tarfile
 import time
 
 NAME = "luci-theme-kadr"
-VERSION = "1.0.0"
+VERSION = "1.1.0"
 RELEASE = "1"
 DESCRIPTION = "Kadr: LuCI theme in the kinoarc style with Kadr palettes and podkop support"
 URL = "https://github.com/splithillz/one/tree/main/luci-theme-kadr"

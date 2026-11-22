@@ -106,7 +106,8 @@ return baseclass.extend({
 	buildPalette() {
 		const K = window.KadrTheme;
 		const state = K.get();
-		const tiles = K.themes.map((t) => this.tile(t, state.theme === t.id, () => this.pick({ theme: t.id })));
+		const tile = (t) => this.tile(t, state.theme === t.id, () => this.pick({ theme: t.id }));
+		const tiles = K.themes.filter((t) => !t.group).map(tile);
 
 		const custom = K.resolve(state.theme === 'custom' ? state : { theme: 'custom', seed: '#3fe0a1' });
 		const picker = E('input', { 'type': 'color', 'value': state.theme === 'custom' && state.seed ? state.seed : '#3fe0a1', 'aria-label': 'Свой цвет' });
@@ -114,6 +115,31 @@ return baseclass.extend({
 
 		picker.addEventListener('input', () => this.pick({ theme: 'custom', seed: picker.value }));
 		tiles.push(customTile);
+
+		const groups = {};
+		K.themes.filter((t) => t.group).forEach((t) => (groups[t.group] = groups[t.group] || []).push(t));
+		Object.keys(groups).forEach((name) => {
+			tiles.push(E('span', { 'class': 'kadr-tiles-group' }, [ name ]));
+			groups[name].forEach((t) => tiles.push(tile(t)));
+		});
+
+		this.fxSeg = E('div', { 'class': 'kadr-seg', 'role': 'radiogroup', 'aria-labelledby': 'kadr-fx-label' },
+			[ [ 'plain', 'Обычный' ], [ 'glass', 'Стекло' ], [ 'material', 'Material' ] ].map(([ id, label ]) =>
+				E('button', { 'type': 'button', 'role': 'radio', 'data-fx': id, 'click': () => this.setOption({ fx: id }) }, [ label ])));
+
+		this.fxSeg.addEventListener('keydown', (ev) => {
+			const step = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[ev.key];
+			if (!step)
+				return;
+			const buttons = Array.from(this.fxSeg.querySelectorAll('button'));
+			const next = buttons[(buttons.findIndex((b) => b.getAttribute('aria-checked') === 'true') + step + buttons.length) % buttons.length];
+			ev.preventDefault();
+			this.setOption({ fx: next.getAttribute('data-fx') });
+			next.focus();
+		});
+
+		this.shadowSwitch = E('button', { 'class': 'kadr-switch', 'type': 'button', 'role': 'switch', 'aria-labelledby': 'kadr-shadow-label',
+			'click': () => this.setOption({ shadows: !window.KadrTheme.get().shadows }) });
 
 		this.palette = E('div', { 'class': 'kadr-sheet kadr-palette', 'role': 'dialog', 'aria-label': _('Design') }, [
 			E('div', { 'class': 'kadr-grip' }),
@@ -123,9 +149,14 @@ return baseclass.extend({
 				E('button', { 'class': 'kadr-ibtn kadr-close', 'type': 'button', 'aria-label': _('Close'), 'click': () => this.setPalette(false) })
 			]),
 			E('div', { 'class': 'kadr-tiles', 'role': 'radiogroup' }, tiles),
-			E('p', { 'class': 'kadr-sheet-note' }, [ 'Тема запоминается в этом браузере.' ])
+			E('div', { 'class': 'kadr-opts' }, [
+				E('div', { 'class': 'kadr-opt' }, [ E('span', { 'id': 'kadr-fx-label' }, [ 'Стиль' ]), this.fxSeg ]),
+				E('div', { 'class': 'kadr-opt' }, [ E('span', { 'id': 'kadr-shadow-label' }, [ 'Тени' ]), this.shadowSwitch ])
+			]),
+			E('p', { 'class': 'kadr-sheet-note' }, [ 'Тема и стиль запоминаются в этом браузере.' ])
 		]);
 
+		this.syncOptions();
 		document.body.appendChild(this.palette);
 		this.swipeToClose(this.palette, () => this.setPalette(false), () => true);
 	},
@@ -139,6 +170,11 @@ return baseclass.extend({
 			'style': '--t-bg:%s;--t-s2:%s;--t-s3:%s;--t-acc:%s;--t-ink:%s'.format(t.bg, t.s2, t.s3, t.acc, t.ink)
 		};
 
+		if (t.short) {
+			attrs.title = t.name;
+			attrs['aria-label'] = t.name;
+		}
+
 		if (onPick) {
 			attrs.type = 'button';
 			attrs.click = onPick;
@@ -146,7 +182,7 @@ return baseclass.extend({
 
 		return E(input ? 'label' : 'button', attrs, [
 			E('span', { 'class': 'kadr-tile-sw' }, [ E('i') ]),
-			E('span', { 'class': 'kadr-tile-nm' }, [ t.name ]),
+			E('span', { 'class': 'kadr-tile-nm' }, [ t.short || t.name ]),
 			E('span', { 'class': 'kadr-tile-ck' }),
 			input || ''
 		]);
@@ -164,6 +200,23 @@ return baseclass.extend({
 			el.style.setProperty('--t-acc', t.acc);
 			el.style.setProperty('--t-bg', t.bg);
 		}
+	},
+
+	setOption(change) {
+		window.KadrTheme.set(change);
+		this.syncOptions();
+	},
+
+	syncOptions() {
+		const state = window.KadrTheme.get();
+
+		this.fxSeg.querySelectorAll('button').forEach((b) => {
+			const on = b.getAttribute('data-fx') === state.fx;
+			b.setAttribute('aria-checked', on ? 'true' : 'false');
+			b.tabIndex = on ? 0 : -1;
+		});
+
+		this.shadowSwitch.setAttribute('aria-checked', state.shadows ? 'true' : 'false');
 	},
 
 	swipeToClose(el, close, active) {
