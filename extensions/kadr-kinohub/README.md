@@ -194,7 +194,7 @@
 
 ## Установка
 
-Распакуй `dist/kadr-themes-kinohub-v1.3.1.zip` (или возьми папку `kadr-kinohub/`) и поставь как «Кадр» для kinoarc:
+Распакуй [`releases/kadr-themes-kinohub-v1.3.1.zip`](https://github.com/splithillz/one/raw/main/releases/kadr-themes-kinohub-v1.3.1.zip) (или возьми эту папку, `extensions/kadr-kinohub/`) и поставь как «Кадр» для kinoarc:
 «Загрузить распакованное расширение» → папка с `manifest.json`. Оба расширения можно держать вместе:
 у этого иконка в тёплых тонах.
 

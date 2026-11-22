@@ -29,7 +29,7 @@
 
 ## Установка
 
-Распакуй `dist/kadr-themes-kinoarc-v1.3.1.zip` (или возьми папку `kadr/`) и поставь так же, как 1.2:
+Распакуй [`releases/kadr-themes-kinoarc-v1.3.1.zip`](https://github.com/splithillz/one/raw/main/releases/kadr-themes-kinoarc-v1.3.1.zip) (или возьми эту папку, `extensions/kadr-kinoarc/`) и поставь так же, как 1.2:
 
 - **Chrome, Edge, Яндекс на компьютере**: `chrome://extensions` → «Режим разработчика» →
   «Загрузить распакованное» → папка с `manifest.json`.

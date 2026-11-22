@@ -1,1 +1,170 @@
-# one
+<div align="center">
+
+<img src="docs/cover.png" alt="Проекты репозитория one" width="100%">
+
+**Темы «Кадр» для kinoarc, kinohub и форума LS Project, тема для роутера на OpenWrt и исправление опечаток для RP-чата.**
+
+[Скачать](#скачать) · [Расширения](#расширения-для-браузера) · [Роутер](#роутер-openwrt) · [RP-чат](#rp-чат-gta-v--fivem) · [Структура](#структура)
+
+</div>
+
+## Скачать
+
+Название проекта ведёт на его страницу: описание, установка, что нового. Ссылка в колонке «Скачать» сразу скачивает готовый файл.
+
+| Проект | Что это | Скачать |
+|---|---|---|
+| [**Кадр для kinoarc**](extensions/kadr-kinoarc/) | Расширение для браузера: родные темы kinoarc.net и свой аватар | [⬇ zip · 1.3.1 · 44 КБ](https://github.com/splithillz/one/raw/main/releases/kadr-themes-kinoarc-v1.3.1.zip) |
+| [**Кадр для kinohub**](extensions/kadr-kinohub/) | Расширение для браузера: темы, новый дизайн, закладки и тайминги для on.kinohub.vip | [⬇ zip · 1.3.1 · 153 КБ](https://github.com/splithillz/one/raw/main/releases/kadr-themes-kinohub-v1.3.1.zip) |
+| [**Kadr для форума LS Project**](extensions/kadr-lsforum/) | Расширение для браузера: новый облик forum.ls-project.com, темы, Monet, стили | [⬇ zip · 1.4.1 · 209 КБ](https://github.com/splithillz/one/raw/main/releases/kadr-themes-lsforum-v1.4.1.zip) |
+| [**Кадр для LuCI**](openwrt/luci-theme-kadr/) | Тема для веб-интерфейса роутера на OpenWrt и для podkop | [⬇ apk · для OpenWrt 25.12](https://github.com/splithillz/one/raw/main/releases/luci-theme-kadr-1.2.0-r1.apk)<br>[⬇ ipk · для OpenWrt 24.10](https://github.com/splithillz/one/raw/main/releases/luci-theme-kadr_1.2.0-r1_all.ipk) |
+| [**RP Speller**](rp-chat/rp-speller/) | Программа для Windows: исправляет опечатки в чате GTA V / FiveM | [⬇ zip · 0.3.0 · 911 КБ](https://github.com/splithillz/one/raw/main/releases/RPSpeller-0.3.0.zip) |
+| [**LS Autocorrect**](rp-chat/ls-autocorrect/) | Скрипт для чата сервера: исправляет опечатки, пока игрок печатает | [⬇ ls-autocorrect.js](https://github.com/splithillz/one/raw/main/rp-chat/ls-autocorrect/ls-autocorrect.js) |
+
+Все файлы сразу — в папке [`releases`](releases/).
+
+## Расширения для браузера
+
+Все три «Кадра» меняют только внешний вид у тебя в браузере: на сайт ничего не отправляется, выключил — сайт такой же, как был. Работают на компьютере и на телефоне.
+
+### Кадр для kinoarc
+
+<img src="docs/kadr-kinoarc.png" alt="Окно расширения Кадр для kinoarc" width="280" align="right">
+
+- Перекрашивает kinoarc.net в родные палитры сайта: «Мята», Noir, Mocha, Forest, Cobalt, Ember, Grape, Rose, Spark, Frost — или в свой цвет.
+- Подменяет **твой** аватар. Чужие аватары не трогает.
+- На телефоне в меню сайта появляется пункт «Тема и аватар». Он открывает шторку с настройками прямо поверх сайта.
+
+[![Скачать zip 1.3.1 · 44 КБ](https://img.shields.io/badge/%D1%81%D0%BA%D0%B0%D1%87%D0%B0%D1%82%D1%8C-zip%201.3.1%20%C2%B7%2044%20%D0%9A%D0%91-0f7a52?style=for-the-badge&labelColor=1b1f23)](https://github.com/splithillz/one/raw/main/releases/kadr-themes-kinoarc-v1.3.1.zip)
+[![Описание и установка](https://img.shields.io/badge/%D0%BE%D0%BF%D0%B8%D1%81%D0%B0%D0%BD%D0%B8%D0%B5%20%D0%B8%20%D1%83%D1%81%D1%82%D0%B0%D0%BD%D0%BE%D0%B2%D0%BA%D0%B0-%E2%86%92-30363d?style=for-the-badge&labelColor=1b1f23)](extensions/kadr-kinoarc/)
+
+<br clear="right">
+
+### Кадр для kinohub
+
+<img src="docs/kadr-kinohub.png" alt="Окно расширения Кадр для kinohub" width="280" align="right">
+
+- Те же палитры, что у «Кадра» для kinoarc, плюс «Родная» — цвета сайта как есть.
+- Новый дизайн on.kinohub.vip в стилистике kinoarc.
+- **Закладки под рукой.** Одно нажатие кладёт фильм в быстрый список, сохранённое отмечено на карточках, все списки в одной панели.
+- **Тайминги у плеера.** Отмеченные сцены под плеером, часы по самому плееру, серия определяется сама, предупреждение перед сценой.
+- Лента актёров с фото на странице фильма.
+
+[![Скачать zip 1.3.1 · 153 КБ](https://img.shields.io/badge/%D1%81%D0%BA%D0%B0%D1%87%D0%B0%D1%82%D1%8C-zip%201.3.1%20%C2%B7%20153%20%D0%9A%D0%91-0f7a52?style=for-the-badge&labelColor=1b1f23)](https://github.com/splithillz/one/raw/main/releases/kadr-themes-kinohub-v1.3.1.zip)
+[![Описание и установка](https://img.shields.io/badge/%D0%BE%D0%BF%D0%B8%D1%81%D0%B0%D0%BD%D0%B8%D0%B5%20%D0%B8%20%D1%83%D1%81%D1%82%D0%B0%D0%BD%D0%BE%D0%B2%D0%BA%D0%B0-%E2%86%92-30363d?style=for-the-badge&labelColor=1b1f23)](extensions/kadr-kinohub/)
+
+<br clear="right">
+
+### Kadr для форума LS Project
+
+<img src="docs/kadr-lsforum-popup.png" alt="Окно расширения Kadr для форума" width="260" align="right">
+
+- Новый дизайн всего forum.ls-project.com в стилистике kinoarc. Разделы, кнопки и меню остаются на своих местах.
+- 10 тем и свой цвет, каждая на тёмной и на белой схеме форума. Monet White, Dark и Black по палитре Material You.
+- Стиль «Обычный», «Стекло» или Material, с тенями или без.
+- Размер текста постов и иконки на выбор: родные, Solar или Remix.
+- На телефоне — кнопка «Тема» в панели форума и шторка с настройками.
+- Само проверяет, вышла ли новая версия.
+
+[![Скачать zip 1.4.1 · 209 КБ](https://img.shields.io/badge/%D1%81%D0%BA%D0%B0%D1%87%D0%B0%D1%82%D1%8C-zip%201.4.1%20%C2%B7%20209%20%D0%9A%D0%91-0f7a52?style=for-the-badge&labelColor=1b1f23)](https://github.com/splithillz/one/raw/main/releases/kadr-themes-lsforum-v1.4.1.zip)
+[![Описание и установка](https://img.shields.io/badge/%D0%BE%D0%BF%D0%B8%D1%81%D0%B0%D0%BD%D0%B8%D0%B5%20%D0%B8%20%D1%83%D1%81%D1%82%D0%B0%D0%BD%D0%BE%D0%B2%D0%BA%D0%B0-%E2%86%92-30363d?style=for-the-badge&labelColor=1b1f23)](extensions/kadr-lsforum/)
+
+Ещё: [тесты по живому форуму](extensions/kadr-lsforum-tests/) · [промо-картинки и текст](docs/promo/kadr-lsforum/)
+
+<br clear="right">
+
+<img src="docs/kadr-lsforum.png" alt="Форум LS Project с Kadr: тема Cobalt, стиль «Стекло»" width="100%">
+
+### Как поставить расширение
+
+1. Скачай архив кнопкой «Скачать» в разделе расширения и распакуй его в постоянную папку.
+2. **Chrome, Edge, Яндекс на компьютере:** `chrome://extensions` → «Режим разработчика» → «Загрузить распакованное» → папка с `manifest.json`.
+3. **Телефон на Android:** браузер, который умеет ставить расширения Chrome, — тот же путь.
+4. **Новую версию** распакуй в ту же папку и нажми «Обновить» на странице расширений.
+
+## Роутер (OpenWrt)
+
+### Кадр для LuCI
+
+<img src="openwrt/luci-theme-kadr/docs/podkop-dashboard.png" alt="Дашборд podkop в теме Кадр для LuCI" width="100%">
+
+Тема для веб-интерфейса роутера в той же стилистике, что и расширения: шрифт Onest, плавающая шапка, карточки и крупные переключатели.
+
+- 10 палитр, свой цвет и Monet White, Dark и Black. Выбираются кнопкой в шапке, у каждого устройства свой выбор.
+- Стиль «Обычный», «Стекло» или Material, разделители «Скрыть», «Линия» или «Сегменты», тени по желанию.
+- По желанию по экрану бегают жуки, а по кнопкам ходят жуки, нарисованные сбоку: цветные, пиксельные или силуэты цвета темы.
+- podkop: секции, настройки, диагностика и дашборд в стиле темы.
+- На телефоне меню и настройки открываются шторкой снизу.
+
+Поставить на OpenWrt 25.12:
+
+```
+apk add --allow-untrusted /tmp/luci-theme-kadr-1.2.0-r1.apk
+```
+
+На OpenWrt 24.10 — «Система → Программное обеспечение → Загрузить пакет…» с файлом `.ipk` или `opkg install`.
+
+[![Скачать apk для OpenWrt 25.12](https://img.shields.io/badge/%D1%81%D0%BA%D0%B0%D1%87%D0%B0%D1%82%D1%8C-apk%20%D0%B4%D0%BB%D1%8F%20OpenWrt%2025.12-0f7a52?style=for-the-badge&labelColor=1b1f23)](https://github.com/splithillz/one/raw/main/releases/luci-theme-kadr-1.2.0-r1.apk)
+[![Скачать ipk для OpenWrt 24.10](https://img.shields.io/badge/%D1%81%D0%BA%D0%B0%D1%87%D0%B0%D1%82%D1%8C-ipk%20%D0%B4%D0%BB%D1%8F%20OpenWrt%2024.10-0f7a52?style=for-the-badge&labelColor=1b1f23)](https://github.com/splithillz/one/raw/main/releases/luci-theme-kadr_1.2.0-r1_all.ipk)
+[![Описание и установка](https://img.shields.io/badge/%D0%BE%D0%BF%D0%B8%D1%81%D0%B0%D0%BD%D0%B8%D0%B5%20%D0%B8%20%D1%83%D1%81%D1%82%D0%B0%D0%BD%D0%BE%D0%B2%D0%BA%D0%B0-%E2%86%92-30363d?style=for-the-badge&labelColor=1b1f23)](openwrt/luci-theme-kadr/)
+
+## RP-чат (GTA V / FiveM)
+
+### RP Speller
+
+| Три вида окна ввода | Настройки |
+|---|---|
+| <img src="docs/rp-speller-styles.png" alt="Три вида окна ввода RP Speller" width="100%"> | <img src="docs/rp-speller-settings.png" alt="Настройки RP Speller" width="100%"> |
+
+Программа для Windows, которая исправляет опечатки в том, что ты пишешь в игровой чат. Игру и сервер не трогает: работает как переводчик RP Chat Overlay — своё окно поверх игры и нажатия клавиш.
+
+- **F7** в игре открывает окно ввода. Ошибки исправляются после пробела, **Enter** вставляет текст в игровой чат и отправляет.
+- **Backspace** сразу после исправления возвращает слово, и это слово больше не исправляется. Свои слова — ники, сленг, названия — задаются в настройках.
+- Три вида окна ввода: «Стекло», «Как чат игры» и «Капсула».
+- Исправления от Яндекс.Спеллера, в сеть уходят отдельные слова, а не сообщения.
+- Один `RPSpeller.exe` на 0,7 МБ, написан на Rust. В архиве есть самопроверка для своего компьютера.
+
+[![Скачать zip 0.3.0 · 911 КБ](https://img.shields.io/badge/%D1%81%D0%BA%D0%B0%D1%87%D0%B0%D1%82%D1%8C-zip%200.3.0%20%C2%B7%20911%20%D0%9A%D0%91-0f7a52?style=for-the-badge&labelColor=1b1f23)](https://github.com/splithillz/one/raw/main/releases/RPSpeller-0.3.0.zip)
+[![Описание и установка](https://img.shields.io/badge/%D0%BE%D0%BF%D0%B8%D1%81%D0%B0%D0%BD%D0%B8%D0%B5%20%D0%B8%20%D1%83%D1%81%D1%82%D0%B0%D0%BD%D0%BE%D0%B2%D0%BA%D0%B0-%E2%86%92-30363d?style=for-the-badge&labelColor=1b1f23)](rp-chat/rp-speller/)
+
+### LS Autocorrect
+
+<img src="docs/ls-autocorrect.png" alt="Демо LS Autocorrect: опечатки исправляются прямо в чате" width="100%">
+
+Один файл `ls-autocorrect.js` без зависимостей для интерфейса чата на сервере. Исправляет опечатки у игрока, пока он печатает, как клавиатура в телефоне: «здраствуйте» → «здравствуйте».
+
+- Не трогает команды (`/me`, `/do` и любые другие), ID, цифры, латиницу, ссылки, имена с большой буквы и чатовый сленг.
+- Backspace сразу после исправления возвращает слово и запоминает его.
+- Свои слова сервера добавляются одной строкой.
+
+[![Скачать ls-autocorrect.js](https://img.shields.io/badge/%D1%81%D0%BA%D0%B0%D1%87%D0%B0%D1%82%D1%8C-ls--autocorrect.js-0f7a52?style=for-the-badge&labelColor=1b1f23)](https://github.com/splithillz/one/raw/main/rp-chat/ls-autocorrect/ls-autocorrect.js)
+[![Описание и установка](https://img.shields.io/badge/%D0%BE%D0%BF%D0%B8%D1%81%D0%B0%D0%BD%D0%B8%D0%B5%20%D0%B8%20%D1%83%D1%81%D1%82%D0%B0%D0%BD%D0%BE%D0%B2%D0%BA%D0%B0-%E2%86%92-30363d?style=for-the-badge&labelColor=1b1f23)](rp-chat/ls-autocorrect/)
+
+Демо: [`demo.html`](rp-chat/ls-autocorrect/demo.html) — скачай папку и открой файл в браузере.
+
+## Структура
+
+```
+one/
+├── extensions/              расширения для браузера
+│   ├── kadr-kinoarc/        Кадр для kinoarc
+│   ├── kadr-kinohub/        Кадр для kinohub
+│   ├── kadr-lsforum/        Kadr для форума LS Project
+│   └── kadr-lsforum-tests/  прогон Kadr по живому форуму перед выпуском
+├── openwrt/
+│   └── luci-theme-kadr/     Кадр для LuCI
+├── rp-chat/
+│   ├── rp-speller/          RP Speller, программа для Windows на Rust
+│   └── ls-autocorrect/      LS Autocorrect, автоисправление для чата сервера
+├── releases/                готовые архивы и пакеты
+└── docs/                    картинки для этого README и промо форума
+```
+
+У каждого проекта свой README: что нового, как поставить, что проверено и как собрать.
+
+## Лицензии
+
+- Кадр для LuCI — Apache-2.0, основан на luci-theme-bootstrap из OpenWrt ([LICENSE](openwrt/luci-theme-kadr/LICENSE)).
+- Шрифт Onest — SIL Open Font License 1.1, текст лицензии лежит рядом со шрифтом.
+- Наборы иконок Solar и Remix в Kadr для форума — [iconsets/LICENSES.txt](extensions/kadr-lsforum/iconsets/LICENSES.txt).
+- Остальные проекты пока без отдельной лицензии.

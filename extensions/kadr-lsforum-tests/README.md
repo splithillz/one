@@ -6,7 +6,7 @@
 ## Запуск
 
 ```
-cd kadr-lsforum-tests
+cd extensions/kadr-lsforum-tests
 KADR_CRED=/путь/вне/репозитория/cred.json ./run-all.sh      # гость + аккаунт
 ./run-all.sh                                                # только гость
 ```
