@@ -199,11 +199,30 @@ def build_tarball(files, outdir):
     return path
 
 
+def write_latest(outdir, ipk, apk):
+    def sha256(path):
+        with open(path, "rb") as f:
+            return hashlib.sha256(f.read()).hexdigest()
+
+    lines = [
+        f"version={VERSION}-r{RELEASE}",
+        f"apk={os.path.basename(apk)}",
+        f"apk_sha256={sha256(apk)}",
+        f"ipk={os.path.basename(ipk)}",
+        f"ipk_sha256={sha256(ipk)}",
+    ]
+    path = os.path.join(outdir, f"{NAME}.latest")
+    with open(path, "w") as f:
+        f.write("\n".join(lines) + "\n")
+    return path
+
+
 def main():
     outdir = sys.argv[1] if len(sys.argv) > 1 else os.path.normpath(os.path.join(HERE, "..", "..", "releases"))
     os.makedirs(outdir, exist_ok=True)
     files = layout()
-    for p in (build_ipk(files, outdir), build_apk(files, outdir), build_tarball(files, outdir)):
+    ipk, apk, tarball = build_ipk(files, outdir), build_apk(files, outdir), build_tarball(files, outdir)
+    for p in (ipk, apk, tarball, write_latest(outdir, ipk, apk)):
         print(p, os.path.getsize(p))
 
 

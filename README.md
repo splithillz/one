@@ -17,7 +17,7 @@
 | **[Кадр для kinoarc](extensions/kadr-kinoarc/)**<br>Расширение: родные темы kinoarc.net и свой аватар | **[⬇ Скачать](https://github.com/splithillz/one/raw/main/releases/kadr-themes-kinoarc-v1.3.1.zip)**<br><sub>zip · 1.3.1 · 44 КБ</sub> |
 | **[Кадр для kinohub](extensions/kadr-kinohub/)**<br>Расширение: темы, новый дизайн, закладки и тайминги для on.kinohub.vip | **[⬇ Скачать](https://github.com/splithillz/one/raw/main/releases/kadr-themes-kinohub-v1.3.1.zip)**<br><sub>zip · 1.3.1 · 153 КБ</sub> |
 | **[Kadr для форума LS Project](extensions/kadr-lsforum/)**<br>Расширение: новый облик forum.ls-project.com, темы, Monet, стили | **[⬇ Скачать](https://github.com/splithillz/one/raw/main/releases/kadr-themes-lsforum-v1.4.1.zip)**<br><sub>zip · 1.4.1 · 209 КБ</sub> |
-| **[Кадр для LuCI](openwrt/luci-theme-kadr/)**<br>Тема для роутера на OpenWrt и для podkop | **[⬇ apk](https://github.com/splithillz/one/raw/main/releases/luci-theme-kadr-1.2.0-r1.apk)** <sub>для 25.12</sub><br>**[⬇ ipk](https://github.com/splithillz/one/raw/main/releases/luci-theme-kadr_1.2.0-r1_all.ipk)** <sub>для 24.10</sub> |
+| **[Кадр для LuCI](openwrt/luci-theme-kadr/)**<br>Тема для роутера на OpenWrt и для podkop. Ставится [одной командой](#кадр-для-luci) | **[⬇ apk](https://github.com/splithillz/one/raw/main/releases/luci-theme-kadr-1.2.0-r1.apk)** <sub>для 25.12</sub><br>**[⬇ ipk](https://github.com/splithillz/one/raw/main/releases/luci-theme-kadr_1.2.0-r1_all.ipk)** <sub>для 24.10</sub> |
 
 Все файлы сразу — в папке [`releases`](releases/). Исправление опечаток для RP-чата — RP Speller и LS Autocorrect — переехало в репозиторий [**two**](https://github.com/splithillz/two).
 
@@ -94,13 +94,13 @@
 - podkop: секции, настройки, диагностика и дашборд в стиле темы.
 - На телефоне меню и настройки открываются шторкой снизу.
 
-Поставить на OpenWrt 25.12:
+Поставить одной командой: зайди на роутер по SSH и вставь. Работает на OpenWrt 25.12 и 24.10, эта же команда потом обновляет тему.
 
 ```
-apk add --allow-untrusted /tmp/luci-theme-kadr-1.2.0-r1.apk
+wget -q -O - https://raw.githubusercontent.com/splithillz/one/main/openwrt/luci-theme-kadr/install.sh | sh
 ```
 
-На OpenWrt 24.10 — «Система → Программное обеспечение → Загрузить пакет…» с файлом `.ipk` или `opkg install`.
+Удалить — та же команда с `-s remove` в конце. Можно и вручную, пакетом из таблицы выше.
 
 [![Скачать apk для OpenWrt 25.12](https://img.shields.io/badge/%D1%81%D0%BA%D0%B0%D1%87%D0%B0%D1%82%D1%8C-apk%20%D0%B4%D0%BB%D1%8F%20OpenWrt%2025.12-0f7a52?style=for-the-badge&labelColor=1b1f23)](https://github.com/splithillz/one/raw/main/releases/luci-theme-kadr-1.2.0-r1.apk)
 [![Скачать ipk для OpenWrt 24.10](https://img.shields.io/badge/%D1%81%D0%BA%D0%B0%D1%87%D0%B0%D1%82%D1%8C-ipk%20%D0%B4%D0%BB%D1%8F%20OpenWrt%2024.10-0f7a52?style=for-the-badge&labelColor=1b1f23)](https://github.com/splithillz/one/raw/main/releases/luci-theme-kadr_1.2.0-r1_all.ipk)
