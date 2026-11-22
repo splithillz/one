@@ -1,0 +1,11 @@
+#!/bin/sh
+
+if ! uci -q get luci.themes.Kadr >/dev/null; then
+	uci set luci.themes.Kadr=/luci-static/kadr
+	[ "$PKG_UPGRADE" = 1 ] || uci set luci.main.mediaurlbase=/luci-static/kadr
+	uci commit luci
+fi
+
+rm -rf /tmp/luci-indexcache* /tmp/luci-modulecache
+
+exit 0
