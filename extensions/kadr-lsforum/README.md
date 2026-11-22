@@ -237,6 +237,6 @@
 
 ## Установка
 
-Распакуй [`releases/kadr-themes-lsforum-v1.4.1.zip`](../../releases/kadr-themes-lsforum-v1.4.1.zip) (или возьми эту папку, `extensions/kadr-lsforum/`) и поставь как остальные
+Распакуй [`releases/kadr-themes-lsforum-v1.4.1.zip`](https://github.com/splithillz/one/raw/main/releases/kadr-themes-lsforum-v1.4.1.zip) (или возьми эту папку, `extensions/kadr-lsforum/`) и поставь как остальные
 «Кадры»: «Загрузить распакованное расширение» → папка с `manifest.json`. Новую версию ставь поверх: распакуй
 в ту же папку и нажми «Обновить» на странице расширений — настройки сохранятся.

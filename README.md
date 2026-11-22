@@ -4,20 +4,24 @@
 
 **Темы «Кадр» для kinoarc, kinohub и форума LS Project, тема для роутера на OpenWrt и исправление опечаток для RP-чата.**
 
-[Расширения](#расширения-для-браузера) · [Роутер](#роутер-openwrt) · [RP-чат](#rp-чат-gta-v--fivem) · [Скачать](#скачать) · [Структура](#структура)
+[Скачать](#скачать) · [Расширения](#расширения-для-браузера) · [Роутер](#роутер-openwrt) · [RP-чат](#rp-чат-gta-v--fivem) · [Структура](#структура)
 
 </div>
 
-## Проекты
+## Скачать
 
-| Проект | Где работает | Версия | Скачать |
-|---|---|---|---|
-| [**Кадр для kinoarc**](extensions/kadr-kinoarc/) — родные темы сайта и свой аватар | kinoarc.net, браузер | 1.3.1 | [zip](releases/kadr-themes-kinoarc-v1.3.1.zip) |
-| [**Кадр для kinohub**](extensions/kadr-kinohub/) — темы, новый дизайн, закладки, тайминги у плеера | on.kinohub.vip, браузер | 1.3.1 | [zip](releases/kadr-themes-kinohub-v1.3.1.zip) |
-| [**Kadr для форума LS Project**](extensions/kadr-lsforum/) — новый облик форума, темы, Monet, стили | forum.ls-project.com, браузер | 1.4.1 | [zip](releases/kadr-themes-lsforum-v1.4.1.zip) |
-| [**Кадр для LuCI**](openwrt/luci-theme-kadr/) — тема для веб-интерфейса роутера и podkop | OpenWrt 25.12 и 24.10 | 1.2.0 | [apk](releases/luci-theme-kadr-1.2.0-r1.apk) · [ipk](releases/luci-theme-kadr_1.2.0-r1_all.ipk) |
-| [**RP Speller**](rp-chat/rp-speller/) — исправляет опечатки в игровом чате | Windows, GTA V / FiveM | 0.3.0 | [zip](releases/RPSpeller-0.3.0.zip) |
-| [**LS Autocorrect**](rp-chat/ls-autocorrect/) — автоисправление прямо в чате сервера | NUI чата сервера | — | [js](rp-chat/ls-autocorrect/ls-autocorrect.js) |
+Название проекта ведёт на его страницу: описание, установка, что нового. Ссылка в колонке «Скачать» сразу скачивает готовый файл.
+
+| Проект | Что это | Скачать |
+|---|---|---|
+| [**Кадр для kinoarc**](extensions/kadr-kinoarc/) | Расширение для браузера: родные темы kinoarc.net и свой аватар | [⬇ zip · 1.3.1 · 44 КБ](https://github.com/splithillz/one/raw/main/releases/kadr-themes-kinoarc-v1.3.1.zip) |
+| [**Кадр для kinohub**](extensions/kadr-kinohub/) | Расширение для браузера: темы, новый дизайн, закладки и тайминги для on.kinohub.vip | [⬇ zip · 1.3.1 · 153 КБ](https://github.com/splithillz/one/raw/main/releases/kadr-themes-kinohub-v1.3.1.zip) |
+| [**Kadr для форума LS Project**](extensions/kadr-lsforum/) | Расширение для браузера: новый облик forum.ls-project.com, темы, Monet, стили | [⬇ zip · 1.4.1 · 209 КБ](https://github.com/splithillz/one/raw/main/releases/kadr-themes-lsforum-v1.4.1.zip) |
+| [**Кадр для LuCI**](openwrt/luci-theme-kadr/) | Тема для веб-интерфейса роутера на OpenWrt и для podkop | [⬇ apk · для OpenWrt 25.12](https://github.com/splithillz/one/raw/main/releases/luci-theme-kadr-1.2.0-r1.apk)<br>[⬇ ipk · для OpenWrt 24.10](https://github.com/splithillz/one/raw/main/releases/luci-theme-kadr_1.2.0-r1_all.ipk) |
+| [**RP Speller**](rp-chat/rp-speller/) | Программа для Windows: исправляет опечатки в чате GTA V / FiveM | [⬇ zip · 0.3.0 · 911 КБ](https://github.com/splithillz/one/raw/main/releases/RPSpeller-0.3.0.zip) |
+| [**LS Autocorrect**](rp-chat/ls-autocorrect/) | Скрипт для чата сервера: исправляет опечатки, пока игрок печатает | [⬇ ls-autocorrect.js](https://github.com/splithillz/one/raw/main/rp-chat/ls-autocorrect/ls-autocorrect.js) |
+
+Все файлы сразу — в папке [`releases`](releases/).
 
 ## Расширения для браузера
 
@@ -31,7 +35,8 @@
 - Подменяет **твой** аватар. Чужие аватары не трогает.
 - На телефоне в меню сайта появляется пункт «Тема и аватар». Он открывает шторку с настройками прямо поверх сайта.
 
-[Подробнее](extensions/kadr-kinoarc/) · [Скачать 1.3.1](releases/kadr-themes-kinoarc-v1.3.1.zip)
+[![Скачать zip 1.3.1 · 44 КБ](https://img.shields.io/badge/%D1%81%D0%BA%D0%B0%D1%87%D0%B0%D1%82%D1%8C-zip%201.3.1%20%C2%B7%2044%20%D0%9A%D0%91-0f7a52?style=for-the-badge&labelColor=1b1f23)](https://github.com/splithillz/one/raw/main/releases/kadr-themes-kinoarc-v1.3.1.zip)
+[![Описание и установка](https://img.shields.io/badge/%D0%BE%D0%BF%D0%B8%D1%81%D0%B0%D0%BD%D0%B8%D0%B5%20%D0%B8%20%D1%83%D1%81%D1%82%D0%B0%D0%BD%D0%BE%D0%B2%D0%BA%D0%B0-%E2%86%92-30363d?style=for-the-badge&labelColor=1b1f23)](extensions/kadr-kinoarc/)
 
 <br clear="right">
 
@@ -45,7 +50,8 @@
 - **Тайминги у плеера.** Отмеченные сцены под плеером, часы по самому плееру, серия определяется сама, предупреждение перед сценой.
 - Лента актёров с фото на странице фильма.
 
-[Подробнее](extensions/kadr-kinohub/) · [Скачать 1.3.1](releases/kadr-themes-kinohub-v1.3.1.zip)
+[![Скачать zip 1.3.1 · 153 КБ](https://img.shields.io/badge/%D1%81%D0%BA%D0%B0%D1%87%D0%B0%D1%82%D1%8C-zip%201.3.1%20%C2%B7%20153%20%D0%9A%D0%91-0f7a52?style=for-the-badge&labelColor=1b1f23)](https://github.com/splithillz/one/raw/main/releases/kadr-themes-kinohub-v1.3.1.zip)
+[![Описание и установка](https://img.shields.io/badge/%D0%BE%D0%BF%D0%B8%D1%81%D0%B0%D0%BD%D0%B8%D0%B5%20%D0%B8%20%D1%83%D1%81%D1%82%D0%B0%D0%BD%D0%BE%D0%B2%D0%BA%D0%B0-%E2%86%92-30363d?style=for-the-badge&labelColor=1b1f23)](extensions/kadr-kinohub/)
 
 <br clear="right">
 
@@ -60,7 +66,10 @@
 - На телефоне — кнопка «Тема» в панели форума и шторка с настройками.
 - Само проверяет, вышла ли новая версия.
 
-[Подробнее](extensions/kadr-lsforum/) · [Скачать 1.4.1](releases/kadr-themes-lsforum-v1.4.1.zip) · [Тесты по живому форуму](extensions/kadr-lsforum-tests/) · [Промо](docs/promo/kadr-lsforum/)
+[![Скачать zip 1.4.1 · 209 КБ](https://img.shields.io/badge/%D1%81%D0%BA%D0%B0%D1%87%D0%B0%D1%82%D1%8C-zip%201.4.1%20%C2%B7%20209%20%D0%9A%D0%91-0f7a52?style=for-the-badge&labelColor=1b1f23)](https://github.com/splithillz/one/raw/main/releases/kadr-themes-lsforum-v1.4.1.zip)
+[![Описание и установка](https://img.shields.io/badge/%D0%BE%D0%BF%D0%B8%D1%81%D0%B0%D0%BD%D0%B8%D0%B5%20%D0%B8%20%D1%83%D1%81%D1%82%D0%B0%D0%BD%D0%BE%D0%B2%D0%BA%D0%B0-%E2%86%92-30363d?style=for-the-badge&labelColor=1b1f23)](extensions/kadr-lsforum/)
+
+Ещё: [тесты по живому форуму](extensions/kadr-lsforum-tests/) · [промо-картинки и текст](docs/promo/kadr-lsforum/)
 
 <br clear="right">
 
@@ -68,7 +77,7 @@
 
 ### Как поставить расширение
 
-1. Скачай архив из [`releases`](releases/) и распакуй его в постоянную папку.
+1. Скачай архив кнопкой «Скачать» в разделе расширения и распакуй его в постоянную папку.
 2. **Chrome, Edge, Яндекс на компьютере:** `chrome://extensions` → «Режим разработчика» → «Загрузить распакованное» → папка с `manifest.json`.
 3. **Телефон на Android:** браузер, который умеет ставить расширения Chrome, — тот же путь.
 4. **Новую версию** распакуй в ту же папку и нажми «Обновить» на странице расширений.
@@ -95,7 +104,9 @@ apk add --allow-untrusted /tmp/luci-theme-kadr-1.2.0-r1.apk
 
 На OpenWrt 24.10 — «Система → Программное обеспечение → Загрузить пакет…» с файлом `.ipk` или `opkg install`.
 
-[Подробнее и все скриншоты](openwrt/luci-theme-kadr/) · [apk для 25.12](releases/luci-theme-kadr-1.2.0-r1.apk) · [ipk для 24.10](releases/luci-theme-kadr_1.2.0-r1_all.ipk)
+[![Скачать apk для OpenWrt 25.12](https://img.shields.io/badge/%D1%81%D0%BA%D0%B0%D1%87%D0%B0%D1%82%D1%8C-apk%20%D0%B4%D0%BB%D1%8F%20OpenWrt%2025.12-0f7a52?style=for-the-badge&labelColor=1b1f23)](https://github.com/splithillz/one/raw/main/releases/luci-theme-kadr-1.2.0-r1.apk)
+[![Скачать ipk для OpenWrt 24.10](https://img.shields.io/badge/%D1%81%D0%BA%D0%B0%D1%87%D0%B0%D1%82%D1%8C-ipk%20%D0%B4%D0%BB%D1%8F%20OpenWrt%2024.10-0f7a52?style=for-the-badge&labelColor=1b1f23)](https://github.com/splithillz/one/raw/main/releases/luci-theme-kadr_1.2.0-r1_all.ipk)
+[![Описание и установка](https://img.shields.io/badge/%D0%BE%D0%BF%D0%B8%D1%81%D0%B0%D0%BD%D0%B8%D0%B5%20%D0%B8%20%D1%83%D1%81%D1%82%D0%B0%D0%BD%D0%BE%D0%B2%D0%BA%D0%B0-%E2%86%92-30363d?style=for-the-badge&labelColor=1b1f23)](openwrt/luci-theme-kadr/)
 
 ## RP-чат (GTA V / FiveM)
 
@@ -113,7 +124,8 @@ apk add --allow-untrusted /tmp/luci-theme-kadr-1.2.0-r1.apk
 - Исправления от Яндекс.Спеллера, в сеть уходят отдельные слова, а не сообщения.
 - Один `RPSpeller.exe` на 0,7 МБ, написан на Rust. В архиве есть самопроверка для своего компьютера.
 
-[Подробнее](rp-chat/rp-speller/) · [Скачать 0.3.0](releases/RPSpeller-0.3.0.zip)
+[![Скачать zip 0.3.0 · 911 КБ](https://img.shields.io/badge/%D1%81%D0%BA%D0%B0%D1%87%D0%B0%D1%82%D1%8C-zip%200.3.0%20%C2%B7%20911%20%D0%9A%D0%91-0f7a52?style=for-the-badge&labelColor=1b1f23)](https://github.com/splithillz/one/raw/main/releases/RPSpeller-0.3.0.zip)
+[![Описание и установка](https://img.shields.io/badge/%D0%BE%D0%BF%D0%B8%D1%81%D0%B0%D0%BD%D0%B8%D0%B5%20%D0%B8%20%D1%83%D1%81%D1%82%D0%B0%D0%BD%D0%BE%D0%B2%D0%BA%D0%B0-%E2%86%92-30363d?style=for-the-badge&labelColor=1b1f23)](rp-chat/rp-speller/)
 
 ### LS Autocorrect
 
@@ -125,23 +137,10 @@ apk add --allow-untrusted /tmp/luci-theme-kadr-1.2.0-r1.apk
 - Backspace сразу после исправления возвращает слово и запоминает его.
 - Свои слова сервера добавляются одной строкой.
 
-[Подробнее и подключение](rp-chat/ls-autocorrect/) · [Демо-страница](rp-chat/ls-autocorrect/demo.html) (скачай папку и открой `demo.html` в браузере)
+[![Скачать ls-autocorrect.js](https://img.shields.io/badge/%D1%81%D0%BA%D0%B0%D1%87%D0%B0%D1%82%D1%8C-ls--autocorrect.js-0f7a52?style=for-the-badge&labelColor=1b1f23)](https://github.com/splithillz/one/raw/main/rp-chat/ls-autocorrect/ls-autocorrect.js)
+[![Описание и установка](https://img.shields.io/badge/%D0%BE%D0%BF%D0%B8%D1%81%D0%B0%D0%BD%D0%B8%D0%B5%20%D0%B8%20%D1%83%D1%81%D1%82%D0%B0%D0%BD%D0%BE%D0%B2%D0%BA%D0%B0-%E2%86%92-30363d?style=for-the-badge&labelColor=1b1f23)](rp-chat/ls-autocorrect/)
 
-## Скачать
-
-Все готовые файлы лежат в [`releases`](releases/).
-
-| Файл | Что это | Размер |
-|---|---|---|
-| [kadr-themes-kinoarc-v1.3.1.zip](releases/kadr-themes-kinoarc-v1.3.1.zip) | Кадр для kinoarc | 44 КБ |
-| [kadr-themes-kinohub-v1.3.1.zip](releases/kadr-themes-kinohub-v1.3.1.zip) | Кадр для kinohub | 153 КБ |
-| [kadr-themes-lsforum-v1.4.1.zip](releases/kadr-themes-lsforum-v1.4.1.zip) | Kadr для форума LS Project | 209 КБ |
-| [luci-theme-kadr-1.2.0-r1.apk](releases/luci-theme-kadr-1.2.0-r1.apk) | Кадр для LuCI, OpenWrt 25.12 | 103 КБ |
-| [luci-theme-kadr_1.2.0-r1_all.ipk](releases/luci-theme-kadr_1.2.0-r1_all.ipk) | Кадр для LuCI, OpenWrt 24.10 | 102 КБ |
-| [luci-theme-kadr-1.2.0.tar.gz](releases/luci-theme-kadr-1.2.0.tar.gz) | Кадр для LuCI, файлы для ручной раскладки | 101 КБ |
-| [RPSpeller-0.3.0.zip](releases/RPSpeller-0.3.0.zip) | RP Speller и самопроверка | 911 КБ |
-
-На странице файла нажми «Download raw file» (значок загрузки справа).
+Демо: [`demo.html`](rp-chat/ls-autocorrect/demo.html) — скачай папку и открой файл в браузере.
 
 ## Структура
 

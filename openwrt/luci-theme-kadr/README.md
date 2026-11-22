@@ -49,8 +49,8 @@
 ## Установка
 
 Готовые пакеты лежат в папке [`releases`](../../releases/) в корне репозитория:
-- [`luci-theme-kadr-1.2.0-r1.apk`](../../releases/luci-theme-kadr-1.2.0-r1.apk) — для OpenWrt 25.12;
-- [`luci-theme-kadr_1.2.0-r1_all.ipk`](../../releases/luci-theme-kadr_1.2.0-r1_all.ipk) — для OpenWrt 24.10.
+- [`luci-theme-kadr-1.2.0-r1.apk`](https://github.com/splithillz/one/raw/main/releases/luci-theme-kadr-1.2.0-r1.apk) — для OpenWrt 25.12;
+- [`luci-theme-kadr_1.2.0-r1_all.ipk`](https://github.com/splithillz/one/raw/main/releases/luci-theme-kadr_1.2.0-r1_all.ipk) — для OpenWrt 24.10.
 
 ### OpenWrt 25.12 (apk)
 
