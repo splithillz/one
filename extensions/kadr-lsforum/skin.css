@@ -401,23 +401,23 @@ html.kadr-rd .cAuthorPane_info [data-role="group"] span { display: inline-block;
 html.kadr-rd .cAuthorPane_badge { border-radius: 50%; }
 html.kadr-rd .cAuthorPane_badge--new, html.kadr-rd .cAuthorPane_badge--moderator { display: none !important; }
 html.kadr-rd .kadr-gi {
-  position: relative; display: inline-grid; place-items: center; flex: none; box-sizing: border-box;
-  width: 1.2em; height: 1.2em; margin: 0 0 0 .2em; padding: 0; border-radius: .38em; vertical-align: -.24em;
-  font-style: normal; line-height: 0; cursor: help; -webkit-user-select: none; user-select: none;
+  position: relative; display: inline-block; flex: none; box-sizing: border-box;
+  width: 1.2em; height: 1.2em; margin: 0 0 0 .06em; padding: 0; border-radius: .38em; vertical-align: -.246em;
+  font-size: inherit; font-style: normal; line-height: 0; cursor: help; -webkit-user-select: none; user-select: none;
   transition: background-color .15s, transform .35s var(--k-spring);
 }
 html.kadr-rd .kadr-gi::before {
-  content: ""; width: 82%; height: 82%; background-color: currentColor;
+  content: ""; position: absolute; inset: 9%; background-color: currentColor;
   -webkit-mask: var(--gi) center / contain no-repeat; mask: var(--gi) center / contain no-repeat;
 }
 html.kadr-rd .kadr-gi::after { content: ""; position: absolute; inset: -5px; }
 html.kadr-rd .kadr-gi:hover, html.kadr-rd .kadr-gi[aria-describedby] { background-color: color-mix(in srgb, currentColor 16%, transparent); }
 html.kadr-rd .kadr-gi:active { transform: scale(.88); }
 html.kadr-rd .kadr-gi:focus-visible { outline-offset: 1px; }
-html.kadr-rd .cAuthorPane .cAuthorPane_author > strong:has(> .kadr-gi) { display: inline-flex; align-items: center; max-width: 100%; vertical-align: top; }
+html.kadr-rd .cAuthorPane .cAuthorPane_author > strong:has(> .kadr-gi) { display: inline-flex; align-items: baseline; max-width: 100%; }
 html.kadr-rd .cAuthorPane .cAuthorPane_author > strong:has(> .kadr-gi) > a { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
-html.kadr-rd .cProfileHeader_name h1 .kadr-gi { width: 1em; height: 1em; margin-left: .12em; vertical-align: -.14em; border-radius: .3em; }
-html.kadr-rd .cUserHovercard__title .kadr-gi { vertical-align: -.22em; }
+html.kadr-rd .cAuthorPane .cAuthorPane_author > strong > .kadr-gi { top: .246em; }
+html.kadr-rd #elProfileHeader .cProfileHeader_name h1 .kadr-gi { width: 1em; height: 1em; margin-left: .1em; border-radius: .3em; font-size: inherit; vertical-align: -.146em; }
 html.kadr-rd .kadr-gtip {
   position: fixed; left: 0; top: 0; z-index: 2147483000; box-sizing: border-box; width: max-content; max-width: min(280px, calc(100vw - 16px));
   padding: 10px 13px 11px; border: 1px solid var(--k-line2); border-radius: 14px;

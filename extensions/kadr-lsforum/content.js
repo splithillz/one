@@ -331,7 +331,11 @@
     return s ? s.getAttribute('style') : '';
   }
   function giName(h) {
-    for (var n = h.firstChild; n; n = n.nextSibling) if (n.nodeType === 3 && n.nodeValue.trim()) return n;
+    for (var n = h.firstChild; n; n = n.nextSibling) if (n.nodeType === 3 && n.nodeValue.trim()) {
+      var m = /\s+$/.exec(n.nodeValue);
+      if (m) n.splitText(m.index);
+      return n;
+    }
     return null;
   }
   function giPut(anchor, info, style, keep) {
@@ -392,9 +396,10 @@
     var r = tipFor.getBoundingClientRect(), vw = root.clientWidth || innerWidth, w = tip.offsetWidth, h = tip.offsetHeight, m = 8, gap = 10;
     var below = r.top - gap - h < m, cx = r.left + r.width / 2, left = Math.max(m, Math.min(vw - w - m, cx - w / 2));
     tip.setAttribute('data-side', below ? 'bottom' : 'top');
-    tip.style.left = Math.round(left) + 'px';
+    left = Math.round(left);
+    tip.style.left = left + 'px';
     tip.style.top = Math.round(below ? r.bottom + gap : r.top - gap - h) + 'px';
-    tip.style.setProperty('--k-tip-x', Math.round(Math.max(14, Math.min(w - 14, cx - left))) + 'px');
+    tip.style.setProperty('--k-tip-x', Math.max(14, Math.min(w - 14, cx - left)).toFixed(2) + 'px');
   }
   function tipShow(ic, mode) {
     if (!ic.isConnected || !document.body) return;
