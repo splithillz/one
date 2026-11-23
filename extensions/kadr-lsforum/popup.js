@@ -7,7 +7,6 @@
   var $ = function (id) { return document.getElementById(id); };
 
   var SHEET = /^#sheet/.test(location.hash);
-  var siteLight = /light/.test(location.hash);
 
   var UI = {
     external: 'M8 16 16 8M9.5 8H16v6.5',
@@ -184,13 +183,6 @@
     var v = K.uiVars(cur);
     for (var k in v) root.style.setProperty(k, v[k]);
     themeColor.content = 'rgb(' + v['--bg'].split(' ').join(',') + ')';
-    var f = K.forced(cur), light = f ? f === 'light' : siteLight;
-    var L = K.siteLook(cur, light), hero = document.querySelector('.hero');
-    hero.classList.toggle('skin', prefs.skin);
-    hero.classList.toggle('light', light);
-    [['--f-page', L.page], ['--f-panel', L.panel], ['--f-raised', L.raised], ['--f-line', L.line], ['--f-acc', L.acc], ['--f-ink', L.ink],
-      ['--f-tx', L.text], ['--f-tx2', L.text2], ['--f-mut', L.muted]].forEach(function (x) { hero.style.setProperty(x[0], x[1]); });
-    $('heroName').textContent = K.themeName(cur);
   }
 
   var prefs = { skin: true, menuEntry: true, ckeTint: true, shadows: true, fx: 'plain', icons: 'native', postSize: 'm' };
@@ -304,7 +296,7 @@
     chrome.permissions.request({ origins: K.HOSTS }, function (ok) { if (ok) $('perm').hidden = true; });
   });
 
-  store.get(['theme', 'seed', 'skin', 'menuEntry', 'ckeTint', 'shadows', 'fx', 'icons', 'siteScheme', 'postSize', 'updLatest'], function (d) {
+  store.get(['theme', 'seed', 'skin', 'menuEntry', 'ckeTint', 'shadows', 'fx', 'icons', 'postSize', 'updLatest'], function (d) {
     d = d || {};
     cur = { theme: d.theme || K.OFF, seed: d.seed || null };
     if (/^#[0-9a-f]{6}$/i.test(d.seed || '')) seed = d.seed.toLowerCase();
@@ -315,7 +307,6 @@
     prefs.fx = d.fx === 'glass' || d.fx === 'material' ? d.fx : 'plain';
     prefs.icons = d.icons === 'solar' || d.icons === 'remix' ? d.icons : 'native';
     prefs.postSize = d.postSize === 'l' || d.postSize === 'xl' ? d.postSize : 'm';
-    if (!SHEET && d.siteScheme === 'light') siteLight = true;
     showUpd(d.updLatest);
     slidersFromSeed();
     paintCustom();

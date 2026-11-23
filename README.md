@@ -16,7 +16,7 @@
 |---|---|
 | **[Кадр для kinoarc](extensions/kadr-kinoarc/)**<br>Расширение: родные темы kinoarc.net и свой аватар | **[⬇ Скачать](https://github.com/splithillz/one/raw/main/releases/kadr-themes-kinoarc-v1.3.1.zip)**<br><sub>zip · 1.3.1 · 44 КБ</sub> |
 | **[Кадр для kinohub](extensions/kadr-kinohub/)**<br>Расширение: темы, новый дизайн, закладки и тайминги для on.kinohub.vip | **[⬇ Скачать](https://github.com/splithillz/one/raw/main/releases/kadr-themes-kinohub-v1.3.1.zip)**<br><sub>zip · 1.3.1 · 153 КБ</sub> |
-| **[Kadr для форума LS Project](extensions/kadr-lsforum/)**<br>Расширение: новый облик forum.ls-project.com, темы, Monet, стили | **[⬇ Скачать](https://github.com/splithillz/one/raw/main/releases/kadr-themes-lsforum-v1.5.0.zip)**<br><sub>zip · 1.5.0 · 223 КБ</sub> |
+| **[Kadr для форума LS Project](extensions/kadr-lsforum/)**<br>Расширение: новый облик forum.ls-project.com, темы, Monet, стили | **[⬇ Скачать](https://github.com/splithillz/one/raw/main/releases/kadr-themes-lsforum-v1.5.0.zip)**<br><sub>zip · 1.5.0 · 222 КБ</sub> |
 | **[Кадр для LuCI](openwrt/luci-theme-kadr/)**<br>Тема для роутера на OpenWrt и для podkop. Ставится [одной командой](#кадр-для-luci) | **[⬇ apk](https://github.com/splithillz/one/raw/main/releases/luci-theme-kadr-1.2.0-r1.apk)** <sub>для 25.12</sub><br>**[⬇ ipk](https://github.com/splithillz/one/raw/main/releases/luci-theme-kadr_1.2.0-r1_all.ipk)** <sub>для 24.10</sub> |
 
 Все файлы сразу — в папке [`releases`](releases/). Исправление опечаток для RP-чата — RP Speller и LS Autocorrect — переехало в репозиторий [**two**](https://github.com/splithillz/two).
@@ -65,7 +65,7 @@
 - На телефоне — кнопка «Тема» в панели форума и шторка с настройками.
 - Само проверяет, вышла ли новая версия.
 
-[![Скачать zip 1.5.0 · 223 КБ](https://img.shields.io/badge/%D1%81%D0%BA%D0%B0%D1%87%D0%B0%D1%82%D1%8C-zip%201.5.0%20%C2%B7%20223%20%D0%9A%D0%91-0f7a52?style=for-the-badge&labelColor=1b1f23)](https://github.com/splithillz/one/raw/main/releases/kadr-themes-lsforum-v1.5.0.zip)
+[![Скачать zip 1.5.0 · 222 КБ](https://img.shields.io/badge/%D1%81%D0%BA%D0%B0%D1%87%D0%B0%D1%82%D1%8C-zip%201.5.0%20%C2%B7%20222%20%D0%9A%D0%91-0f7a52?style=for-the-badge&labelColor=1b1f23)](https://github.com/splithillz/one/raw/main/releases/kadr-themes-lsforum-v1.5.0.zip)
 [![Описание и установка](https://img.shields.io/badge/%D0%BE%D0%BF%D0%B8%D1%81%D0%B0%D0%BD%D0%B8%D0%B5%20%D0%B8%20%D1%83%D1%81%D1%82%D0%B0%D0%BD%D0%BE%D0%B2%D0%BA%D0%B0-%E2%86%92-30363d?style=for-the-badge&labelColor=1b1f23)](extensions/kadr-lsforum/)
 
 Ещё: [тесты по живому форуму](extensions/kadr-lsforum-tests/) · [промо-картинки и текст](docs/promo/kadr-lsforum/)
