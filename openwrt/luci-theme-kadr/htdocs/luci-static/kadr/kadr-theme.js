@@ -84,7 +84,8 @@
 			dividers: DIVIDERS.indexOf(s.dividers) > -1 ? s.dividers : 'line',
 			bugs: s.bugs === true,
 			bugWalk: s.bugWalk === true,
-			bugLook: LOOKS.indexOf(s.bugLook) > -1 ? s.bugLook : 'color'
+			bugLook: LOOKS.indexOf(s.bugLook) > -1 ? s.bugLook : 'color',
+			bugMeme: s.bugMeme === true
 		};
 	}
 
@@ -145,7 +146,7 @@
 			return;
 		bugsLoading = true;
 		var s = g.document.createElement('script');
-		s.src = SELF.replace(/kadr-theme\.js(\?.*)?$/, 'kadr-bugs.js');
+		s.src = SELF.replace(/kadr-theme\.js/, 'kadr-bugs.js');
 		s.async = true;
 		s.onload = function () {
 			if (g.KadrBugs)

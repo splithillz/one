@@ -132,9 +132,11 @@ return baseclass.extend({
 		this.switches = {
 			shadows: this.switcher('kadr-shadow-label', 'shadows'),
 			bugs: this.switcher('kadr-bugs-label', 'bugs'),
-			bugWalk: this.switcher('kadr-walk-label', 'bugWalk')
+			bugWalk: this.switcher('kadr-walk-label', 'bugWalk'),
+			bugMeme: this.switcher('kadr-meme-label', 'bugMeme')
 		};
 
+		this.memeRow = E('div', { 'class': 'kadr-opt', 'title': 'Таракан-прораб в каске с кирпичом и круглый жук с улыбкой во все зубы' }, [ E('span', { 'id': 'kadr-meme-label' }, [ 'Прораб и Улыбака' ]), this.switches.bugMeme ]);
 		this.lookRow = E('div', { 'class': 'kadr-opt wide' }, [ E('span', { 'id': 'kadr-look-label' }, [ 'Вид жуков' ]), this.segs.bugLook ]);
 
 		this.palette = E('div', { 'class': 'kadr-sheet kadr-palette', 'role': 'dialog', 'aria-label': _('Design') }, [
@@ -153,6 +155,7 @@ return baseclass.extend({
 			E('div', { 'class': 'kadr-opts' }, [
 				E('div', { 'class': 'kadr-opt' }, [ E('span', { 'id': 'kadr-bugs-label' }, [ 'Бегают по экрану' ]), this.switches.bugs ]),
 				E('div', { 'class': 'kadr-opt' }, [ E('span', { 'id': 'kadr-walk-label' }, [ 'Ходят по кнопкам' ]), this.switches.bugWalk ]),
+				this.memeRow,
 				this.lookRow
 			]),
 			E('p', { 'class': 'kadr-sheet-note' }, [ 'Всё запоминается в этом браузере.' ])
@@ -248,6 +251,7 @@ return baseclass.extend({
 		});
 
 		this.lookRow.setAttribute('aria-disabled', state.bugs || state.bugWalk ? 'false' : 'true');
+		this.memeRow.setAttribute('aria-disabled', state.bugs || state.bugWalk ? 'false' : 'true');
 	},
 
 	swipeToClose(el, close, active) {

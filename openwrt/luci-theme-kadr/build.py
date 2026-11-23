@@ -8,7 +8,7 @@ import tarfile
 import time
 
 NAME = "luci-theme-kadr"
-VERSION = "1.2.0"
+VERSION = "1.3.0"
 RELEASE = "1"
 DESCRIPTION = "Kadr: LuCI theme in the kinoarc style with Kadr palettes and podkop support"
 URL = "https://github.com/splithillz/one/tree/main/luci-theme-kadr"
@@ -217,7 +217,22 @@ def write_latest(outdir, ipk, apk):
     return path
 
 
+def check_versions():
+    with open(os.path.join(HERE, "ucode", "template", "themes", "kadr", "header.ut"), encoding="utf-8") as f:
+        header = f.read()
+    with open(os.path.join(HERE, "Makefile"), encoding="utf-8") as f:
+        makefile = f.read()
+    problems = []
+    if f"const kadr_version = '{VERSION}';" not in header:
+        problems.append(f"header.ut: kadr_version must be '{VERSION}'")
+    if f"PKG_VERSION:={VERSION}\n" not in makefile:
+        problems.append(f"Makefile: PKG_VERSION must be {VERSION}")
+    if problems:
+        sys.exit("\n".join(problems))
+
+
 def main():
+    check_versions()
     outdir = sys.argv[1] if len(sys.argv) > 1 else os.path.normpath(os.path.join(HERE, "..", "..", "releases"))
     os.makedirs(outdir, exist_ok=True)
     files = layout()
