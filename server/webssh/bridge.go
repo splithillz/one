@@ -277,26 +277,35 @@ func (s *server) runShell(conn *wsConn, client *ssh.Client, auth clientMsg) erro
 
 func (s *server) dialSSH(user, password string) (*ssh.Client, error) {
 	asked := false
+	return s.dialAuth(user, []ssh.AuthMethod{
+		ssh.Password(password),
+		// Some servers take passwords only through PAM prompts.
+		ssh.KeyboardInteractive(func(_, _ string, questions []string, _ []bool) ([]string, error) {
+			if len(questions) == 0 {
+				return nil, nil
+			}
+			if asked {
+				return nil, errors.New("sshd asks again: wrong password or a second factor")
+			}
+			asked = true
+			answers := make([]string, len(questions))
+			for i := range answers {
+				answers[i] = password
+			}
+			return answers, nil
+		}),
+	})
+}
+
+// dialKey logs in with the API key (used by the HTTP exec endpoint).
+func (s *server) dialKey(user string, key ssh.Signer) (*ssh.Client, error) {
+	return s.dialAuth(user, []ssh.AuthMethod{ssh.PublicKeys(key)})
+}
+
+func (s *server) dialAuth(user string, auth []ssh.AuthMethod) (*ssh.Client, error) {
 	cfg := &ssh.ClientConfig{
-		User: user,
-		Auth: []ssh.AuthMethod{
-			ssh.Password(password),
-			// Some servers take passwords only through PAM prompts.
-			ssh.KeyboardInteractive(func(_, _ string, questions []string, _ []bool) ([]string, error) {
-				if len(questions) == 0 {
-					return nil, nil
-				}
-				if asked {
-					return nil, errors.New("sshd asks again: wrong password or a second factor")
-				}
-				asked = true
-				answers := make([]string, len(questions))
-				for i := range answers {
-					answers[i] = password
-				}
-				return answers, nil
-			}),
-		},
+		User:            user,
+		Auth:            auth,
 		HostKeyCallback: s.hostKeys.check,
 		Timeout:         10 * time.Second,
 	}

@@ -13,9 +13,10 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 )
 
-const version = "1.0.0"
+const version = "1.1.0"
 
 const defaultEnvFile = "/etc/webssh/webssh.env"
 
@@ -61,6 +62,8 @@ func main() {
 		err = runServe(args)
 	case "info":
 		err = runInfo(args)
+	case "gen-api-key": // installer-only: create api-token + SSH key, add to authorized_keys
+		err = runGenAPIKey(args)
 	case "ips": // for the installer: public addresses seen on the interfaces
 		for _, ip := range publicIPs() {
 			fmt.Println(ip)
@@ -175,4 +178,13 @@ func pick(values ...string) string {
 		}
 	}
 	return ""
+}
+
+func envDuration(name string) time.Duration {
+	if v := strings.TrimSpace(os.Getenv(name)); v != "" {
+		if d, err := time.ParseDuration(v); err == nil {
+			return d
+		}
+	}
+	return 0
 }

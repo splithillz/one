@@ -16,6 +16,8 @@ curl -fsSL https://raw.githubusercontent.com/splithillz/one/main/server/webssh/i
 |---|---|
 | Свой порт вместо случайного | `curl -fsSL …/install.sh \| PORT=8443 sh` |
 | Показать ссылку ещё раз | `webssh info` |
+| Включить HTTP API (команды для программы или ИИ) | `curl -fsSL …/install.sh \| sh -s api-on` |
+| Выключить API | `curl -fsSL …/install.sh \| sh -s api-off` |
 | Новая ссылка, старая перестанет открываться | `curl -fsSL …/install.sh \| sh -s new-link` |
 | Удалить всё | `curl -fsSL …/install.sh \| sh -s remove` |
 
@@ -34,6 +36,35 @@ curl -fsSL https://raw.githubusercontent.com/splithillz/one/main/server/webssh/i
 - **Без прав.** Сервис работает от пользователя `webssh` в песочнице systemd: писать может только в `/var/lib/webssh`, `/home` и `/root` не видит. Дыра в нём не даст root — root даёт только верный пароль от SSH.
 - **Ключ sshd сверяется** с `/etc/ssh/ssh_host_*_key.pub`, так что процесс, занявший порт SSH, пароль не получит.
 
+## HTTP API — команды для программы или ИИ
+
+Включается командой `api-on` и по умолчанию выключен. Нужен, чтобы команды на сервере выполнял не человек в браузере, а программа или ИИ-ассистент с инструментом HTTP-запросов.
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/splithillz/one/main/server/webssh/install.sh | sh -s api-on
+```
+
+Команда напечатает URL вида `https://IP:ПОРТ/секрет/api/exec` и отдельный **api-токен**. Дальше любой HTTP-запрос с этим токеном выполняет команду от root и возвращает вывод:
+
+```sh
+curl -k -H 'Authorization: Bearer ТОКЕН' --data-urlencode cmd='df -h; uptime' \
+  https://IP:ПОРТ/секрет/api/exec
+```
+
+Ответ — JSON `{"ok":true,"exit":0,"stdout":"…","stderr":"…","truncated":false}`. Добавь `?format=text`, чтобы получить голый текст вывода.
+
+Запрос принимается в любом виде, чтобы подошёл любой инструмент: токен в заголовке `Authorization: Bearer` или в поле/параметре `token`; команда как `?cmd=`, поле формы `cmd=`, тело JSON `{"cmd":"…"}` или просто сырое тело. GET и POST оба работают.
+
+**Как это устроено и чем защищено:**
+
+- Команды выполняются через **твой же sshd** по сгенерированному ключу (ed25519). Пароль root нигде не хранится; сам сервис webssh по-прежнему без прав, root берётся настоящим SSH-логином. Ключ лежит в `/var/lib/webssh/api_id`, читает его только пользователь `webssh`.
+- Ключ в `authorized_keys` заперт на `from="127.0.0.1,::1"` и `restrict` — зайти по нему можно только с самого сервера, не снаружи.
+- API живёт под той же секретной ссылкой, плюс сверяется api-токен. Без ссылки путь отвечает 404.
+- Каждая выполненная команда пишется в журнал: `journalctl -u webssh | grep 'API exec'` — видно, что и когда гонял ИИ.
+- Таймаут на команду — 120 с (меняется `WEBSSH_API_TIMEOUT` в env), вывод обрезается на 2 МБ на поток.
+
+**Важно, без иллюзий.** Кто знает URL и api-токен — выполняет команды от root на сервере. Если отдаёшь это стороннему ИИ на чужом сайте, токен окажется в логах того сайта, и доступ к серверу получит каждый, кто до этих логов доберётся. Выключить: `sh -s api-off` — ключ убирается из `authorized_keys`, токен удаляется. Сменить токен: `api-off`, потом `api-on`.
+
 ## Настройки
 
 Файл `/etc/webssh/webssh.env`, после правки — `systemctl restart webssh`.
@@ -43,6 +74,9 @@ curl -fsSL https://raw.githubusercontent.com/splithillz/one/main/server/webssh/i
 | `WEBSSH_LISTEN` | порт HTTPS, например `:8443` |
 | `WEBSSH_SSH` | адрес sshd, установка находит его сама (`127.0.0.1:22`) |
 | `WEBSSH_HOSTS` | IP или домен для ссылки и сертификата, если IP сервера не виден на его интерфейсах |
+| `WEBSSH_API` | `on` включает HTTP API (лучше командой `api-on`, она ещё и ключ ставит) |
+| `WEBSSH_API_USER` | от кого API выполняет команды, по умолчанию `root` |
+| `WEBSSH_API_TIMEOUT` | таймаут команды API, например `60s` (по умолчанию `120s`) |
 | `WEBSSH_CERT`, `WEBSSH_KEY` | свой сертификат вместо самоподписанного (файлы должен читать пользователь `webssh`) |
 
 Секретная ссылка и сертификат лежат в `/var/lib/webssh`.

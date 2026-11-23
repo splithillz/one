@@ -42,6 +42,7 @@ type server struct {
 	assets   map[string]*asset
 	limiter  *limiter
 	hostKeys *hostKeys
+	api      *apiConfig
 	ctx      context.Context
 	sessions sync.WaitGroup
 }
@@ -87,6 +88,7 @@ func runServe(args []string) error {
 		token:    token,
 		limiter:  newLimiter(),
 		hostKeys: loadHostKeys(cfg.SSH),
+		api:      loadAPI(cfg),
 		ctx:      ctx,
 	}
 	s.hostname, _ = os.Hostname()
@@ -172,6 +174,7 @@ func runInfo(args []string) error {
 	fmt.Printf("  SHA-256 %s\n", fingerprint(cs.leaf))
 	fmt.Printf("  действует до %s\n", cs.leaf.NotAfter.Format("02.01.2006"))
 	fmt.Printf("SSH: %s\n", cfg.SSH)
+	apiInfo(cfg, s.urls(cs))
 	return nil
 }
 
@@ -305,6 +308,12 @@ func (s *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	seg, tail, slash := strings.Cut(strings.TrimPrefix(r.URL.Path, "/"), "/")
 	if subtle.ConstantTimeCompare([]byte(seg), []byte(s.token)) != 1 {
 		http.NotFound(w, r)
+		return
+	}
+	// The exec API takes POST/OPTIONS, so it is routed before the page's
+	// GET-only restriction below.
+	if tail == "api/exec" {
+		s.serveAPIExec(w, r)
 		return
 	}
 	if r.Method != http.MethodGet && r.Method != http.MethodHead {

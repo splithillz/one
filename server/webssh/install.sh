@@ -3,6 +3,9 @@
 #
 # Поставить или обновить (зайти на сервер по SSH под root и вставить):
 #   curl -fsSL https://raw.githubusercontent.com/splithillz/one/main/server/webssh/install.sh | sh
+# Включить HTTP API (выполнение команд программой или ИИ по токену):
+#   curl -fsSL .../install.sh | sh -s api-on
+# Выключить API:    curl -fsSL .../install.sh | sh -s api-off
 # Новая секретная ссылка (старая перестанет открываться):
 #   curl -fsSL .../install.sh | sh -s new-link
 # Показать ссылку:  webssh info
@@ -235,6 +238,9 @@ WEBSSH_LISTEN=:$port
 WEBSSH_SSH=$ssh
 # IP или домен для ссылки и сертификата, через запятую. Пусто — IP с интерфейсов сервера
 WEBSSH_HOSTS=$hosts
+# HTTP API: выполнение команд программой или ИИ по токену. Включается командой api-on
+WEBSSH_API=off
+WEBSSH_API_USER=root
 # Свой сертификат вместо самоподписанного, файлы должен читать пользователь webssh
 #WEBSSH_CERT=/etc/webssh/fullchain.pem
 #WEBSSH_KEY=/etc/webssh/privkey.pem
@@ -318,7 +324,7 @@ show_info() {
 	fi
 }
 
-install_all() {
+install_core() {
 	command -v systemctl >/dev/null 2>&1 && [ -d /run/systemd/system ] ||
 		fail "нужен systemd (Debian, Ubuntu, CentOS, Alma, Rocky — подходят)"
 	rm -rf "$tmp"
@@ -338,7 +344,10 @@ install_all() {
 	wait_ready
 	port=$(env_value WEBSSH_LISTEN | sed 's/.*://')
 	[ -n "$port" ] && open_port "$port"
+}
 
+install_all() {
+	install_core
 	say ""
 	if [ "$fresh" = 1 ]; then
 		say "Готово: Web SSH $version установлен и запущен."
@@ -346,6 +355,50 @@ install_all() {
 		say "Готово: Web SSH обновлён до $version, ссылка и настройки прежние."
 	fi
 	show_info
+}
+
+# Путь к authorized_keys пользователя, под которым API будет выполнять команды.
+api_authkeys() {
+	home=$(getent passwd "$1" 2>/dev/null | cut -d: -f6)
+	[ -n "$home" ] || home=$(eval echo "~$1" 2>/dev/null)
+	[ -n "$home" ] && [ "$home" != "~$1" ] || fail "не нашёл домашнюю папку пользователя $1"
+	echo "$home/.ssh/authorized_keys"
+}
+
+api_on() {
+	install_core
+	target=${API_USER:-root}
+	id -u "$target" >/dev/null 2>&1 || fail "нет пользователя $target"
+	ak=$(api_authkeys "$target")
+	"$BIN" gen-api-key -state "$STATE" -user "$target" -owner webssh -authorized-keys "$ak" ||
+		fail "не получилось создать ключ API"
+	set_env WEBSSH_API on
+	set_env WEBSSH_API_USER "$target"
+	systemctl restart webssh || fail "systemctl restart webssh не сработал"
+	wait_ready
+	say ""
+	say "Готово: HTTP API включён. Команды выполняются от $target."
+	show_info
+	say ""
+	say "ВАЖНО: кто знает URL и токен выше — выполняет команды от $target на сервере."
+	say "Это и есть доступ, который получит ИИ. Утечёт токен — утечёт сервер."
+	say "Выключить: эта же команда с  api-off  в конце."
+}
+
+remove_api_key() {
+	target=$(env_value WEBSSH_API_USER)
+	[ -n "$target" ] || target=root
+	ak=$(getent passwd "$target" 2>/dev/null | cut -d: -f6)/.ssh/authorized_keys
+	[ -f "$ak" ] && sed -i '/ webssh-api$/d' "$ak" 2>/dev/null
+	rm -f "$STATE/api_id" "$STATE/api-token"
+}
+
+api_off() {
+	[ -x "$BIN" ] || fail "Web SSH не установлен"
+	remove_api_key
+	set_env WEBSSH_API off
+	systemctl restart webssh 2>/dev/null
+	say "HTTP API выключен: ключ убран из authorized_keys, токен удалён."
 }
 
 new_link() {
@@ -360,6 +413,7 @@ new_link() {
 
 remove_all() {
 	port=$(env_value WEBSSH_LISTEN | sed 's/.*://')
+	remove_api_key
 	systemctl disable --now webssh >/dev/null 2>&1
 	rm -f "$UNIT" "$BIN"
 	systemctl daemon-reload 2>/dev/null
@@ -380,9 +434,11 @@ main() {
 
 	case ${1:-install} in
 		install | update) install_all ;;
+		api-on | api) api_on ;;
+		api-off) api_off ;;
 		new-link | newlink) new_link ;;
 		remove | uninstall) remove_all ;;
-		*) fail "не знаю команду «$1». Есть install, new-link и remove" ;;
+		*) fail "не знаю команду «$1». Есть install, api-on, api-off, new-link и remove" ;;
 	esac
 }
 
