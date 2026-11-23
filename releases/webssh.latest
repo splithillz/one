@@ -1,0 +1,5 @@
+version=1.0.0
+amd64=webssh-1.0.0-linux-amd64.gz
+amd64_sha256=a714063d78c8ab77166611d6ea83bee467a916b19d1bd63c8a49ee1c772555bc
+arm64=webssh-1.0.0-linux-arm64.gz
+arm64_sha256=94817dd38d6b4fda84a65240a07d4f9cd5a4f828bc06e41458b2f12eabc6c1e7

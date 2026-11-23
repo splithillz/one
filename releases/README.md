@@ -10,5 +10,7 @@
 | [luci-theme-kadr-1.2.0-r1.apk](https://github.com/splithillz/one/raw/main/releases/luci-theme-kadr-1.2.0-r1.apk) | Кадр для LuCI 1.2.0, OpenWrt 25.12 | `apk add --allow-untrusted` |
 | [luci-theme-kadr_1.2.0-r1_all.ipk](https://github.com/splithillz/one/raw/main/releases/luci-theme-kadr_1.2.0-r1_all.ipk) | Кадр для LuCI 1.2.0, OpenWrt 24.10 | «Загрузить пакет…» в LuCI или `opkg install` |
 | [luci-theme-kadr-1.2.0.tar.gz](https://github.com/splithillz/one/raw/main/releases/luci-theme-kadr-1.2.0.tar.gz) | Те же файлы темы для ручной раскладки в `/` | распаковать в корень роутера |
+| [webssh-1.0.0-linux-amd64.gz](https://github.com/splithillz/one/raw/main/releases/webssh-1.0.0-linux-amd64.gz) | Web SSH 1.0.0, сервер x86_64 | [одной командой](../server/webssh/) |
+| [webssh-1.0.0-linux-arm64.gz](https://github.com/splithillz/one/raw/main/releases/webssh-1.0.0-linux-arm64.gz) | Web SSH 1.0.0, сервер arm64 | так же |
 
 Подробности — в README каждого проекта: [расширения](../extensions/), [роутер](../openwrt/luci-theme-kadr/). RP Speller теперь в репозитории [two](https://github.com/splithillz/two).

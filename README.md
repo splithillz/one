@@ -125,6 +125,8 @@ one/
 │   └── kadr-lsforum-tests/  прогон Kadr по живому форуму перед выпуском
 ├── openwrt/
 │   └── luci-theme-kadr/     Кадр для LuCI
+├── server/
+│   └── webssh/              Web SSH: терминал сервера в браузере
 ├── releases/                готовые архивы и пакеты
 └── docs/                    картинки для этого README и промо форума
 ```

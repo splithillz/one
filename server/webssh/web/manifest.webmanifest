@@ -1,0 +1,10 @@
+{
+	"name": "Web SSH",
+	"short_name": "SSH",
+	"start_url": "../",
+	"scope": "../",
+	"display": "standalone",
+	"background_color": "#0b0c0d",
+	"theme_color": "#141618",
+	"icons": [{ "src": "icon.svg", "sizes": "any", "type": "image/svg+xml" }]
+}
