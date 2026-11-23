@@ -410,13 +410,18 @@ html.kadr-rd .kadr-gi::before {
   content: ""; position: absolute; inset: 9%; background-color: currentColor;
   -webkit-mask: var(--gi) center / contain no-repeat; mask: var(--gi) center / contain no-repeat;
 }
-html.kadr-rd .kadr-gi::after { content: ""; position: absolute; inset: -5px; }
+html.kadr-rd .kadr-gi::after { content: ""; position: absolute; inset: -4px -6px -4px 0; }
 html.kadr-rd .kadr-gi:hover, html.kadr-rd .kadr-gi[aria-describedby] { background-color: color-mix(in srgb, currentColor 16%, transparent); }
 html.kadr-rd .kadr-gi:active { transform: scale(.88); }
 html.kadr-rd .kadr-gi:focus-visible { outline-offset: 1px; }
+html.kadr-rd .cAuthorPane_author:is(:has(> .kadr-gi), :has(> strong > .kadr-gi)) { overflow: visible; }
 html.kadr-rd .cAuthorPane .cAuthorPane_author > strong:has(> .kadr-gi) { display: inline-flex; align-items: baseline; max-width: 100%; }
 html.kadr-rd .cAuthorPane .cAuthorPane_author > strong:has(> .kadr-gi) > a { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 html.kadr-rd .cAuthorPane .cAuthorPane_author > strong > .kadr-gi { top: .246em; }
+html.kadr-rd .cAuthorPane_mobile .cAuthorPane_author:has(> .kadr-gi) { display: inline-flex; align-items: baseline; max-width: 100%; }
+html.kadr-rd .cAuthorPane_mobile .cAuthorPane_author:has(> .kadr-gi) > a { min-width: 0; }
+html.kadr-rd .cAuthorPane_mobile .cAuthorPane_author > .kadr-gi { top: .246em; }
+html.kadr-rd kadr-nw { white-space: nowrap; }
 html.kadr-rd #elProfileHeader .cProfileHeader_name h1 .kadr-gi { width: 1em; height: 1em; margin-left: .1em; border-radius: .3em; font-size: inherit; vertical-align: -.146em; }
 html.kadr-rd .kadr-gtip {
   position: fixed; left: 0; top: 0; z-index: 2147483000; box-sizing: border-box; width: max-content; max-width: min(280px, calc(100vw - 16px));

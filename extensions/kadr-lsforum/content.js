@@ -293,35 +293,35 @@
 
   var GI = 'data-kadr-gi', STAFF = 'Команда проекта';
   var GROUPS = {
-    'management': ['crown', 'Руководство проекта', 1],
-    'lead administrator': ['a4', 'Администратор 4 уровня', 1],
-    'administrator 3 lvl.': ['a3', 'Администратор 3 уровня', 1],
-    'administrator 2 lvl.': ['a2', 'Администратор 2 уровня', 1],
-    'administrator 1 lvl.': ['a1', 'Администратор 1 уровня', 1],
-    'developer': ['wrench', 'Разработчик проекта', 1],
-    'technical administrator': ['server', 'Технический администратор', 1],
-    'game support': ['headset', 'Игровая поддержка', 1],
-    'community manager': ['megaphone', 'Комьюнити-менеджер', 1],
-    'head of staff': ['staff', 'Руководитель администрации', 1],
-    'head of support': ['headset', 'Руководитель поддержки', 1],
-    'head of technical': ['server', 'Руководитель технического отдела', 1],
-    'head of faction': ['flag', 'Руководитель фракций', 1],
-    'head of ifm': ['incognito', 'Руководитель IFM', 1],
-    'head of lfm': ['case', 'Руководитель LFM', 1],
-    'head of property': ['home', 'Руководитель отдела имущества', 1],
-    'ifm administrator': ['incognito', 'Администратор IFM', 1],
-    'lfm administrator': ['case', 'Администратор LFM', 1],
-    'property administrator': ['home', 'Администратор имущества', 1],
-    'лос сантос проджект': ['verified', 'Официальный аккаунт сервера', 0],
-    'government': ['bank', 'Правительство штата', 0],
-    'легенда': ['star', '', 0]
+    'management': ['crown', 1],
+    'lead administrator': ['a4', 1],
+    'administrator 3 lvl.': ['a3', 1],
+    'administrator 2 lvl.': ['a2', 1],
+    'administrator 1 lvl.': ['a1', 1],
+    'developer': ['wrench', 1],
+    'technical administrator': ['server', 1],
+    'game support': ['headset', 1],
+    'community manager': ['megaphone', 1],
+    'head of staff': ['staff', 1],
+    'head of support': ['headset', 1],
+    'head of technical': ['server', 1],
+    'head of faction': ['flag', 1],
+    'head of ifm': ['incognito', 1],
+    'head of lfm': ['case', 1],
+    'head of property': ['home', 1],
+    'ifm administrator': ['incognito', 1],
+    'lfm administrator': ['case', 1],
+    'property administrator': ['home', 1],
+    'лос сантос проджект': ['verified', 0, 'Официальный аккаунт сервера'],
+    'government': ['bank', 0],
+    'легенда': ['star', 0]
   };
   var tip = null, tipFor = null, tipMode = '';
   function giText(el) { return el ? el.textContent.replace(/\s+/g, ' ').trim() : ''; }
   function giInfo(group, badge, plaque) {
     var name = giText(group), key = name.toLowerCase(), g = Object.prototype.hasOwnProperty.call(GROUPS, key) ? GROUPS[key] : null;
     var staff = badge ? (badge.getAttribute('title') || badge.getAttribute('aria-label') || STAFF).trim() : '';
-    if (g) return { icon: g[0], title: name, desc: g[1], staff: staff || (g[2] ? STAFF : '') };
+    if (g) return { icon: g[0], title: name, desc: g[2] || '', staff: staff || (g[1] ? STAFF : '') };
     if (name && plaque) return { icon: 'medal', title: name, desc: '', staff: staff };
     if (staff) return { icon: 'shield', title: staff, desc: '', staff: '' };
     return null;
@@ -331,10 +331,16 @@
     return s ? s.getAttribute('style') : '';
   }
   function giName(h) {
+    var w = h.querySelector(':scope > kadr-nw');
+    if (w) return w.firstChild && w.firstChild.nodeType === 3 ? w.firstChild : null;
     for (var n = h.firstChild; n; n = n.nextSibling) if (n.nodeType === 3 && n.nodeValue.trim()) {
       var m = /\s+$/.exec(n.nodeValue);
       if (m) n.splitText(m.index);
-      return n;
+      var at = n.nodeValue.search(/\S+$/), tail = at > 0 ? n.splitText(at) : n;
+      w = document.createElement('kadr-nw');
+      tail.before(w);
+      w.appendChild(tail);
+      return tail;
     }
     return null;
   }
@@ -353,7 +359,7 @@
     if (info.staff) el.setAttribute('data-kadr-gs', info.staff);
     el.setAttribute('role', 'img');
     el.setAttribute('tabindex', '0');
-    el.setAttribute('aria-label', [info.title, info.desc, info.staff].filter(Boolean).join('. '));
+    el.setAttribute('aria-label', [info.title, info.desc, info.staff].filter(Boolean).join(', '));
     if (style) el.setAttribute('style', style);
     anchor.parentNode.insertBefore(el, anchor.nextSibling);
     keep.add(el);
@@ -371,8 +377,8 @@
       }
       var head = document.querySelector('#elProfileHeader .cProfileHeader_name'), h1 = head && head.querySelector('h1');
       if (h1) {
-        var hg = head.querySelector('span.ipsPageHead_barText');
-        giPut(giName(h1), giInfo(hg, null, null), giStyle(hg), keep);
+        var hg = head.querySelector('span.ipsPageHead_barText'), hi = giInfo(hg, null, null);
+        if (hi) giPut(giName(h1), hi, giStyle(hg), keep);
       }
       var cards = document.querySelectorAll('.cUserHovercard');
       for (i = 0; i < cards.length; i++) {
@@ -381,7 +387,11 @@
       }
     }
     var all = document.querySelectorAll('.kadr-gi');
-    for (i = 0; i < all.length; i++) if (!keep.has(all[i])) all[i].remove();
+    for (i = 0; i < all.length; i++) if (!keep.has(all[i])) {
+      var pw = all[i].parentNode;
+      all[i].remove();
+      if (pw && pw.localName === 'kadr-nw') pw.replaceWith.apply(pw, Array.prototype.slice.call(pw.childNodes));
+    }
     if (tipFor && !tipFor.isConnected) tipHide();
     if (!skin && tip) { tipHide(); tip.remove(); }
   }
@@ -430,17 +440,23 @@
     tip.classList.add('on');
   }
   function giOf(t) { return t && t.closest ? t.closest('.kadr-gi') : null; }
+  var tipWait = 0;
   document.addEventListener('pointerover', function (e) {
     var ic = e.pointerType === 'mouse' && giOf(e.target);
-    if (ic && tipFor !== ic) tipShow(ic, 'hover');
+    if (!ic || tipFor === ic) return;
+    clearTimeout(tipWait);
+    tipWait = setTimeout(function () { if (ic.matches(':hover') && tipFor !== ic) tipShow(ic, 'hover'); }, 120);
   });
   document.addEventListener('pointerout', function (e) {
     var ic = giOf(e.target);
-    if (ic && ic === tipFor && tipMode === 'hover' && !(e.relatedTarget && ic.contains(e.relatedTarget))) tipHide();
+    if (!ic || (e.relatedTarget && ic.contains(e.relatedTarget))) return;
+    clearTimeout(tipWait);
+    if (ic === tipFor && tipMode === 'hover') tipHide();
   });
   document.addEventListener('click', function (e) {
     var ic = giOf(e.target);
     if (!ic) return;
+    clearTimeout(tipWait);
     if (tipFor === ic && tipMode === 'pin') tipHide(); else tipShow(ic, 'pin');
   });
   document.addEventListener('pointerdown', function (e) { if (tipFor && !giOf(e.target)) tipHide(); }, true);
@@ -725,7 +741,7 @@
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', settle); else settle();
 
   var timer = 0;
-  function mine(n) { return n === styleEl || n === liftEl || n === fitEl || (!!tip && n === tip) || !!(n.classList && n.classList.contains('kadr-gi')); }
+  function mine(n) { return n === styleEl || n === liftEl || n === fitEl || (!!tip && n === tip) || n.localName === 'kadr-nw' || !!(n.classList && n.classList.contains('kadr-gi')); }
   function later() {
     if (!timer) timer = setTimeout(function () { timer = 0; place(); syncEntry(); measure(); syncGroups(); liftColors(); syncLsp(); markOwn(); fitSoon(); }, 120);
   }
