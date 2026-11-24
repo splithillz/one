@@ -119,6 +119,7 @@
       place();
       setMeta(isLight() ? null : theme.bg);
     }
+    syncGroups();
     liftColors();
     syncLsp();
     markOwn();
@@ -146,7 +147,7 @@
   }
   function liftColors() {
     if (!ready || !document.body) return;
-    var light = isLight(), list = document.body.querySelectorAll('[style*="color"]'), by = Object.create(null), keys = [], css = '';
+    var light = isLight(), base = skin ? K.NATIVE : null, list = document.body.querySelectorAll('[style*="color"]'), by = Object.create(null), keys = [], css = '';
     for (var i = 0; i < list.length; i++) {
       var el = list[i], st = el.getAttribute('style'), orig = el.style.color;
       if (!st || !orig) continue;
@@ -156,8 +157,8 @@
     }
     for (var k = 0; k < keys.length; k++) {
       var x = by[keys[k]], c = parseColor(x.orig), sel = '[style=' + cssStr(keys[k]) + ']';
-      var b = x.body ? K.liftColor(c, state, light) : null;
-      var h = x.head ? K.liftColor(c, state, false) : null;
+      var b = x.body ? K.liftColor(c, state, light, base) : null;
+      var h = x.head ? K.liftColor(c, state, false, base) : null;
       if (b) css += 'html ' + sel + '{color:rgb(' + b.join(',') + ')!important}';
       if (x.head && (h || b) && String(h) !== String(b)) css += 'html :is(#elProfileHeader,.ipsPageHead_special) ' + sel + '{color:' + (h ? 'rgb(' + h.join(',') + ')' : x.orig) + '!important}';
     }
@@ -289,6 +290,194 @@
       list[i].toggleAttribute('data-kadr-own', own);
     }
   }
+
+  var GI = 'data-kadr-gi', STAFF = 'Команда проекта';
+  var GROUPS = {
+    'management': ['crown', 1],
+    'lead administrator': ['a4', 1],
+    'administrator 3 lvl.': ['a3', 1],
+    'administrator 2 lvl.': ['a2', 1],
+    'administrator 1 lvl.': ['a1', 1],
+    'developer': ['wrench', 1],
+    'technical administrator': ['server', 1],
+    'game support': ['headset', 1],
+    'community manager': ['megaphone', 1],
+    'head of staff': ['staff', 1],
+    'head of support': ['headset', 1],
+    'head of technical': ['server', 1],
+    'head of faction': ['flag', 1],
+    'head of ifm': ['incognito', 1],
+    'head of lfm': ['case', 1],
+    'head of property': ['home', 1],
+    'ifm administrator': ['incognito', 1],
+    'lfm administrator': ['case', 1],
+    'property administrator': ['home', 1],
+    'лос сантос проджект': ['verified', 0, 'Официальный аккаунт сервера'],
+    'government': ['bank', 0],
+    'легенда': ['star', 0]
+  };
+  var tip = null, tipFor = null, tipMode = '';
+  function giText(el) { return el ? el.textContent.replace(/\s+/g, ' ').trim() : ''; }
+  function giInfo(group, badge, plaque) {
+    var name = giText(group), key = name.toLowerCase(), g = Object.prototype.hasOwnProperty.call(GROUPS, key) ? GROUPS[key] : null;
+    var staff = badge ? (badge.getAttribute('title') || badge.getAttribute('aria-label') || STAFF).trim() : '';
+    if (g) return { icon: g[0], title: name, desc: g[2] || '', staff: staff || (g[1] ? STAFF : '') };
+    if (name && plaque) return { icon: 'medal', title: name, desc: '', staff: staff };
+    if (staff) return { icon: 'shield', title: staff, desc: '', staff: '' };
+    return null;
+  }
+  function giStyle(group) {
+    var s = group && (group.matches('[style*="color"]') ? group : group.querySelector('[style*="color"]'));
+    return s ? s.getAttribute('style') : '';
+  }
+  function giName(h) {
+    var w = h.querySelector(':scope > kadr-nw');
+    if (w) return w.firstChild && w.firstChild.nodeType === 3 ? w.firstChild : null;
+    for (var n = h.firstChild; n; n = n.nextSibling) if (n.nodeType === 3 && n.nodeValue.trim()) {
+      var m = /\s+$/.exec(n.nodeValue);
+      if (m) n.splitText(m.index);
+      var at = n.nodeValue.search(/\S+$/), tail = at > 0 ? n.splitText(at) : n;
+      w = document.createElement('kadr-nw');
+      tail.before(w);
+      w.appendChild(tail);
+      return tail;
+    }
+    return null;
+  }
+  function giPut(anchor, info, style, keep) {
+    if (!anchor || !anchor.parentNode || !info) return;
+    var cur = anchor.nextSibling, sig = [info.icon, info.title, info.desc, info.staff, style].join('|');
+    if (!(cur && cur.nodeType === 1 && cur.classList.contains('kadr-gi'))) cur = null;
+    if (cur && cur.getAttribute('data-kadr-sig') === sig) { keep.add(cur); return; }
+    if (cur) cur.remove();
+    var el = document.createElement('span');
+    el.className = 'kadr-gi';
+    el.setAttribute(GI, info.icon);
+    el.setAttribute('data-kadr-sig', sig);
+    el.setAttribute('data-kadr-gt', info.title);
+    if (info.desc) el.setAttribute('data-kadr-gd', info.desc);
+    if (info.staff) el.setAttribute('data-kadr-gs', info.staff);
+    el.setAttribute('role', 'img');
+    el.setAttribute('tabindex', '0');
+    el.setAttribute('aria-label', [info.title, info.desc, info.staff].filter(Boolean).join(', '));
+    if (style) el.setAttribute('style', style);
+    anchor.parentNode.insertBefore(el, anchor.nextSibling);
+    keep.add(el);
+  }
+  function syncGroups() {
+    var keep = new Set(), i;
+    if (ready && skin && document.body) {
+      var panes = document.querySelectorAll('.cAuthorPane');
+      for (i = 0; i < panes.length; i++) {
+        var pane = panes[i], post = pane.closest('article, .ipsComment') || pane.parentElement;
+        var group = pane.querySelector('[data-role="group"]'), style = giStyle(group);
+        var info = giInfo(group, post.querySelector('.cAuthorPane_badge--moderator'), pane.querySelector('[data-role="group-icon"] img, img.cAuthorGroupIcon'));
+        giPut(pane.querySelector('.cAuthorPane_author a'), info, style, keep);
+        giPut(post.querySelector('.cAuthorPane_mobile .cAuthorPane_author a'), info, style, keep);
+      }
+      var head = document.querySelector('#elProfileHeader .cProfileHeader_name'), h1 = head && head.querySelector('h1');
+      if (h1) {
+        var hg = head.querySelector('span.ipsPageHead_barText'), hi = giInfo(hg, null, null);
+        if (hi) giPut(giName(h1), hi, giStyle(hg), keep);
+      }
+      var cards = document.querySelectorAll('.cUserHovercard');
+      for (i = 0; i < cards.length; i++) {
+        var t = cards[i].querySelector('.cUserHovercard__title'), p = t && t.nextElementSibling;
+        if (t) giPut(t.querySelector('a'), giInfo(p, null, null), giStyle(p), keep);
+      }
+    }
+    var all = document.querySelectorAll('.kadr-gi');
+    for (i = 0; i < all.length; i++) if (!keep.has(all[i])) {
+      var pw = all[i].parentNode;
+      all[i].remove();
+      if (pw && pw.localName === 'kadr-nw') pw.replaceWith.apply(pw, Array.prototype.slice.call(pw.childNodes));
+    }
+    if (tipFor && !tipFor.isConnected) tipHide();
+    if (!skin && tip) { tipHide(); tip.remove(); }
+  }
+  function tipHide() {
+    if (tipFor) tipFor.removeAttribute('aria-describedby');
+    tipFor = null;
+    tipMode = '';
+    if (tip) tip.classList.remove('on');
+  }
+  function tipPlace() {
+    if (!tip || !tipFor) return;
+    var r = tipFor.getBoundingClientRect(), vw = root.clientWidth || innerWidth, w = tip.offsetWidth, h = tip.offsetHeight, m = 8, gap = 10;
+    var below = r.top - gap - h < m, cx = r.left + r.width / 2, left = Math.max(m, Math.min(vw - w - m, cx - w / 2));
+    tip.setAttribute('data-side', below ? 'bottom' : 'top');
+    left = Math.round(left);
+    tip.style.left = left + 'px';
+    tip.style.top = Math.round(below ? r.bottom + gap : r.top - gap - h) + 'px';
+    tip.style.setProperty('--k-tip-x', Math.max(14, Math.min(w - 14, cx - left)).toFixed(2) + 'px');
+  }
+  function tipShow(ic, mode) {
+    if (!ic.isConnected || !document.body) return;
+    if (!tip) {
+      tip = document.createElement('div');
+      tip.className = 'kadr-gtip';
+      tip.id = 'kadr-gtip';
+      tip.setAttribute('role', 'tooltip');
+    }
+    if (tip.parentNode !== document.body) document.body.appendChild(tip);
+    if (tipFor && tipFor !== ic) tipFor.removeAttribute('aria-describedby');
+    tipFor = ic;
+    tipMode = mode;
+    var h = document.createElement('div'), i = document.createElement('i'), b = document.createElement('b');
+    var c = parseColor(ic.style.color), x = c && K.liftColor(c, state, isLight(), K.NATIVE);
+    h.className = 'kadr-gtip-h';
+    i.setAttribute(GI, ic.getAttribute(GI));
+    if (c) i.style.setProperty('--k-gic', 'rgb(' + (x || c).join(',') + ')');
+    b.textContent = ic.getAttribute('data-kadr-gt') || '';
+    h.append(i, b);
+    tip.textContent = '';
+    tip.appendChild(h);
+    var d = ic.getAttribute('data-kadr-gd'), s = ic.getAttribute('data-kadr-gs');
+    if (d) { var dl = document.createElement('div'); dl.className = 'kadr-gtip-d'; dl.textContent = d; tip.appendChild(dl); }
+    if (s) { var sl = document.createElement('span'); sl.className = 'kadr-gtip-s'; sl.textContent = s; tip.appendChild(sl); }
+    ic.setAttribute('aria-describedby', 'kadr-gtip');
+    tipPlace();
+    tip.classList.add('on');
+  }
+  function giOf(t) { return t && t.closest ? t.closest('.kadr-gi') : null; }
+  var tipWait = 0;
+  document.addEventListener('pointerover', function (e) {
+    var ic = e.pointerType === 'mouse' && giOf(e.target);
+    if (!ic || tipFor === ic) return;
+    clearTimeout(tipWait);
+    tipWait = setTimeout(function () { if (ic.matches(':hover') && tipFor !== ic) tipShow(ic, 'hover'); }, 120);
+  });
+  document.addEventListener('pointerout', function (e) {
+    var ic = giOf(e.target);
+    if (!ic || (e.relatedTarget && ic.contains(e.relatedTarget))) return;
+    clearTimeout(tipWait);
+    if (ic === tipFor && tipMode === 'hover') tipHide();
+  });
+  document.addEventListener('click', function (e) {
+    var ic = giOf(e.target);
+    if (!ic) return;
+    clearTimeout(tipWait);
+    if (tipFor === ic && tipMode === 'pin') tipHide(); else tipShow(ic, 'pin');
+  });
+  document.addEventListener('pointerdown', function (e) { if (tipFor && !giOf(e.target)) tipHide(); }, true);
+  document.addEventListener('focusin', function (e) {
+    var ic = giOf(e.target);
+    if (ic && tipFor !== ic) tipShow(ic, 'focus');
+  });
+  document.addEventListener('focusout', function (e) { if (tipMode === 'focus' && e.target === tipFor) tipHide(); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && tipFor) tipHide(); });
+  var tipRaf = 0;
+  function tipFollow() {
+    if (!tipFor || tipRaf) return;
+    tipRaf = requestAnimationFrame(function () {
+      tipRaf = 0;
+      if (!tipFor) return;
+      var r = tipFor.getBoundingClientRect();
+      if (!tipFor.isConnected || !r.width || r.bottom < 0 || r.top > innerHeight) tipHide(); else tipPlace();
+    });
+  }
+  window.addEventListener('scroll', tipFollow, { capture: true, passive: true });
+  window.addEventListener('resize', tipFollow);
 
   var UPD_URL = '/index.php?/topic/924-x/', UPD = 'data-kadr-upd', updLatest = '', updAt = 0;
   function verNum(v) { var p = String(v || '').split('.'); return (+p[0] || 0) * 1e6 + (+p[1] || 0) * 1e3 + (+p[2] || 0); }
@@ -546,15 +735,15 @@
     if (!settled) requestAnimationFrame(tick);
   }
   requestAnimationFrame(tick);
-  window.addEventListener('load', function () { place(); syncEntry(); measure(); liftColors(); syncLsp(); markOwn(); noteScheme(); fitSoon(); updSoon(); setTimeout(function () { settled = true; measure(); }, 1500); });
-  document.addEventListener('DOMContentLoaded', function () { place(); syncEntry(); measure(); liftColors(); syncLsp(); markOwn(); noteScheme(); fitSoon(); });
+  window.addEventListener('load', function () { place(); syncEntry(); measure(); syncGroups(); liftColors(); syncLsp(); markOwn(); noteScheme(); fitSoon(); updSoon(); setTimeout(function () { settled = true; measure(); }, 1500); });
+  document.addEventListener('DOMContentLoaded', function () { place(); syncEntry(); measure(); syncGroups(); liftColors(); syncLsp(); markOwn(); noteScheme(); fitSoon(); });
   function settle() { setTimeout(function () { root.classList.add('kadr-settled'); }, 1600); }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', settle); else settle();
 
   var timer = 0;
-  function mine(n) { return n === styleEl || n === liftEl || n === fitEl; }
+  function mine(n) { return n === styleEl || n === liftEl || n === fitEl || (!!tip && n === tip) || n.localName === 'kadr-nw' || !!(n.classList && n.classList.contains('kadr-gi')); }
   function later() {
-    if (!timer) timer = setTimeout(function () { timer = 0; place(); syncEntry(); measure(); liftColors(); syncLsp(); markOwn(); fitSoon(); }, 120);
+    if (!timer) timer = setTimeout(function () { timer = 0; place(); syncEntry(); measure(); syncGroups(); liftColors(); syncLsp(); markOwn(); fitSoon(); }, 120);
   }
   new MutationObserver(function (records) {
     for (var i = 0; i < records.length; i++) {

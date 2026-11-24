@@ -16,8 +16,8 @@
 |---|---|
 | **[Кадр для kinoarc](extensions/kadr-kinoarc/)**<br>Расширение: родные темы kinoarc.net и свой аватар | **[⬇ Скачать](https://github.com/splithillz/one/raw/main/releases/kadr-themes-kinoarc-v1.3.1.zip)**<br><sub>zip · 1.3.1 · 44 КБ</sub> |
 | **[Кадр для kinohub](extensions/kadr-kinohub/)**<br>Расширение: темы, новый дизайн, закладки и тайминги для on.kinohub.vip | **[⬇ Скачать](https://github.com/splithillz/one/raw/main/releases/kadr-themes-kinohub-v1.3.1.zip)**<br><sub>zip · 1.3.1 · 153 КБ</sub> |
-| **[Kadr для форума LS Project](extensions/kadr-lsforum/)**<br>Расширение: новый облик forum.ls-project.com, темы, Monet, стили | **[⬇ Скачать](https://github.com/splithillz/one/raw/main/releases/kadr-themes-lsforum-v1.4.1.zip)**<br><sub>zip · 1.4.1 · 209 КБ</sub> |
-| **[Кадр для LuCI](openwrt/luci-theme-kadr/)**<br>Тема для роутера на OpenWrt и для podkop. Ставится [одной командой](#кадр-для-luci) | **[⬇ apk](https://github.com/splithillz/one/raw/main/releases/luci-theme-kadr-1.2.0-r1.apk)** <sub>для 25.12</sub><br>**[⬇ ipk](https://github.com/splithillz/one/raw/main/releases/luci-theme-kadr_1.2.0-r1_all.ipk)** <sub>для 24.10</sub> |
+| **[Kadr для форума LS Project](extensions/kadr-lsforum/)**<br>Расширение: новый облик forum.ls-project.com, темы, Monet, стили | **[⬇ Скачать](https://github.com/splithillz/one/raw/main/releases/kadr-themes-lsforum-v1.5.0.zip)**<br><sub>zip · 1.5.0 · 222 КБ</sub> |
+| **[Кадр для LuCI](openwrt/luci-theme-kadr/)**<br>Тема для роутера на OpenWrt и для podkop. Ставится [одной командой](#кадр-для-luci) | **[⬇ apk](https://github.com/splithillz/one/raw/main/releases/luci-theme-kadr-1.3.0-r1.apk)** <sub>для 25.12</sub><br>**[⬇ ipk](https://github.com/splithillz/one/raw/main/releases/luci-theme-kadr_1.3.0-r1_all.ipk)** <sub>для 24.10</sub> |
 
 Все файлы сразу — в папке [`releases`](releases/). Исправление опечаток для RP-чата — RP Speller и LS Autocorrect — переехало в репозиторий [**two**](https://github.com/splithillz/two).
 
@@ -61,10 +61,11 @@
 - 10 тем и свой цвет, каждая на тёмной и на белой схеме форума. Monet White, Dark и Black по палитре Material You.
 - Стиль «Обычный», «Стекло» или Material, с тенями или без.
 - Размер текста постов и иконки на выбор: родные, Solar или Remix.
+- У ника — значок его группы в цвете плашки: корона, гаечный ключ, щит с уровнем и другие, с подсказкой при наведении.
 - На телефоне — кнопка «Тема» в панели форума и шторка с настройками.
 - Само проверяет, вышла ли новая версия.
 
-[![Скачать zip 1.4.1 · 209 КБ](https://img.shields.io/badge/%D1%81%D0%BA%D0%B0%D1%87%D0%B0%D1%82%D1%8C-zip%201.4.1%20%C2%B7%20209%20%D0%9A%D0%91-0f7a52?style=for-the-badge&labelColor=1b1f23)](https://github.com/splithillz/one/raw/main/releases/kadr-themes-lsforum-v1.4.1.zip)
+[![Скачать zip 1.5.0 · 222 КБ](https://img.shields.io/badge/%D1%81%D0%BA%D0%B0%D1%87%D0%B0%D1%82%D1%8C-zip%201.5.0%20%C2%B7%20222%20%D0%9A%D0%91-0f7a52?style=for-the-badge&labelColor=1b1f23)](https://github.com/splithillz/one/raw/main/releases/kadr-themes-lsforum-v1.5.0.zip)
 [![Описание и установка](https://img.shields.io/badge/%D0%BE%D0%BF%D0%B8%D1%81%D0%B0%D0%BD%D0%B8%D0%B5%20%D0%B8%20%D1%83%D1%81%D1%82%D0%B0%D0%BD%D0%BE%D0%B2%D0%BA%D0%B0-%E2%86%92-30363d?style=for-the-badge&labelColor=1b1f23)](extensions/kadr-lsforum/)
 
 Ещё: [тесты по живому форуму](extensions/kadr-lsforum-tests/) · [промо-картинки и текст](docs/promo/kadr-lsforum/)
@@ -90,7 +91,7 @@
 
 - 10 палитр, свой цвет и Monet White, Dark и Black. Выбираются кнопкой в шапке, у каждого устройства свой выбор.
 - Стиль «Обычный», «Стекло» или Material, разделители «Скрыть», «Линия» или «Сегменты», тени по желанию.
-- По желанию по экрану бегают жуки, а по кнопкам ходят жуки, нарисованные сбоку: цветные, пиксельные или силуэты цвета темы.
+- По желанию по экрану бегают жуки, а по кнопкам ходят жуки, нарисованные сбоку: цветные, пиксельные или силуэты цвета темы. Отдельным тумблером добавляются Прораб и Улыбака — жуки с лицами с фотографий.
 - podkop: секции, настройки, диагностика и дашборд в стиле темы.
 - На телефоне меню и настройки открываются шторкой снизу.
 
@@ -102,8 +103,8 @@ wget -q -O - https://raw.githubusercontent.com/splithillz/one/main/openwrt/luci-
 
 Удалить — та же команда с `-s remove` в конце. Можно и вручную, пакетом из таблицы выше.
 
-[![Скачать apk для OpenWrt 25.12](https://img.shields.io/badge/%D1%81%D0%BA%D0%B0%D1%87%D0%B0%D1%82%D1%8C-apk%20%D0%B4%D0%BB%D1%8F%20OpenWrt%2025.12-0f7a52?style=for-the-badge&labelColor=1b1f23)](https://github.com/splithillz/one/raw/main/releases/luci-theme-kadr-1.2.0-r1.apk)
-[![Скачать ipk для OpenWrt 24.10](https://img.shields.io/badge/%D1%81%D0%BA%D0%B0%D1%87%D0%B0%D1%82%D1%8C-ipk%20%D0%B4%D0%BB%D1%8F%20OpenWrt%2024.10-0f7a52?style=for-the-badge&labelColor=1b1f23)](https://github.com/splithillz/one/raw/main/releases/luci-theme-kadr_1.2.0-r1_all.ipk)
+[![Скачать apk для OpenWrt 25.12](https://img.shields.io/badge/%D1%81%D0%BA%D0%B0%D1%87%D0%B0%D1%82%D1%8C-apk%20%D0%B4%D0%BB%D1%8F%20OpenWrt%2025.12-0f7a52?style=for-the-badge&labelColor=1b1f23)](https://github.com/splithillz/one/raw/main/releases/luci-theme-kadr-1.3.0-r1.apk)
+[![Скачать ipk для OpenWrt 24.10](https://img.shields.io/badge/%D1%81%D0%BA%D0%B0%D1%87%D0%B0%D1%82%D1%8C-ipk%20%D0%B4%D0%BB%D1%8F%20OpenWrt%2024.10-0f7a52?style=for-the-badge&labelColor=1b1f23)](https://github.com/splithillz/one/raw/main/releases/luci-theme-kadr_1.3.0-r1_all.ipk)
 [![Описание и установка](https://img.shields.io/badge/%D0%BE%D0%BF%D0%B8%D1%81%D0%B0%D0%BD%D0%B8%D0%B5%20%D0%B8%20%D1%83%D1%81%D1%82%D0%B0%D0%BD%D0%BE%D0%B2%D0%BA%D0%B0-%E2%86%92-30363d?style=for-the-badge&labelColor=1b1f23)](openwrt/luci-theme-kadr/)
 
 ## Ещё: two
@@ -135,5 +136,5 @@ one/
 
 - Кадр для LuCI — Apache-2.0, основан на luci-theme-bootstrap из OpenWrt ([LICENSE](openwrt/luci-theme-kadr/LICENSE)).
 - Шрифт Onest — SIL Open Font License 1.1, текст лицензии лежит рядом со шрифтом.
-- Наборы иконок Solar и Remix в Kadr для форума — [iconsets/LICENSES.txt](extensions/kadr-lsforum/iconsets/LICENSES.txt).
+- Иконки Solar, Remix и Tabler в Kadr для форума — [iconsets/LICENSES.txt](extensions/kadr-lsforum/iconsets/LICENSES.txt).
 - Остальные проекты пока без отдельной лицензии.
