@@ -1,0 +1,157 @@
+#!/bin/sh
+
+base=${KADR_BASE:-https://raw.githubusercontent.com/splithillz/one/main}
+pkg=luci-theme-kadr
+run=/var/run/kadr-update
+state=$run/state
+
+fetch() {
+	rm -f "$2"
+	if command -v uclient-fetch >/dev/null 2>&1; then
+		uclient-fetch -q -T "$3" -O "$2" "$1" 2>/dev/null
+	elif command -v curl >/dev/null 2>&1; then
+		curl -fsSL --max-time "$3" -o "$2" "$1"
+	else
+		wget -q -T "$3" -O "$2" "$1"
+	fi
+}
+
+manager() {
+	if command -v apk >/dev/null 2>&1; then
+		echo apk
+	elif command -v opkg >/dev/null 2>&1; then
+		echo opkg
+	fi
+}
+
+installed() {
+	case $(manager) in
+		apk) apk info -v 2>/dev/null | sed -n "s/^$pkg-\([0-9][^ ]*\)\$/\1/p" | head -n 1 ;;
+		opkg) opkg status "$pkg" 2>/dev/null | sed -n 's/^Version: //p' | head -n 1 ;;
+	esac
+}
+
+newer() {
+	awk -v a="$1" -v b="$2" '
+		function n(v,    p) {
+			split(v, p, /[.-]/)
+			sub(/^r/, "", p[4])
+			return ((p[1] * 1000 + p[2]) * 1000 + p[3]) * 1000 + p[4]
+		}
+		BEGIN { exit !(n(a) > n(b)) }'
+}
+
+field() {
+	sed -n "s/^$1=//p" "$run/latest" | head -n 1
+}
+
+put() {
+	printf '%s\n' "$@" > "$state.tmp" && mv -f "$state.tmp" "$state"
+}
+
+prepare() {
+	[ -d "$run" ] || mkdir -m 700 "$run"
+}
+
+running() {
+	[ -f "$run/pid" ] && kill -0 "$(cat "$run/pid")" 2>/dev/null
+}
+
+check() {
+	prepare || { echo "error=tmp"; return; }
+	fetch "$base/releases/$pkg.latest" "$run/latest" 15 || { echo "error=net"; return; }
+	latest=$(field version)
+	[ -n "$latest" ] || { echo "error=bad"; return; }
+	cur=$(installed)
+	echo "installed=$cur"
+	echo "latest=$latest"
+	if newer "$latest" "$cur"; then
+		echo "update=1"
+	else
+		echo "update=0"
+	fi
+}
+
+start() {
+	prepare || { echo "error=tmp"; return; }
+	if running; then
+		echo "state=running"
+		return
+	fi
+	[ -n "$(manager)" ] || { echo "error=pm"; return; }
+	if ! cp "$0" "$run/worker" || ! chmod 700 "$run/worker"; then
+		echo "error=tmp"
+		return
+	fi
+	rm -f "$run/pid"
+	put state=running step=check
+	if command -v start-stop-daemon >/dev/null 2>&1; then
+		start-stop-daemon -S -b -m -p "$run/pid" -x /bin/sh -- "$run/worker" work
+	else
+		sh "$run/worker" work </dev/null >/dev/null 2>&1 &
+	fi
+	echo "state=running"
+}
+
+fail() {
+	rm -f "$run/pkg" "$run"/*.apk "$run"/*.ipk
+	put state=error error="$1" version="$latest"
+	exit 1
+}
+
+work() {
+	echo $$ > "$run/pid"
+	pm=$(manager)
+	ext=ipk
+	[ "$pm" = apk ] && ext=apk
+	latest=
+	fetch "$base/releases/$pkg.latest" "$run/latest" 20 || fail net
+	latest=$(field version)
+	file=$(field "$ext")
+	sum=$(field "${ext}_sha256")
+	[ -n "$latest" ] && [ -n "$file" ] && [ -n "$sum" ] || fail bad
+	case $file in
+		*/* | .*) fail bad ;;
+	esac
+	cur=$(installed)
+	if ! newer "$latest" "$cur"; then
+		put state=done version="$cur" same=1
+		return
+	fi
+
+	put state=running step=download version="$latest"
+	fetch "$base/releases/$file" "$run/pkg" 90 || fail download
+
+	put state=running step=verify version="$latest"
+	command -v sha256sum >/dev/null 2>&1 || fail sum
+	[ "$(sha256sum "$run/pkg" | cut -d ' ' -f 1)" = "$sum" ] || fail sum
+	mv -f "$run/pkg" "$run/$file" || fail tmp
+
+	put state=running step=install version="$latest"
+	if [ "$pm" = apk ]; then
+		apk add --no-network --allow-untrusted "$run/$file" </dev/null >"$run/log" 2>&1 || fail install
+	else
+		opkg install "$run/$file" </dev/null >"$run/log" 2>&1 || fail install
+	fi
+	rm -f "$run/$file" "$run/latest"
+	put state=done version="$latest"
+}
+
+status() {
+	if [ ! -f "$state" ]; then
+		echo "state=idle"
+		return
+	fi
+	cat "$state"
+	if grep -q '^state=running' "$state" && [ -f "$run/pid" ] && ! running; then
+		echo "dead=1"
+	fi
+}
+
+case $1 in
+	check) check ;;
+	start) start ;;
+	status) status ;;
+	work) work ;;
+	*) echo "error=usage" ;;
+esac

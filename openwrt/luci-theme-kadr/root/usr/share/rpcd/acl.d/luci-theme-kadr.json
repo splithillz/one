@@ -1,0 +1,16 @@
+{
+	"luci-theme-kadr": {
+		"description": "Grant access to Kadr theme updates",
+		"read": {
+			"file": {
+				"/usr/libexec/kadr-update check": [ "exec" ],
+				"/usr/libexec/kadr-update status": [ "exec" ]
+			}
+		},
+		"write": {
+			"file": {
+				"/usr/libexec/kadr-update start": [ "exec" ]
+			}
+		}
+	}
+}

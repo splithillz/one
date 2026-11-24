@@ -1,8 +1,82 @@
 'use strict';
 'require baseclass';
+'require fs';
 'require ui';
 
 const SWIPE_CLOSE = 90;
+const UPDATE_KEY = 'kadr-luci-update';
+const UPDATE_TOOL = '/usr/libexec/kadr-update';
+const UPDATE_EVERY = 12 * 3600 * 1000;
+const UPDATE_RETRY = 30 * 60 * 1000;
+const UPDATE_LIMIT = 5 * 60 * 1000;
+const CHANGES_URL = 'https://github.com/splithillz/one/tree/main/openwrt/luci-theme-kadr#%D1%87%D1%82%D0%BE-%D0%BD%D0%BE%D0%B2%D0%BE%D0%B3%D0%BE';
+const UPDATE_ERRORS = {
+	net: 'Роутер не достучался до GitHub. Проверь, что на роутере есть интернет',
+	bad: 'Список версий на GitHub битый, попробуй позже',
+	download: 'Пакет не скачался, попробуй ещё раз',
+	sum: 'Пакет скачался битым, попробуй ещё раз',
+	install: 'Пакетный менеджер не смог поставить пакет',
+	pm: 'На роутере нет ни apk, ни opkg',
+	tmp: 'Не получилось записать временные файлы',
+	died: 'Обновление прервалось, попробуй ещё раз',
+	acl: 'Обновления заработают после повторного входа в LuCI',
+	missing: 'Нет скрипта обновления. Поставь тему заново командой из README',
+	rpc: 'Роутер не ответил, попробуй ещё раз'
+};
+const UPDATE_STEPS = {
+	check: 'Готовлю обновление…',
+	download: 'Скачиваю %s…',
+	verify: 'Проверяю пакет…',
+	install: 'Ставлю %s…'
+};
+
+function verParts(v) {
+	const m = String(v || '').match(/^(\d+)\.(\d+)\.(\d+)(?:-r(\d+))?/);
+	return m ? [ +m[1], +m[2], +m[3], +(m[4] || 0) ] : [ 0, 0, 0, 0 ];
+}
+
+function isNewer(a, b) {
+	const x = verParts(a);
+	const y = verParts(b);
+
+	for (let i = 0; i < 4; i++)
+		if (x[i] !== y[i])
+			return x[i] > y[i];
+
+	return false;
+}
+
+function verLabel(v) {
+	return String(v || '').replace(/-r\d+$/, '');
+}
+
+function parseLines(text) {
+	const out = {};
+
+	String(text || '').split('\n').forEach((line) => {
+		const i = line.indexOf('=');
+		if (i > 0)
+			out[line.slice(0, i)] = line.slice(i + 1).trim();
+	});
+
+	return out;
+}
+
+function rpcError(err) {
+	if (err && err.name === 'PermissionError')
+		return 'acl';
+
+	return err && err.name === 'NotFoundError' ? 'missing' : 'rpc';
+}
+
+function ago(t) {
+	const min = Math.round((Date.now() - t) / 60000);
+
+	if (min < 1)
+		return 'только что';
+
+	return min < 60 ? '%d мин назад'.format(min) : '%d ч назад'.format(Math.round(min / 60));
+}
 
 return baseclass.extend({
 	__init__() {
@@ -14,6 +88,7 @@ return baseclass.extend({
 
 		this.bindBurger();
 		this.bindPalette();
+		this.initUpdate();
 
 		document.addEventListener('keydown', (ev) => {
 			if (ev.key === 'Escape')
@@ -65,6 +140,16 @@ return baseclass.extend({
 	setPalette(open) {
 		if (open && !this.palette)
 			this.buildPalette();
+
+		if (open && this.updBox) {
+			if (!document.body.classList.contains('kadr-palette-open'))
+				this.placeUpdate(this.hasUpdate() || this.updBusy);
+
+			if (!this.updBusy && L.env.sessionid && (!this.upd.t || Date.now() - this.upd.t > UPDATE_EVERY))
+				this.checkUpdate(true);
+			else
+				this.renderUpdate();
+		}
 
 		document.body.classList.toggle('kadr-palette-open', open);
 
@@ -126,7 +211,8 @@ return baseclass.extend({
 		this.segs = {
 			fx: this.segment('kadr-fx-label', 'fx', [ [ 'plain', 'Обычный' ], [ 'glass', 'Стекло' ], [ 'material', 'Material' ] ]),
 			dividers: this.segment('kadr-div-label', 'dividers', [ [ 'none', 'Скрыть' ], [ 'line', 'Линия' ], [ 'segments', 'Сегменты' ] ]),
-			bugLook: this.segment('kadr-look-label', 'bugLook', [ [ 'color', 'Цветные' ], [ 'pixel', 'Пиксели' ], [ 'mono', 'Силуэты' ] ])
+			bugLook: this.segment('kadr-look-label', 'bugLook', [ [ 'color', 'Цветные' ], [ 'pixel', 'Пиксели' ], [ 'mono', 'Силуэты' ] ]),
+			bugCount: this.segment('kadr-count-label', 'bugCount', [ [ 'few', 'Мало' ], [ 'normal', 'Средне' ], [ 'many', 'Много' ] ])
 		};
 
 		this.switches = {
@@ -137,7 +223,14 @@ return baseclass.extend({
 		};
 
 		this.memeRow = E('div', { 'class': 'kadr-opt', 'title': 'Таракан-прораб в каске с кирпичом и круглый жук с улыбкой во все зубы' }, [ E('span', { 'id': 'kadr-meme-label' }, [ 'Прораб и Улыбака' ]), this.switches.bugMeme ]);
+		this.updBox = E('div', { 'class': 'kadr-opt kadr-upd', 'aria-live': 'polite' });
+		this.updTop = E('div', { 'class': 'kadr-upd-top' });
+		this.updBottom = E('div', { 'class': 'kadr-upd-bottom' }, [
+			E('span', { 'class': 'kadr-tiles-group kadr-opts-title' }, [ 'Обновление' ]),
+			E('div', { 'class': 'kadr-opts' }, [ this.updBox ])
+		]);
 		this.lookRow = E('div', { 'class': 'kadr-opt wide' }, [ E('span', { 'id': 'kadr-look-label' }, [ 'Вид жуков' ]), this.segs.bugLook ]);
+		this.countRow = E('div', { 'class': 'kadr-opt wide' }, [ E('span', { 'id': 'kadr-count-label' }, [ 'Сколько жуков' ]), this.segs.bugCount ]);
 
 		this.palette = E('div', { 'class': 'kadr-sheet kadr-palette', 'role': 'dialog', 'aria-label': _('Design') }, [
 			E('div', { 'class': 'kadr-grip' }),
@@ -145,6 +238,7 @@ return baseclass.extend({
 				E('strong', {}, [ _('Design') ]),
 				E('button', { 'class': 'kadr-ibtn kadr-close', 'type': 'button', 'aria-label': _('Close'), 'click': () => this.setPalette(false) })
 			]),
+			this.updTop,
 			E('div', { 'class': 'kadr-tiles', 'role': 'radiogroup' }, tiles),
 			E('div', { 'class': 'kadr-opts' }, [
 				E('div', { 'class': 'kadr-opt wide' }, [ E('span', { 'id': 'kadr-fx-label' }, [ 'Стиль' ]), this.segs.fx ]),
@@ -156,12 +250,16 @@ return baseclass.extend({
 				E('div', { 'class': 'kadr-opt' }, [ E('span', { 'id': 'kadr-bugs-label' }, [ 'Бегают по экрану' ]), this.switches.bugs ]),
 				E('div', { 'class': 'kadr-opt' }, [ E('span', { 'id': 'kadr-walk-label' }, [ 'Ходят по кнопкам' ]), this.switches.bugWalk ]),
 				this.memeRow,
+				this.countRow,
 				this.lookRow
 			]),
+			this.updBottom,
 			E('p', { 'class': 'kadr-sheet-note' }, [ 'Всё запоминается в этом браузере.' ])
 		]);
 
 		this.syncOptions();
+		this.placeUpdate(this.hasUpdate() || this.updBusy);
+		this.renderUpdate();
 		document.body.appendChild(this.palette);
 		this.swipeToClose(this.palette, () => this.setPalette(false), () => true);
 	},
@@ -252,6 +350,237 @@ return baseclass.extend({
 
 		this.lookRow.setAttribute('aria-disabled', state.bugs || state.bugWalk ? 'false' : 'true');
 		this.memeRow.setAttribute('aria-disabled', state.bugs || state.bugWalk ? 'false' : 'true');
+		this.countRow.setAttribute('aria-disabled', state.bugs || state.bugWalk ? 'false' : 'true');
+	},
+
+	loadUpdate() {
+		try {
+			return JSON.parse(window.localStorage.getItem(UPDATE_KEY)) || {};
+		}
+		catch (e) {
+			return {};
+		}
+	},
+
+	saveUpdate(info) {
+		this.upd = info;
+
+		try {
+			window.localStorage.setItem(UPDATE_KEY, JSON.stringify(info));
+		}
+		catch (e) {}
+	},
+
+	initUpdate() {
+		this.upd = this.loadUpdate();
+		this.markUpdate();
+
+		if (!L.env.sessionid || !document.querySelector('.kadr-palette-btn'))
+			return;
+
+		const u = this.upd;
+		const wait = u.error ? (u.error === 'acl' && u.sid !== L.env.sessionid ? 0 : UPDATE_RETRY) : UPDATE_EVERY;
+
+		if (u.started && Date.now() - u.started < UPDATE_LIMIT) {
+			this.updBusy = true;
+			this.updView = { mode: 'updating', step: 'check', version: u.latest };
+			window.setTimeout(() => this.pollUpdate(false, 0, u.started), 1500);
+		}
+		else if (!u.t || Date.now() - u.t > wait) {
+			window.setTimeout(() => this.checkUpdate(false), 4000);
+		}
+	},
+
+	pageVersion() {
+		return document.documentElement.getAttribute('data-kadr-version') || '';
+	},
+
+	currentVersion() {
+		const page = this.pageVersion();
+		return isNewer(this.upd.installed, page) ? this.upd.installed : page;
+	},
+
+	hasUpdate() {
+		return !this.upd.error && !!this.upd.latest && isNewer(this.upd.latest, this.currentVersion());
+	},
+
+	markUpdate() {
+		const btn = document.querySelector('.kadr-palette-btn');
+
+		if (!btn)
+			return;
+
+		const on = this.hasUpdate();
+		const label = on ? '%s · вышло обновление'.format(_('Design')) : _('Design');
+
+		btn.classList.toggle('kadr-has-update', on);
+		btn.setAttribute('title', label);
+		btn.setAttribute('aria-label', label);
+	},
+
+	checkUpdate(shown) {
+		if (this.updBusy)
+			return;
+
+		this.updBusy = true;
+
+		if (shown)
+			this.renderUpdate({ mode: 'checking' });
+
+		fs.exec(UPDATE_TOOL, [ 'check' ]).then((res) => {
+			const r = parseLines(res.stdout);
+			this.saveUpdate(r.error ? { t: Date.now(), error: r.error } : { t: Date.now(), installed: r.installed, latest: r.latest });
+		}, (err) => {
+			this.saveUpdate({ t: Date.now(), error: rpcError(err), sid: L.env.sessionid });
+		}).then(() => {
+			this.updBusy = false;
+			this.markUpdate();
+			this.renderUpdate(null);
+		});
+	},
+
+	startUpdate() {
+		if (this.updBusy)
+			return;
+
+		const since = Date.now();
+
+		this.updBusy = true;
+		this.saveUpdate(Object.assign({}, this.upd, { started: since }));
+		this.renderUpdate({ mode: 'updating', step: 'check', version: this.upd.latest });
+
+		fs.exec(UPDATE_TOOL, [ 'start' ]).then((res) => {
+			const r = parseLines(res.stdout);
+
+			if (r.error)
+				this.finishUpdate({ state: 'error', error: r.error }, true);
+			else
+				this.pollUpdate(true, 0, since);
+		}, (err) => this.finishUpdate({ state: 'error', error: rpcError(err) }, true));
+	},
+
+	pollUpdate(shown, misses, since) {
+		window.setTimeout(() => {
+			const slow = new Promise((resolve, reject) => window.setTimeout(() => reject(new Error('slow')), 4000));
+
+			Promise.race([ fs.exec(UPDATE_TOOL, [ 'status' ]), slow ]).then((res) => {
+				const r = parseLines(res.stdout);
+
+				if (r.state === 'running' && !r.dead && Date.now() - since < UPDATE_LIMIT) {
+					this.renderUpdate({ mode: 'updating', step: r.step, version: r.version || this.upd.latest });
+					this.pollUpdate(shown, 0, since);
+					return;
+				}
+
+				if (r.state !== 'done' && r.state !== 'error')
+					r.error = 'died';
+
+				this.finishUpdate(r, shown);
+			}, () => {
+				if (misses < 10)
+					this.pollUpdate(shown, misses + 1, since);
+				else
+					this.finishUpdate({ state: 'error', error: 'rpc' }, shown);
+			});
+		}, 1000);
+	},
+
+	finishUpdate(r, shown) {
+		this.updBusy = false;
+
+		if (r.state === 'done') {
+			this.saveUpdate({ t: Date.now(), installed: r.version, latest: r.version });
+			this.markUpdate();
+
+			if (shown && !r.same) {
+				this.renderUpdate({ mode: 'done' });
+				window.setTimeout(() => window.location.reload(), 1500);
+				return;
+			}
+
+			this.renderUpdate(null);
+			return;
+		}
+
+		this.saveUpdate(Object.assign({}, this.upd, { started: 0 }));
+		this.markUpdate();
+		this.renderUpdate({ mode: 'error', error: r.error || 'died', retry: 'update' });
+	},
+
+	placeUpdate(top) {
+		if (top)
+			this.updTop.appendChild(this.updBox);
+		else
+			this.updBottom.lastElementChild.appendChild(this.updBox);
+
+		this.updBottom.hidden = !!top;
+	},
+
+	updButton(label, action, primary) {
+		const attrs = { 'type': 'button', 'class': 'kadr-upd-btn' + (primary ? ' primary' : '') };
+
+		if (action)
+			attrs.click = (ev) => {
+				ev.stopPropagation();
+				action();
+			};
+		else
+			attrs.disabled = '';
+
+		return E('button', attrs, [ label ]);
+	},
+
+	renderUpdate(view) {
+		if (view !== undefined)
+			this.updView = view;
+
+		if (!this.updBox)
+			return;
+
+		const u = this.upd;
+		const v = this.updView || {};
+		const cur = verLabel(this.currentVersion());
+		const mode = v.mode || (u.error ? 'error' : this.hasUpdate() ? 'available' : u.latest ? 'latest' : 'idle');
+		const code = v.error || u.error;
+		let title = cur ? 'Кадр %s'.format(cur) : 'Кадр';
+		let sub = [ 'Проверяю раз в 12 часов' ];
+		let btn = this.updButton('Проверить', () => this.checkUpdate(true));
+
+		if (mode === 'checking') {
+			sub = [ 'Проверяю обновления…' ];
+			btn = this.updButton('Проверить');
+		}
+		else if (mode === 'latest') {
+			sub = [ 'Последняя версия · проверено %s'.format(ago(u.t)) ];
+		}
+		else if (mode === 'available') {
+			title = 'Вышла версия %s'.format(verLabel(u.latest));
+			sub = [ 'Сейчас стоит %s · '.format(cur), E('a', { 'href': CHANGES_URL, 'target': '_blank', 'rel': 'noreferrer', 'click': (ev) => ev.stopPropagation() }, [ 'Что нового' ]) ];
+			btn = this.updButton('Обновить', () => this.startUpdate(), true);
+		}
+		else if (mode === 'updating') {
+			title = 'Обновляю до %s'.format(verLabel(v.version || u.latest));
+			sub = [ (UPDATE_STEPS[v.step] || UPDATE_STEPS.check).format(verLabel(v.version || u.latest)) ];
+			btn = this.updButton('Обновляю', null, true);
+		}
+		else if (mode === 'done') {
+			title = 'Кадр обновлён';
+			sub = [ 'Перезагружаю страницу…' ];
+			btn = '';
+		}
+		else if (mode === 'error') {
+			sub = [ UPDATE_ERRORS[code] || UPDATE_ERRORS.rpc ];
+			btn = code === 'acl'
+				? E('a', { 'class': 'kadr-upd-btn', 'href': L.url('admin/logout') }, [ 'Выйти' ])
+				: this.updButton('Ещё раз', () => (v.retry === 'update' ? this.startUpdate() : this.checkUpdate(true)));
+		}
+
+		this.updBox.setAttribute('data-state', mode);
+		L.dom.content(this.updBox, [
+			E('span', { 'class': 'kadr-upd-ic', 'aria-hidden': 'true' }),
+			E('span', { 'class': 'kadr-upd-tx' }, [ E('strong', {}, [ title ]), E('small', {}, sub) ]),
+			btn
+		]);
 	},
 
 	swipeToClose(el, close, active) {
