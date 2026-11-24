@@ -814,7 +814,8 @@
 		legsSide(c, sp, ph, R, false, G.base);
 	}
 
-	var state = { bugs: false, bugWalk: false, bugLook: 'color', bugMeme: false };
+	var state = { bugs: false, bugWalk: false, bugLook: 'color', bugMeme: false, bugCount: 'normal' };
+	var DENSITY = { few: .5, normal: 1, many: 2 };
 	var theme = { acc: [63, 224, 161], light: false, shadows: true };
 	var canvas = null, ctx = null, off = null, octx = null;
 	var raf = 0, last = 0, now = 0, dpr = 1, W = 0, H = 0;
@@ -970,7 +971,7 @@
 	}
 
 	function spawnCrawler(fromEdge, force) {
-		var sp = force || pickSpecies(null, memeCount(crawlers) >= 3), b = {
+		var sp = force || pickSpecies(null, memeCount(crawlers) >= Math.round(3 * density())), b = {
 			sp: sp, scale: rand(.9, 1.12), v: 0, turn: 0, ph: rand(0, TAU), seed: rand(0, 100),
 			pause: 0, life: rand(25, 70), leaving: false, delay: 0
 		};
@@ -990,8 +991,13 @@
 		return b;
 	}
 
+	function density() {
+		return DENSITY[state.bugCount] || 1;
+	}
+
 	function target() {
-		return Math.max(3, Math.min(12, Math.round(W * H / 130000)));
+		var k = density();
+		return Math.max(Math.round(3 * k), Math.min(Math.round(12 * k), Math.round(W * H / 130000 * k)));
 	}
 
 	function updateCrawlers(dt) {
@@ -1080,16 +1086,21 @@
 	}
 
 	function updateWalkers(dt) {
-		var want = W < 700 ? 2 : 4;
+		var want = Math.round((W < 700 ? 2 : 4) * density());
+		walkers.forEach(function (w, i) {
+			if (i >= want)
+				w.leave = true;
+		});
+		walkers = walkers.filter(function (w) { return !(w.leave && (!w.el || w.lost > 0 || w.fade < .02)); });
 		if (now > scanAt) {
 			scanAt = now + 2500;
 			var list = candidates();
 			walkers.forEach(function (w) {
-				if (!w.el || !w.el.isConnected || w.lost > 1.5)
+				if (!w.leave && (!w.el || !w.el.isConnected || w.lost > 1.5))
 					assign(w, list);
 			});
 			while (walkers.length < want && list.length) {
-				var sp = pickSpecies('stag', memeCount(walkers) >= 1), w = { sp: sp, size: walkerSize(sp), ph: rand(0, TAU), seed: rand(0, 100), pause: 0, lost: 0, v: 0, vmax: sp.speed * rand(.5, .8) };
+				var sp = pickSpecies('stag', memeCount(walkers) >= Math.max(1, Math.round(density()))), w = { sp: sp, size: walkerSize(sp), ph: rand(0, TAU), seed: rand(0, 100), pause: 0, lost: 0, v: 0, vmax: sp.speed * rand(.5, .8) };
 				if (!assign(w, list)) {
 					if (!sp.meme)
 						break;
@@ -1115,6 +1126,8 @@
 				var hx = r.left + w.inset + Math.min(range, Math.max(0, w.x)), hit = D.elementFromPoint(hx, r.top + 3);
 				w.hidden = !hit || !(hit === w.el || w.el.contains(hit));
 			}
+			if (w.leave)
+				w.hidden = true;
 			w.fade += ((w.hidden ? 0 : 1) - w.fade) * Math.min(1, 6 * dt);
 			var px = r.left + w.inset + w.x, near = now - pointer.t < 1200 && Math.abs(pointer.x - px) < 60 && Math.abs(pointer.y - r.top) < 50;
 			if (near) {
@@ -1267,7 +1280,7 @@
 	function update(s) {
 		var first = !booted, memeWas = state.bugMeme;
 		booted = true;
-		state = { bugs: !!s.bugs, bugWalk: !!s.bugWalk, bugLook: s.bugLook || 'color', bugMeme: !!s.bugMeme };
+		state = { bugs: !!s.bugs, bugWalk: !!s.bugWalk, bugLook: s.bugLook || 'color', bugMeme: !!s.bugMeme, bugCount: s.bugCount || 'normal' };
 		readTheme();
 		if (!state.bugs)
 			crawlers = [];
@@ -1292,6 +1305,13 @@
 		species: SPECIES.map(function (s) { return s.id; }),
 		meme: MEME.map(function (s) { return s.id; }),
 		ready: function (cb) { faces(cb); },
+		count: function () {
+			return {
+				screen: crawlers.filter(function (b) { return !b.leaving && b.delay <= 0; }).length,
+				buttons: walkers.filter(function (w) { return !w.leave && w.el && !w.lost; }).length,
+				meme: crawlers.filter(function (b) { return b.sp.meme && !b.leaving; }).length + walkers.filter(function (w) { return w.sp.meme && !w.leave; }).length
+			};
+		},
 		draw: function (c, id, view, x, y, opts) {
 			var sp = SPECIES.concat(MEME).filter(function (s) { return s.id === id; })[0];
 			if (!sp)

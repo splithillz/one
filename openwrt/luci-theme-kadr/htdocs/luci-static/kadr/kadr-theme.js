@@ -5,6 +5,7 @@
 	var FX = ['plain', 'glass', 'material'];
 	var DIVIDERS = ['none', 'line', 'segments'];
 	var LOOKS = ['color', 'pixel', 'mono'];
+	var COUNTS = ['few', 'normal', 'many'];
 	var SELF = g.document.currentScript ? g.document.currentScript.src : '';
 	var bugsLoading = false;
 	var THEMES = [
@@ -85,7 +86,8 @@
 			bugs: s.bugs === true,
 			bugWalk: s.bugWalk === true,
 			bugLook: LOOKS.indexOf(s.bugLook) > -1 ? s.bugLook : 'color',
-			bugMeme: s.bugMeme === true
+			bugMeme: s.bugMeme === true,
+			bugCount: COUNTS.indexOf(s.bugCount) > -1 ? s.bugCount : 'normal'
 		};
 	}
 

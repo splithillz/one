@@ -211,7 +211,8 @@ return baseclass.extend({
 		this.segs = {
 			fx: this.segment('kadr-fx-label', 'fx', [ [ 'plain', 'Обычный' ], [ 'glass', 'Стекло' ], [ 'material', 'Material' ] ]),
 			dividers: this.segment('kadr-div-label', 'dividers', [ [ 'none', 'Скрыть' ], [ 'line', 'Линия' ], [ 'segments', 'Сегменты' ] ]),
-			bugLook: this.segment('kadr-look-label', 'bugLook', [ [ 'color', 'Цветные' ], [ 'pixel', 'Пиксели' ], [ 'mono', 'Силуэты' ] ])
+			bugLook: this.segment('kadr-look-label', 'bugLook', [ [ 'color', 'Цветные' ], [ 'pixel', 'Пиксели' ], [ 'mono', 'Силуэты' ] ]),
+			bugCount: this.segment('kadr-count-label', 'bugCount', [ [ 'few', 'Мало' ], [ 'normal', 'Средне' ], [ 'many', 'Много' ] ])
 		};
 
 		this.switches = {
@@ -229,6 +230,7 @@ return baseclass.extend({
 			E('div', { 'class': 'kadr-opts' }, [ this.updBox ])
 		]);
 		this.lookRow = E('div', { 'class': 'kadr-opt wide' }, [ E('span', { 'id': 'kadr-look-label' }, [ 'Вид жуков' ]), this.segs.bugLook ]);
+		this.countRow = E('div', { 'class': 'kadr-opt wide' }, [ E('span', { 'id': 'kadr-count-label' }, [ 'Сколько жуков' ]), this.segs.bugCount ]);
 
 		this.palette = E('div', { 'class': 'kadr-sheet kadr-palette', 'role': 'dialog', 'aria-label': _('Design') }, [
 			E('div', { 'class': 'kadr-grip' }),
@@ -248,6 +250,7 @@ return baseclass.extend({
 				E('div', { 'class': 'kadr-opt' }, [ E('span', { 'id': 'kadr-bugs-label' }, [ 'Бегают по экрану' ]), this.switches.bugs ]),
 				E('div', { 'class': 'kadr-opt' }, [ E('span', { 'id': 'kadr-walk-label' }, [ 'Ходят по кнопкам' ]), this.switches.bugWalk ]),
 				this.memeRow,
+				this.countRow,
 				this.lookRow
 			]),
 			this.updBottom,
@@ -347,6 +350,7 @@ return baseclass.extend({
 
 		this.lookRow.setAttribute('aria-disabled', state.bugs || state.bugWalk ? 'false' : 'true');
 		this.memeRow.setAttribute('aria-disabled', state.bugs || state.bugWalk ? 'false' : 'true');
+		this.countRow.setAttribute('aria-disabled', state.bugs || state.bugWalk ? 'false' : 'true');
 	},
 
 	loadUpdate() {
