@@ -9,7 +9,7 @@
 {%
 	import { getuid, getspnam } from 'luci.core';
 
-	const kadr_version = '1.3.0';
+	const kadr_version = '1.4.0-r1';
 
 	const boardinfo = ubus.call('system', 'board');
 	const hostname = striptags(boardinfo?.hostname ?? '?');
@@ -19,7 +19,7 @@
 -%}
 
 <!DOCTYPE html>
-<html lang="{{ dispatcher.lang }}" data-darkmode="true" class="kadr">
+<html lang="{{ dispatcher.lang }}" data-darkmode="true" data-kadr-version="{{ kadr_version }}" class="kadr">
 	<head>
 		<meta charset="utf-8">
 		<title>{{ pagetitle ? `${pagetitle} · ${hostname}` : hostname }}</title>

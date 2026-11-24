@@ -8,7 +8,7 @@ import tarfile
 import time
 
 NAME = "luci-theme-kadr"
-VERSION = "1.3.0"
+VERSION = "1.4.0"
 RELEASE = "1"
 DESCRIPTION = "Kadr: LuCI theme in the kinoarc style with Kadr palettes and podkop support"
 URL = "https://github.com/splithillz/one/tree/main/luci-theme-kadr"
@@ -24,6 +24,7 @@ if [ -f /etc/uci-defaults/30_luci-theme-kadr ]; then
 	( . /etc/uci-defaults/30_luci-theme-kadr ) && rm -f /etc/uci-defaults/30_luci-theme-kadr
 fi
 rm -rf /tmp/luci-indexcache* /tmp/luci-modulecache
+killall -HUP rpcd 2>/dev/null
 exit 0
 """
 
@@ -64,7 +65,7 @@ def layout():
 
 
 def mode_for(target):
-    return 0o755 if target.startswith("etc/uci-defaults/") else 0o644
+    return 0o755 if target.startswith(("etc/uci-defaults/", "usr/libexec/")) else 0o644
 
 
 def dirs_for(files):
@@ -223,8 +224,8 @@ def check_versions():
     with open(os.path.join(HERE, "Makefile"), encoding="utf-8") as f:
         makefile = f.read()
     problems = []
-    if f"const kadr_version = '{VERSION}';" not in header:
-        problems.append(f"header.ut: kadr_version must be '{VERSION}'")
+    if f"const kadr_version = '{VERSION}-r{RELEASE}';" not in header:
+        problems.append(f"header.ut: kadr_version must be '{VERSION}-r{RELEASE}'")
     if f"PKG_VERSION:={VERSION}\n" not in makefile:
         problems.append(f"Makefile: PKG_VERSION must be {VERSION}")
     if problems:

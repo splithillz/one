@@ -1055,7 +1055,7 @@
 	function candidates() {
 		var used = walkers.map(function (w) { return w.el; });
 		return Array.prototype.filter.call(D.querySelectorAll('.btn, .cbi-button'), function (el) {
-			if (used.indexOf(el) > -1 || el.closest('.kadr-palette'))
+			if (used.indexOf(el) > -1 || el.closest('.kadr-sheet, #modal_overlay, header, .cbi-dropdown, #topmenu'))
 				return false;
 			var r = el.getBoundingClientRect();
 			return r.width >= 64 && r.height >= 26 && r.top > 70 && r.bottom < H && r.left >= 0 && r.right <= W;
@@ -1202,7 +1202,7 @@
 			canvas = D.createElement('canvas');
 			canvas.className = 'kadr-bugs';
 			canvas.setAttribute('aria-hidden', 'true');
-			canvas.style.cssText = 'position:fixed;left:0;top:0;width:100%;height:100%;pointer-events:none;z-index:990';
+			canvas.style.cssText = 'position:fixed;left:0;top:0;width:100%;height:100%;pointer-events:none;z-index:700';
 			D.body.appendChild(canvas);
 			ctx = canvas.getContext('2d');
 			resize();
@@ -1210,9 +1210,13 @@
 			D.addEventListener('pointermove', onPointer, { passive: true });
 			D.addEventListener('pointerdown', onPointer, { passive: true });
 		}
-		if (inside && state.bugs && !crawlers.length)
+		if (inside && state.bugs && !crawlers.length) {
 			for (var i = 0, n = target(); i < n; i++)
 				crawlers.push(spawnCrawler(false));
+			var m = memes();
+			if (m.length && !memeCount(crawlers))
+				crawlers[0] = spawnCrawler(false, m[Math.floor(Math.random() * m.length)]);
+		}
 		if (!raf) {
 			last = g.performance.now();
 			raf = g.requestAnimationFrame(frame);

@@ -1146,6 +1146,177 @@ header .brand:active {
 	font-size: 12.5px;
 }
 
+.kadr-upd-top:not(:empty) {
+	margin: 0 0 14px;
+}
+
+.kadr-upd-bottom[hidden] {
+	display: none;
+}
+
+.kadr-upd {
+	--k-upd-ic: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M19.5 12a7.5 7.5 0 1 1-2.2-5.3'/%3E%3Cpath d='M19.5 4.5v4.2h-4.2'/%3E%3C/svg%3E");
+	gap: 12px;
+	padding: 8px 8px 8px 10px;
+}
+
+.kadr-upd[data-state="latest"],
+.kadr-upd[data-state="done"] {
+	--k-upd-ic: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5.5 12.5l4.2 4.2 8.8-9.2'/%3E%3C/svg%3E");
+}
+
+.kadr-upd[data-state="available"] {
+	--k-upd-ic: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 4.5v10.5'/%3E%3Cpath d='M7.5 10.5 12 15l4.5-4.5'/%3E%3Cpath d='M5.5 19.5h13'/%3E%3C/svg%3E");
+}
+
+.kadr-upd[data-state="error"] {
+	--k-upd-ic: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 7.8v5.4'/%3E%3Cpath d='M12 16.6v.1'/%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3C/svg%3E");
+}
+
+.kadr-upd > .kadr-upd-ic {
+	position: relative;
+	flex: none;
+	width: 34px;
+	height: 34px;
+	border-radius: 11px;
+	background: rgb(var(--k-acc) / .14);
+	color: rgb(var(--k-acc));
+}
+
+.kadr-upd-ic::before {
+	content: "";
+	position: absolute;
+	inset: 0;
+	box-sizing: border-box;
+	width: 18px;
+	height: 18px;
+	margin: auto;
+	background: currentColor;
+	-webkit-mask: var(--k-upd-ic) center / contain no-repeat;
+	mask: var(--k-upd-ic) center / contain no-repeat;
+}
+
+.kadr-upd[data-state="available"] > .kadr-upd-ic {
+	background: rgb(var(--k-acc));
+	color: rgb(var(--k-ink));
+}
+
+.kadr-upd[data-state="error"] > .kadr-upd-ic {
+	background: rgb(var(--k-warn) / .14);
+	color: rgb(var(--k-warn));
+}
+
+.kadr-upd:is([data-state="checking"], [data-state="updating"]) .kadr-upd-ic::before {
+	width: 16px;
+	height: 16px;
+	border: 2.2px solid currentColor;
+	border-right-color: transparent;
+	border-radius: 50%;
+	background: none;
+	-webkit-mask: none;
+	mask: none;
+	animation: kadr-spin .8s linear infinite;
+}
+
+@keyframes kadr-spin {
+	to {
+		transform: rotate(360deg);
+	}
+}
+
+.kadr-upd > .kadr-upd-tx {
+	display: grid;
+	flex: 1 1 auto;
+	gap: 2px;
+	min-width: 0;
+}
+
+.kadr-upd-tx strong {
+	font-size: 14px;
+	font-weight: 650;
+}
+
+.kadr-upd-tx small {
+	color: rgb(var(--k-mut));
+	font-size: 12.5px;
+	font-weight: 500;
+	line-height: 1.35;
+}
+
+.kadr-upd-tx a {
+	color: rgb(var(--k-acc));
+	font-weight: 600;
+	text-decoration: none;
+}
+
+.kadr-upd-tx a:hover {
+	text-decoration: underline;
+}
+
+.kadr-upd-btn,
+.kadr-upd-btn:hover,
+.kadr-upd-btn:focus {
+	display: inline-flex;
+	align-items: center;
+	flex: none;
+	height: 34px;
+	min-height: 0;
+	margin: 0;
+	padding: 0 14px;
+	border: 0;
+	border-radius: 11px;
+	background: rgb(var(--k-ov) / .08);
+	color: rgb(var(--k-tx));
+	box-shadow: var(--k-line);
+	font: inherit;
+	font-size: 13px;
+	font-weight: 650;
+	line-height: 1;
+	white-space: nowrap;
+	text-decoration: none;
+	cursor: pointer;
+	transition: background-color .2s, transform .35s var(--k-spring);
+}
+
+.kadr-upd-btn:hover {
+	background: rgb(var(--k-ov) / .12);
+}
+
+.kadr-upd-btn.primary,
+.kadr-upd-btn.primary:hover,
+.kadr-upd-btn.primary:focus {
+	background: rgb(var(--k-acc));
+	color: rgb(var(--k-ink));
+	box-shadow: none;
+}
+
+.kadr-upd-btn:active {
+	transform: scale(.94);
+}
+
+.kadr-upd-btn[disabled] {
+	opacity: .55;
+	transform: none;
+	cursor: default;
+}
+
+.kadr-upd-btn:focus-visible {
+	outline: 2px solid rgb(var(--k-acc));
+	outline-offset: 2px;
+}
+
+.kadr-palette-btn.kadr-has-update::after {
+	content: "";
+	position: absolute;
+	top: 7px;
+	right: 7px;
+	width: 9px;
+	height: 9px;
+	border-radius: 50%;
+	background: rgb(var(--k-acc));
+	box-shadow: 0 0 0 2px rgb(var(--k-bg)), 0 0 10px rgb(var(--k-acc) / .8);
+}
+
 #maincontent.container {
 	max-width: var(--k-wide);
 	padding: 0 16px;
@@ -2487,6 +2658,7 @@ th {
 	height: 100%;
 	border-radius: 99px;
 	background: rgb(var(--k-acc));
+	background: color-mix(in oklab, rgb(var(--k-acc)) 60%, #000);
 	box-shadow: 0 0 16px -2px rgb(var(--k-acc) / calc(.8 * var(--k-glow)));
 	transition: width .45s var(--k-soft);
 }
@@ -2495,14 +2667,14 @@ th {
 	content: attr(title);
 	position: absolute;
 	inset: 0;
-	display: flex;
-	align-items: center;
-	justify-content: center;
+	display: block;
 	padding: 0 10px;
 	color: #fff;
 	font-size: 12.5px;
 	font-weight: 650;
-	line-height: 1;
+	font-variant-numeric: tabular-nums;
+	line-height: 24px;
+	text-align: center;
 	white-space: nowrap;
 	text-shadow: 0 1px 3px rgb(0 0 0 / .7);
 	overflow: hidden;
@@ -3649,6 +3821,23 @@ html.kadr[data-kadr-fx="material"] :is(.btn.primary, .btn.important, .cbi-button
 }
 
 @media screen and (max-device-width: 600px) {
+	.table .tr > .td,
+	.table .tr > .th {
+		border-top: 0;
+	}
+
+	.table .tr:has(> .td .cbi-progressbar) > .td {
+		flex: 1 1 100%;
+	}
+
+	.table .tr:has(> .td .cbi-progressbar) > .td:first-child {
+		padding-bottom: 0;
+	}
+
+	.table .tr:has(> .td .cbi-progressbar) > .td + .td {
+		padding-top: 6px;
+	}
+
 	:root[data-kadr-dividers="none"] .table .tr {
 		border-top-color: transparent;
 	}
