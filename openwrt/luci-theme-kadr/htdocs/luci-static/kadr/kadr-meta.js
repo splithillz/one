@@ -19,7 +19,7 @@
 	var MIN = { hammer: .09, stake: .09, trowel: .3, shovel: .5, brush: .4, wrench: .5, saw: 1.2, torch: 1.4, winch: 1, trolley: 1, clank: .3, thud: .15, shot: .1, hit: .05 };
 
 	var sites = [ null, null ], carriers = [], parts = [], shots = [];
-	var mono = null, monoKey = '', buf = null, bctx = null, gutW = -1, gut = 0;
+	var mono = null, monoKey = '', buf = null, bctx = null, gutW = -1, gut = 0, liftAt = -1e9, lift = 0, liftNow = -1;
 	var A = null, wantSound = false;
 
 	function clamp(v) {
@@ -90,16 +90,35 @@
 		c.fillRect(x, y, w, h);
 	}
 
+	function actionsLift() {
+		var out = 0;
+		Array.prototype.forEach.call(D.querySelectorAll('.cbi-page-actions, .actions'), function (el) {
+			var r = el.getBoundingClientRect();
+			if (r.width > 0 && r.height > 0 && g.getComputedStyle(el).position === 'sticky')
+				out = Math.max(out, r.height + 14);
+		});
+		return out;
+	}
+
 	function layout(w) {
 		if (gutW !== w.W) {
 			var mc = D.getElementById('maincontent');
 			gut = mc ? Math.max(0, mc.getBoundingClientRect().left) : 0;
 			gutW = w.W;
 		}
-		var k = Math.max(.62, Math.min(1, w.W / 1300)), span = 190 * k;
-		var x = gut > span + 24 ? gut / 2 - span / 2 + 44 * k : 44 * k;
-		var y = Math.round(w.H / 2 + 52 * k);
-		return [ { i: 0, s: 1, x: x, y: y, k: k }, { i: 1, s: -1, x: w.W - x, y: y, k: k } ];
+		var k = Math.max(.62, Math.min(1, w.W / 1300)), span = 190 * k, low = w.W < 768 || w.H < 500;
+		var x = !low && gut > span + 24 ? gut / 2 - span / 2 + 44 * k : 44 * k, y;
+		if (low) {
+			if (w.t - liftAt > 2) {
+				liftAt = w.t;
+				lift = actionsLift();
+			}
+			liftNow = liftNow < 0 ? lift : liftNow + (lift - liftNow) * Math.min(1, (w.dt || 0) * 3);
+			y = Math.round(w.H - 76 * k - liftNow - 6);
+		}
+		else
+			y = Math.round(w.H / 2 + 52 * k);
+		return [ { i: 0, s: 1, x: x, y: y, k: k, low: low }, { i: 1, s: -1, x: w.W - x, y: y, k: k, low: low } ];
 	}
 
 	function stages(p) {
@@ -868,6 +887,10 @@
 				var fromTop = Math.random() < .5;
 				b.ex = S.x + S.s * rand(30, 120) * k;
 				b.ey = fromTop ? -40 : w.H + 40;
+				if (S.low && fromTop) {
+					b.ex = S.s > 0 ? -40 : w.W + 40;
+					b.ey = S.y + rand(-20, 30) * k;
+				}
 				b.x = b.ex;
 				b.y = b.ey;
 				b.st = 'in';
@@ -905,29 +928,31 @@
 	}
 
 	function stepTurret(w, S, dt, head) {
-		var T = S.state, k = S.k, best = null, bd = 1e9, range = Math.max(w.W, w.H) * .75;
+		var T = S.state, k = S.k, best = null, bd = 1e9, cur = null, mine = function (o) { return S.s > 0 ? o.x > head.hx - 20 : o.x < head.hx + 20; };
 		T.cd -= dt;
 		T.flash = Math.max(0, T.flash - dt * 9);
 		T.recoil = Math.max(0, T.recoil - dt * 4);
 		if (T.a === null)
 			T.a = S.s > 0 ? .25 : Math.PI - .25;
-		if (!T.tgt || T.tgt.dead || T.tgt.leaving && Math.random() < dt || w.crawlers.indexOf(T.tgt) < 0) {
-			T.tgt = null;
-			w.crawlers.forEach(function (b) {
-				if (b.sp.meme || b.dead || b.delay > 0)
-					return;
-				var d = Math.sqrt((b.x - head.hx) * (b.x - head.hx) + (b.y - head.hy) * (b.y - head.hy));
-				if (d < range && d < bd && (S.s > 0 ? b.x > head.hx - 20 : b.x < head.hx + 20)) {
+		w.targets.forEach(function (o) {
+			if (o.ref === T.tgt && !o.ref.dead && mine(o))
+				cur = o;
+		});
+		if (!cur) {
+			w.targets.forEach(function (o) {
+				var d = Math.sqrt((o.x - head.hx) * (o.x - head.hx) + (o.y - head.hy) * (o.y - head.hy));
+				if (!o.ref.dead && d < bd && mine(o)) {
 					bd = d;
-					best = b;
+					best = o;
 				}
 			});
-			T.tgt = best;
+			cur = best;
+			T.tgt = best ? best.ref : null;
 		}
 		var want;
-		if (T.tgt) {
-			var b = T.tgt, vx = Math.sin(b.a) * b.v, vy = -Math.cos(b.a) * b.v, d = Math.sqrt((b.x - head.hx) * (b.x - head.hx) + (b.y - head.hy) * (b.y - head.hy)), lead = d / 560;
-			want = Math.atan2(b.y + vy * lead - head.hy, b.x + vx * lead - head.hx);
+		if (cur) {
+			var d = Math.sqrt((cur.x - head.hx) * (cur.x - head.hx) + (cur.y - head.hy) * (cur.y - head.hy)), lead = d / 560;
+			want = Math.atan2(cur.y + cur.vy * lead - head.hy, cur.x + cur.vx * lead - head.hx);
 		}
 		else {
 			T.sweep += dt * .5;
@@ -935,7 +960,7 @@
 		}
 		var diff = Math.atan2(Math.sin(want - T.a), Math.cos(want - T.a));
 		T.a += Math.max(-3 * dt, Math.min(3 * dt, diff));
-		if (T.tgt && Math.abs(diff) < .06 && T.cd <= 0) {
+		if (cur && Math.abs(diff) < .06 && T.cd <= 0) {
 			T.cd = rand(3, 6);
 			T.recoil = 1;
 			T.flash = 1;
@@ -951,15 +976,17 @@
 			s.x += s.vx * dt;
 			s.y += s.vy * dt;
 			var hit = null;
-			w.crawlers.forEach(function (b) {
-				if (hit || b.sp.meme || b.dead || b.delay > 0)
+			w.targets.forEach(function (o) {
+				if (hit || o.ref.dead)
 					return;
-				var r = b.sp.len * b.scale * 1.3 * .32;
-				if ((b.x - s.x) * (b.x - s.x) + (b.y - s.y) * (b.y - s.y) < r * r)
-					hit = b;
+				o.circles.forEach(function (q) {
+					if (!hit && (q[0] - s.x) * (q[0] - s.x) + (q[1] - s.y) * (q[1] - s.y) < q[2] * q[2])
+						hit = o;
+				});
 			});
-			if (hit && w.kill(hit)) {
-				spark(s.x, s.y, 10, 'spark', 120);
+			if (hit) {
+				w.hurt(hit.ref, hit.meme ? 1.25 : 99, 'shot', s.x - s.vx * .05, s.y - s.vy * .05);
+				spark(s.x, s.y, hit.meme ? 7 : 10, 'spark', 120);
 				dust(s.x, s.y, 4, 1);
 				play(w, 'hit', s.site);
 				return false;

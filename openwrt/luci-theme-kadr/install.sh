@@ -28,7 +28,25 @@ clear_cache() {
 	rm -rf /tmp/luci-indexcache* /tmp/luci-modulecache 2>/dev/null
 }
 
+has() {
+	case $pm in
+		apk) apk info -e "$1" >/dev/null 2>&1 ;;
+		opkg) opkg status "$1" 2>/dev/null | grep -q '^Status:.* installed' ;;
+	esac
+}
+
+drop() {
+	if [ "$pm" = apk ]; then
+		apk del "$1" </dev/null
+	else
+		opkg remove "$1" </dev/null
+	fi
+}
+
 install_theme() {
+	pkg=$1
+	other=$2
+	label=$3
 	rm -rf "$tmp"
 	mkdir -p "$tmp" || fail "не получилось создать $tmp"
 	fetch "$base/releases/$pkg.latest" "$tmp/latest" ||
@@ -41,11 +59,16 @@ install_theme() {
 	sum=$(field "${ext}_sha256")
 	[ -n "$version" ] && [ -n "$file" ] || fail "список версий пустой или битый"
 
-	say "Кадр для LuCI $version, ставлю через $pm"
+	say "$label $version, ставлю через $pm"
 	fetch "$base/releases/$file" "$tmp/$file" || fail "не скачался пакет $file"
 	if [ -n "$sum" ] && command -v sha256sum >/dev/null 2>&1; then
 		got=$(sha256sum "$tmp/$file" | cut -d ' ' -f 1)
 		[ "$got" = "$sum" ] || fail "пакет скачался битым: контрольная сумма не сходится. Запусти команду ещё раз"
+	fi
+
+	if has "$other"; then
+		say "Убираю другую версию темы ($other). Настройки панели останутся"
+		drop "$other" || fail "$pm не смог удалить $other"
 	fi
 
 	if [ "$pm" = apk ]; then
@@ -61,17 +84,25 @@ install_theme() {
 	rm -rf "$tmp"
 
 	say ""
-	say "Готово: Кадр $version установлен и включён."
-	say "Открой LuCI и обнови страницу. Палитра, стиль, разделители и жуки — кнопкой с палитрой в шапке."
+	say "Готово: $label $version установлен и включён."
+	if [ "$pkg" = luci-theme-kadr-full ]; then
+		say "Открой LuCI и обнови страницу. Палитра, стиль, разделители, жуки и метавселенная — кнопкой с палитрой в шапке."
+		say "Настройки панели хранятся на роутере и общие для всех устройств."
+	else
+		say "Открой LuCI и обнови страницу. Палитра, стиль и разделители — кнопкой с палитрой в шапке."
+	fi
 	say "Там же внизу блок «Обновление»: новые версии ставятся оттуда одной кнопкой."
 }
 
 remove_theme() {
-	if [ "$pm" = apk ]; then
-		apk del "$pkg" </dev/null || fail "apk не смог удалить пакет"
-	else
-		opkg remove "$pkg" </dev/null || fail "opkg не смог удалить пакет"
-	fi
+	gone=
+	for p in luci-theme-kadr luci-theme-kadr-full; do
+		if has "$p"; then
+			drop "$p" || fail "$pm не смог удалить $p"
+			gone=1
+		fi
+	done
+	[ -n "$gone" ] || fail "Кадр не установлен"
 	clear_cache
 	say ""
 	say "Кадр удалён, интерфейс вернулся на Bootstrap. Обнови страницу LuCI."
@@ -79,7 +110,6 @@ remove_theme() {
 
 main() {
 	base=${KADR_BASE:-https://raw.githubusercontent.com/splithillz/one/main}
-	pkg=luci-theme-kadr
 	tmp=/tmp/kadr-install
 
 	uid=$(id -u 2>/dev/null)
@@ -93,10 +123,17 @@ main() {
 		fail "не нашёл ни apk, ни opkg: это точно OpenWrt?"
 	fi
 
-	case ${1:-install} in
-		install | update) install_theme ;;
+	cmd=${1:-install}
+	if [ "$cmd" = install ] || [ "$cmd" = update ]; then
+		cmd=lite
+		has luci-theme-kadr-full && cmd=full
+	fi
+
+	case $cmd in
+		lite) install_theme luci-theme-kadr luci-theme-kadr-full "Кадр для LuCI" ;;
+		full) install_theme luci-theme-kadr-full luci-theme-kadr "Кадр для LuCI, полная версия" ;;
 		remove | uninstall) remove_theme ;;
-		*) fail "не знаю команду «$1». Есть install и remove" ;;
+		*) fail "не знаю команду «$1». Есть install, lite, full и remove" ;;
 	esac
 }
 

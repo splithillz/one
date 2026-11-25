@@ -7,6 +7,7 @@
 	var LOOKS = ['color', 'pixel', 'mono'];
 	var COUNTS = ['few', 'normal', 'many'];
 	var SELF = g.document.currentScript ? g.document.currentScript.src : '';
+	var FULL = g.document.documentElement.getAttribute('data-kadr-edition') !== 'lite';
 	var bugsLoading = false;
 	var THEMES = [
 		{ id: 'mint',   name: 'Мята',   bg: '#0b0c0d', s1: '#141618', s2: '#1c1f21', s3: '#24282a', acc: '#3fe0a1', ink: '#06281b' },
@@ -86,7 +87,7 @@
 			bugs: s.bugs === true,
 			bugWalk: s.bugWalk === true,
 			bugLook: LOOKS.indexOf(s.bugLook) > -1 ? s.bugLook : 'color',
-			bugMeme: s.bugMeme === true,
+			bugVerse: s.bugVerse === true,
 			bugCount: COUNTS.indexOf(s.bugCount) > -1 ? s.bugCount : 'normal',
 			bugSound: s.bugSound !== false
 		};
@@ -151,6 +152,8 @@
 	}
 
 	function bugs(state) {
+		if (!FULL)
+			return;
 		if (g.KadrBugs) {
 			g.KadrBugs.update(state);
 			return;

@@ -1,0 +1,15 @@
+{
+	"luci-theme-kadr-full": {
+		"description": "Grant access to Kadr settings shared between devices",
+		"read": {
+			"file": {
+				"/etc/kadr-sync.json": [ "read" ]
+			}
+		},
+		"write": {
+			"file": {
+				"/etc/kadr-sync.json": [ "write" ]
+			}
+		}
+	}
+}

@@ -8,8 +8,10 @@
 
 {%
 	import { getuid, getspnam } from 'luci.core';
+	import { access } from 'fs';
 
-	const kadr_version = '1.5.0-r1';
+	const kadr_version = '1.6.0-r1';
+	const kadr_edition = access(`/www${media}/kadr-bugs.js`) ? 'full' : 'lite';
 
 	const boardinfo = ubus.call('system', 'board');
 	const hostname = striptags(boardinfo?.hostname ?? '?');
@@ -19,7 +21,7 @@
 -%}
 
 <!DOCTYPE html>
-<html lang="{{ dispatcher.lang }}" data-darkmode="true" data-kadr-version="{{ kadr_version }}" class="kadr">
+<html lang="{{ dispatcher.lang }}" data-darkmode="true" data-kadr-version="{{ kadr_version }}" data-kadr-edition="{{ kadr_edition }}" class="kadr">
 	<head>
 		<meta charset="utf-8">
 		<title>{{ pagetitle ? `${pagetitle} · ${hostname}` : hostname }}</title>
