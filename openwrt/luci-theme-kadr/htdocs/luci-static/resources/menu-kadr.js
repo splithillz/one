@@ -9,6 +9,17 @@ const UPDATE_TOOL = '/usr/libexec/kadr-update';
 const UPDATE_EVERY = 12 * 3600 * 1000;
 const UPDATE_RETRY = 30 * 60 * 1000;
 const UPDATE_LIMIT = 5 * 60 * 1000;
+const FULL = document.documentElement.getAttribute('data-kadr-edition') !== 'lite';
+const FULL_URL = 'https://github.com/splithillz/one/tree/main/openwrt/luci-theme-kadr#%D0%BF%D0%BE%D0%BB%D0%BD%D0%B0%D1%8F-%D0%B2%D0%B5%D1%80%D1%81%D0%B8%D1%8F';
+const SYNC_FILE = '/etc/kadr-sync.json';
+const SYNC_KEY = 'kadr-luci-sync';
+const BUILD_KEY = 'kadr-luci-build';
+const NOTES = {
+	lite: 'Всё запоминается в этом браузере.',
+	ok: 'Настройки хранятся на роутере и общие для всех устройств.',
+	acl: 'Общие настройки заработают после повторного входа в LuCI. Пока всё запоминается в этом браузере.',
+	off: 'Роутер не ответил, пока всё запоминается в этом браузере.'
+};
 const CHANGES_URL = 'https://github.com/splithillz/one/tree/main/openwrt/luci-theme-kadr#%D1%87%D1%82%D0%BE-%D0%BD%D0%BE%D0%B2%D0%BE%D0%B3%D0%BE';
 const UPDATE_ERRORS = {
 	net: 'Роутер не достучался до GitHub. Проверь, что на роутере есть интернет',
@@ -90,6 +101,9 @@ return baseclass.extend({
 		this.bindPalette();
 		this.initUpdate();
 
+		if (FULL)
+			this.initSync();
+
 		document.addEventListener('keydown', (ev) => {
 			if (ev.key === 'Escape')
 				this.closeAll();
@@ -140,6 +154,14 @@ return baseclass.extend({
 	setPalette(open) {
 		if (open && !this.palette)
 			this.buildPalette();
+
+		if (open && this.memeSub) {
+			this.syncMeta();
+			window.clearInterval(this.metaTimer);
+			this.metaTimer = window.setInterval(() => this.syncMeta(), 30000);
+		}
+		else if (!open)
+			window.clearInterval(this.metaTimer);
 
 		if (open && this.updBox) {
 			if (!document.body.classList.contains('kadr-palette-open'))
@@ -210,29 +232,22 @@ return baseclass.extend({
 
 		this.segs = {
 			fx: this.segment('kadr-fx-label', 'fx', [ [ 'plain', 'Обычный' ], [ 'glass', 'Стекло' ], [ 'material', 'Material' ] ]),
-			dividers: this.segment('kadr-div-label', 'dividers', [ [ 'none', 'Скрыть' ], [ 'line', 'Линия' ], [ 'segments', 'Сегменты' ] ]),
-			bugLook: this.segment('kadr-look-label', 'bugLook', [ [ 'color', 'Цветные' ], [ 'pixel', 'Пиксели' ], [ 'mono', 'Силуэты' ] ]),
-			bugCount: this.segment('kadr-count-label', 'bugCount', [ [ 'few', 'Мало' ], [ 'normal', 'Средне' ], [ 'many', 'Много' ] ])
+			dividers: this.segment('kadr-div-label', 'dividers', [ [ 'none', 'Скрыть' ], [ 'line', 'Линия' ], [ 'segments', 'Сегменты' ] ])
 		};
 
 		this.switches = {
-			shadows: this.switcher('kadr-shadow-label', 'shadows'),
-			bugs: this.switcher('kadr-bugs-label', 'bugs'),
-			bugWalk: this.switcher('kadr-walk-label', 'bugWalk'),
-			bugMeme: this.switcher('kadr-meme-label', 'bugMeme')
+			shadows: this.switcher('kadr-shadow-label', 'shadows')
 		};
 
-		this.memeRow = E('div', { 'class': 'kadr-opt', 'title': 'Таракан-прораб в каске с кирпичом и круглый жук с улыбкой во все зубы' }, [ E('span', { 'id': 'kadr-meme-label' }, [ 'Прораб и Улыбака' ]), this.switches.bugMeme ]);
 		this.updBox = E('div', { 'class': 'kadr-opt kadr-upd', 'aria-live': 'polite' });
 		this.updTop = E('div', { 'class': 'kadr-upd-top' });
 		this.updBottom = E('div', { 'class': 'kadr-upd-bottom' }, [
 			E('span', { 'class': 'kadr-tiles-group kadr-opts-title' }, [ 'Обновление' ]),
 			E('div', { 'class': 'kadr-opts' }, [ this.updBox ])
 		]);
-		this.lookRow = E('div', { 'class': 'kadr-opt wide' }, [ E('span', { 'id': 'kadr-look-label' }, [ 'Вид жуков' ]), this.segs.bugLook ]);
-		this.countRow = E('div', { 'class': 'kadr-opt wide' }, [ E('span', { 'id': 'kadr-count-label' }, [ 'Сколько жуков' ]), this.segs.bugCount ]);
+		this.note = E('p', { 'class': 'kadr-sheet-note' }, [ NOTES[FULL && L.env.sessionid ? this.syncState || 'ok' : 'lite'] ]);
 
-		this.palette = E('div', { 'class': 'kadr-sheet kadr-palette', 'role': 'dialog', 'aria-label': _('Design') }, [
+		const parts = [
 			E('div', { 'class': 'kadr-grip' }),
 			E('div', { 'class': 'kadr-sheet-head' }, [
 				E('strong', {}, [ _('Design') ]),
@@ -244,18 +259,42 @@ return baseclass.extend({
 				E('div', { 'class': 'kadr-opt wide' }, [ E('span', { 'id': 'kadr-fx-label' }, [ 'Стиль' ]), this.segs.fx ]),
 				E('div', { 'class': 'kadr-opt wide' }, [ E('span', { 'id': 'kadr-div-label' }, [ 'Разделители' ]), this.segs.dividers ]),
 				E('div', { 'class': 'kadr-opt' }, [ E('span', { 'id': 'kadr-shadow-label' }, [ 'Тени' ]), this.switches.shadows ])
-			]),
-			E('span', { 'class': 'kadr-tiles-group kadr-opts-title' }, [ 'Жуки' ]),
-			E('div', { 'class': 'kadr-opts' }, [
-				E('div', { 'class': 'kadr-opt' }, [ E('span', { 'id': 'kadr-bugs-label' }, [ 'Бегают по экрану' ]), this.switches.bugs ]),
-				E('div', { 'class': 'kadr-opt' }, [ E('span', { 'id': 'kadr-walk-label' }, [ 'Ходят по кнопкам' ]), this.switches.bugWalk ]),
-				this.memeRow,
-				this.countRow,
-				this.lookRow
-			]),
-			this.updBottom,
-			E('p', { 'class': 'kadr-sheet-note' }, [ 'Всё запоминается в этом браузере.' ])
-		]);
+			])
+		];
+
+		if (FULL) {
+			this.segs.bugLook = this.segment('kadr-look-label', 'bugLook', [ [ 'color', 'Цветные' ], [ 'pixel', 'Пиксели' ], [ 'mono', 'Силуэты' ] ]);
+			this.segs.bugCount = this.segment('kadr-count-label', 'bugCount', [ [ 'few', 'Мало' ], [ 'normal', 'Средне' ], [ 'many', 'Много' ] ]);
+			Object.assign(this.switches, {
+				bugs: this.switcher('kadr-bugs-label', 'bugs'),
+				bugWalk: this.switcher('kadr-walk-label', 'bugWalk'),
+				bugVerse: this.switcher('kadr-meme-label', 'bugVerse'),
+				bugSound: this.switcher('kadr-sound-label', 'bugSound')
+			});
+			this.switches.bugVerse.setAttribute('aria-describedby', 'kadr-meme-sub');
+			this.memeSub = E('small', { 'class': 'kadr-opt-sub', 'id': 'kadr-meme-sub' });
+			this.memeRow = E('div', { 'class': 'kadr-opt', 'title': 'Прораб, Улыбака, Нубик и Волкочервь. При первом включении начинается стройка турелей ровно на сутки' }, [ E('span', {}, [ E('span', { 'id': 'kadr-meme-label' }, [ 'Метавселенная жуков' ]), this.memeSub ]), this.switches.bugVerse ]);
+			this.soundRow = E('div', { 'class': 'kadr-opt' }, [ E('span', { 'id': 'kadr-sound-label' }, [ 'Звуки стройки' ]), this.switches.bugSound ]);
+			this.lookRow = E('div', { 'class': 'kadr-opt wide' }, [ E('span', { 'id': 'kadr-look-label' }, [ 'Вид жуков' ]), this.segs.bugLook ]);
+			this.countRow = E('div', { 'class': 'kadr-opt wide' }, [ E('span', { 'id': 'kadr-count-label' }, [ 'Сколько жуков' ]), this.segs.bugCount ]);
+			parts.push(
+				E('span', { 'class': 'kadr-tiles-group kadr-opts-title' }, [ 'Жуки' ]),
+				E('div', { 'class': 'kadr-opts' }, [
+					E('div', { 'class': 'kadr-opt' }, [ E('span', { 'id': 'kadr-bugs-label' }, [ 'Бегают по экрану' ]), this.switches.bugs ]),
+					E('div', { 'class': 'kadr-opt' }, [ E('span', { 'id': 'kadr-walk-label' }, [ 'Ходят по кнопкам' ]), this.switches.bugWalk ]),
+					this.memeRow,
+					this.soundRow,
+					this.countRow,
+					this.lookRow
+				])
+			);
+		}
+		else if (state.bugs || state.bugWalk) {
+			parts.push(E('p', { 'class': 'kadr-sheet-note kadr-moved' }, [ 'Жуки и метавселенная теперь в полной версии темы. ', E('a', { 'href': FULL_URL, 'target': '_blank', 'rel': 'noopener' }, [ 'Как поставить' ]) ]));
+		}
+
+		parts.push(this.updBottom, this.note);
+		this.palette = E('div', { 'class': 'kadr-sheet kadr-palette', 'role': 'dialog', 'aria-label': _('Design') }, parts);
 
 		this.syncOptions();
 		this.placeUpdate(this.hasUpdate() || this.updBusy);
@@ -294,6 +333,8 @@ return baseclass.extend({
 	pick(state) {
 		const t = window.KadrTheme.set(state);
 
+		this.markDirty();
+
 		this.palette.querySelectorAll('.kadr-tile').forEach((el) => {
 			el.setAttribute('aria-checked', el.getAttribute('data-theme') === t.id ? 'true' : 'false');
 		});
@@ -307,6 +348,7 @@ return baseclass.extend({
 
 	setOption(change) {
 		window.KadrTheme.set(change);
+		this.markDirty();
 		this.syncOptions();
 	},
 
@@ -348,9 +390,200 @@ return baseclass.extend({
 			this.switches[key].setAttribute('aria-checked', state[key] ? 'true' : 'false');
 		});
 
+		if (!FULL)
+			return;
+
 		this.lookRow.setAttribute('aria-disabled', state.bugs || state.bugWalk ? 'false' : 'true');
 		this.memeRow.setAttribute('aria-disabled', state.bugs || state.bugWalk ? 'false' : 'true');
 		this.countRow.setAttribute('aria-disabled', state.bugs || state.bugWalk ? 'false' : 'true');
+		this.syncMeta();
+	},
+
+	buildStart() {
+		try {
+			const s = +(JSON.parse(window.localStorage.getItem(BUILD_KEY)) || {}).start;
+			return s > 0 ? s : 0;
+		}
+		catch (e) {
+			return 0;
+		}
+	},
+
+	saveBuild(start) {
+		try {
+			if (start)
+				window.localStorage.setItem(BUILD_KEY, JSON.stringify({ start: start }));
+			else
+				window.localStorage.removeItem(BUILD_KEY);
+		}
+		catch (e) {}
+	},
+
+	initSync() {
+		if (!L.env.sessionid)
+			return;
+
+		window.addEventListener('kadr-build', () => this.syncSoon());
+		document.addEventListener('visibilitychange', () => {
+			if (!document.hidden)
+				this.syncNow();
+		});
+		window.setInterval(() => {
+			if (!document.hidden)
+				this.syncNow();
+		}, 60000);
+		this.syncNow();
+	},
+
+	syncSoon() {
+		window.clearTimeout(this.syncTimer);
+		this.syncTimer = window.setTimeout(() => this.syncNow(), 500);
+	},
+
+	syncInfo() {
+		try {
+			const m = JSON.parse(window.localStorage.getItem(SYNC_KEY)) || {};
+			return { rev: +m.rev || 0, dirty: !!m.dirty };
+		}
+		catch (e) {
+			return { rev: 0, dirty: false };
+		}
+	},
+
+	saveSyncInfo(info) {
+		try {
+			window.localStorage.setItem(SYNC_KEY, JSON.stringify(info));
+		}
+		catch (e) {}
+	},
+
+	markDirty() {
+		if (!FULL || !L.env.sessionid)
+			return;
+
+		this.saveSyncInfo({ rev: this.syncInfo().rev, dirty: true });
+		this.syncSoon();
+	},
+
+	syncNow() {
+		if (this.syncBusy) {
+			this.syncAgain = true;
+			return;
+		}
+
+		const K = window.KadrTheme;
+
+		this.syncBusy = true;
+		fs.read(SYNC_FILE).then((text) => {
+			try {
+				const r = JSON.parse(text);
+				return r && typeof r === 'object' ? r : null;
+			}
+			catch (e) {
+				return null;
+			}
+		}, (err) => {
+			if (err && err.name === 'NotFoundError')
+				return null;
+			throw err;
+		}).then((remote) => {
+			const info = this.syncInfo();
+			const lb = this.buildStart();
+			const rb = remote && +remote.build > 0 ? +remote.build : 0;
+			const build = lb && rb ? Math.min(lb, rb) : (lb || rb);
+			const rrev = remote ? +remote.rev || 0 : 0;
+			let write = !remote || build !== rb, adopt = false, rev;
+
+			if (remote && remote.settings && typeof remote.settings === 'object' && !info.dirty) {
+				adopt = rrev !== info.rev;
+				rev = rrev;
+			}
+			else {
+				rev = Math.max(info.rev, rrev) + 1;
+				write = true;
+			}
+
+			if (build !== lb)
+				this.saveBuild(build);
+
+			if (adopt)
+				K.set(remote.settings);
+			else if (build !== lb)
+				K.set({});
+
+			if (adopt || build !== lb)
+				this.refreshPalette();
+
+			const done = () => {
+				this.saveSyncInfo({ rev: rev, dirty: false });
+				this.setNote('ok');
+			};
+
+			if (!write)
+				return done();
+
+			return fs.write(SYNC_FILE, JSON.stringify({ v: 1, rev: rev, settings: K.get(), build: build }) + '\n').then(done);
+		}).catch((err) => {
+			this.setNote(err && err.name === 'PermissionError' ? 'acl' : 'off');
+		}).finally(() => {
+			this.syncBusy = false;
+
+			if (this.syncAgain) {
+				this.syncAgain = false;
+				this.syncNow();
+			}
+		});
+	},
+
+	setNote(code) {
+		this.syncState = code;
+
+		if (this.note)
+			this.note.textContent = NOTES[code];
+	},
+
+	refreshPalette() {
+		if (!this.palette)
+			return;
+
+		const K = window.KadrTheme;
+		const state = K.get();
+		const t = K.resolve(state);
+
+		this.palette.querySelectorAll('.kadr-tile').forEach((el) => {
+			el.setAttribute('aria-checked', el.getAttribute('data-theme') === t.id ? 'true' : 'false');
+		});
+
+		if (t.id === 'custom') {
+			const el = this.palette.querySelector('.kadr-tile.custom');
+			el.style.setProperty('--t-acc', t.acc);
+			el.style.setProperty('--t-bg', t.bg);
+		}
+
+		this.syncOptions();
+	},
+
+	syncMeta() {
+		if (!this.memeSub)
+			return;
+
+		const state = window.KadrTheme.get();
+		const start = this.buildStart();
+		const p = start ? Math.min(1, (Date.now() - start) / 864e5) : -1;
+		let text = 'Включишь — начнётся стройка турелей ровно на сутки, её не остановить';
+
+		if (p >= 0 && p < 1) {
+			const left = 864e5 - (Date.now() - start);
+			text = 'Стройка турелей: %d%% · ещё %d ч %d мин'.format(Math.floor(p * 100), Math.floor(left / 36e5), Math.floor(left % 36e5 / 6e4));
+			if (!state.bugVerse)
+				text += ' · её не остановить';
+		}
+		else if (p >= 1) {
+			text = state.bugVerse ? 'Турели построены и стреляют по жукам' : 'Турели построены и выключены';
+		}
+
+		this.memeSub.textContent = text;
+		this.soundRow.hidden = !(p >= 0 && p < 1);
 	},
 
 	loadUpdate() {

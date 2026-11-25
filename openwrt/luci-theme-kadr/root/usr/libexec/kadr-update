@@ -2,6 +2,7 @@
 
 base=${KADR_BASE:-https://raw.githubusercontent.com/splithillz/one/main}
 pkg=luci-theme-kadr
+[ -f /www/luci-static/kadr/kadr-bugs.js ] && pkg=luci-theme-kadr-full
 run=/var/run/kadr-update
 state=$run/state
 

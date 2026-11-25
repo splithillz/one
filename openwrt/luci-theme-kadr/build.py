@@ -7,10 +7,25 @@ import sys
 import tarfile
 import time
 
-NAME = "luci-theme-kadr"
-VERSION = "1.4.0"
+VERSION = "1.6.0"
 RELEASE = "1"
-DESCRIPTION = "Kadr: LuCI theme in the kinoarc style with Kadr palettes and podkop support"
+EDITIONS = {
+    "lite": {
+        "name": "luci-theme-kadr",
+        "other": "luci-theme-kadr-full",
+        "description": "Kadr: LuCI theme in the kinoarc style with Kadr palettes and podkop support",
+    },
+    "full": {
+        "name": "luci-theme-kadr-full",
+        "other": "luci-theme-kadr",
+        "description": "Kadr full: LuCI theme in the kinoarc style with bugs, the bug metaverse and settings shared through the router",
+    },
+}
+FULL_ONLY = {
+    "www/luci-static/kadr/kadr-bugs.js",
+    "www/luci-static/kadr/kadr-meta.js",
+    "usr/share/rpcd/acl.d/luci-theme-kadr-full.json",
+}
 URL = "https://github.com/splithillz/one/tree/main/luci-theme-kadr"
 LICENSE = "Apache-2.0"
 DEPENDS = ["luci-base"]
@@ -30,6 +45,7 @@ exit 0
 
 POSTRM = """#!/bin/sh
 [ -n "${IPKG_INSTROOT}" ] && exit 0
+[ -f /www/luci-static/kadr/kadr-bugs.js ] || rm -f /etc/kadr-sync.json
 [ -f /www/luci-static/kadr/kadr.css ] && exit 0
 uci -q delete luci.themes.Kadr
 if [ "$(uci -q get luci.main.mediaurlbase)" = "/luci-static/kadr" ]; then
@@ -45,7 +61,7 @@ exit 0
 """
 
 
-def layout():
+def layout(edition):
     files = []
     roots = [
         ("htdocs", "www"),
@@ -59,8 +75,9 @@ def layout():
             for fn in sorted(filenames):
                 full = os.path.join(dirpath, fn)
                 rel = os.path.relpath(full, base)
-                target = os.path.join(dst, rel) if dst else rel
-                files.append((target.replace(os.sep, "/"), full))
+                target = (os.path.join(dst, rel) if dst else rel).replace(os.sep, "/")
+                if edition == "full" or target not in FULL_ONLY:
+                    files.append((target, full))
     return files
 
 
@@ -128,13 +145,15 @@ def payload(files):
     return entries, total
 
 
-def build_ipk(files, outdir):
+def build_ipk(ed, files, outdir):
+    NAME = ed["name"]
     entries, total = payload(files)
     data_tgz = gz(build_tar(entries))
     control = "\n".join([
         f"Package: {NAME}",
         f"Version: {VERSION}-r{RELEASE}",
         f"Depends: {', '.join(DEPENDS)}",
+        f"Conflicts: {ed['other']}",
         f"Source: {URL}",
         f"SourceName: {NAME}",
         f"License: {LICENSE}",
@@ -142,7 +161,7 @@ def build_ipk(files, outdir):
         f"SourceDateEpoch: {MTIME}",
         "Architecture: all",
         f"Installed-Size: {total}",
-        f"Description: {DESCRIPTION}",
+        f"Description: {ed['description']}",
         "",
     ])
     ctrl_entries = [
@@ -162,13 +181,14 @@ def build_ipk(files, outdir):
     return path
 
 
-def build_apk(files, outdir):
+def build_apk(ed, files, outdir):
+    NAME = ed["name"]
     entries, total = payload(files)
     data_tgz = gz(build_tar(entries, prefix="", pax_hash=True))
     pkginfo = "\n".join([
         f"pkgname = {NAME}",
         f"pkgver = {VERSION}-r{RELEASE}",
-        f"pkgdesc = {DESCRIPTION}",
+        f"pkgdesc = {ed['description']}",
         f"url = {URL}",
         f"builddate = {MTIME}",
         f"size = {total}",
@@ -176,6 +196,7 @@ def build_apk(files, outdir):
         f"origin = {NAME}",
         f"license = {LICENSE}",
         *[f"depend = {d}" for d in DEPENDS],
+        f"depend = !{ed['other']}",
         f"datahash = {hashlib.sha256(data_tgz).hexdigest()}",
         "",
     ])
@@ -192,7 +213,8 @@ def build_apk(files, outdir):
     return path
 
 
-def build_tarball(files, outdir):
+def build_tarball(ed, files, outdir):
+    NAME = ed["name"]
     entries, _ = payload(files)
     path = os.path.join(outdir, f"{NAME}-{VERSION}.tar.gz")
     with open(path, "wb") as f:
@@ -200,7 +222,8 @@ def build_tarball(files, outdir):
     return path
 
 
-def write_latest(outdir, ipk, apk):
+def write_latest(ed, outdir, ipk, apk):
+    NAME = ed["name"]
     def sha256(path):
         with open(path, "rb") as f:
             return hashlib.sha256(f.read()).hexdigest()
@@ -236,10 +259,11 @@ def main():
     check_versions()
     outdir = sys.argv[1] if len(sys.argv) > 1 else os.path.normpath(os.path.join(HERE, "..", "..", "releases"))
     os.makedirs(outdir, exist_ok=True)
-    files = layout()
-    ipk, apk, tarball = build_ipk(files, outdir), build_apk(files, outdir), build_tarball(files, outdir)
-    for p in (ipk, apk, tarball, write_latest(outdir, ipk, apk)):
-        print(p, os.path.getsize(p))
+    for key, ed in EDITIONS.items():
+        files = layout(key)
+        ipk, apk, tarball = build_ipk(ed, files, outdir), build_apk(ed, files, outdir), build_tarball(ed, files, outdir)
+        for p in (ipk, apk, tarball, write_latest(ed, outdir, ipk, apk)):
+            print(p, os.path.getsize(p))
 
 
 if __name__ == "__main__":
