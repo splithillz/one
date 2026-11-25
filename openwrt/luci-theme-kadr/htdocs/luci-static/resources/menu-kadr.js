@@ -141,6 +141,14 @@ return baseclass.extend({
 		if (open && !this.palette)
 			this.buildPalette();
 
+		if (open && this.memeSub) {
+			this.syncMeta();
+			window.clearInterval(this.metaTimer);
+			this.metaTimer = window.setInterval(() => this.syncMeta(), 30000);
+		}
+		else if (!open)
+			window.clearInterval(this.metaTimer);
+
 		if (open && this.updBox) {
 			if (!document.body.classList.contains('kadr-palette-open'))
 				this.placeUpdate(this.hasUpdate() || this.updBusy);
@@ -219,10 +227,15 @@ return baseclass.extend({
 			shadows: this.switcher('kadr-shadow-label', 'shadows'),
 			bugs: this.switcher('kadr-bugs-label', 'bugs'),
 			bugWalk: this.switcher('kadr-walk-label', 'bugWalk'),
-			bugMeme: this.switcher('kadr-meme-label', 'bugMeme')
+			bugMeme: this.switcher('kadr-meme-label', 'bugMeme'),
+			bugSound: this.switcher('kadr-sound-label', 'bugSound')
 		};
 
-		this.memeRow = E('div', { 'class': 'kadr-opt', 'title': 'Таракан-прораб в каске с кирпичом и круглый жук с улыбкой во все зубы' }, [ E('span', { 'id': 'kadr-meme-label' }, [ 'Прораб и Улыбака' ]), this.switches.bugMeme ]);
+		this.switches.bugMeme.setAttribute('aria-describedby', 'kadr-meme-sub');
+		this.memeSub = E('small', { 'class': 'kadr-opt-sub', 'id': 'kadr-meme-sub' });
+
+		this.memeRow = E('div', { 'class': 'kadr-opt', 'title': 'Прораб, Улыбака, Нубик и Волкочервь. При первом включении начинается стройка турелей ровно на сутки' }, [ E('span', {}, [ E('span', { 'id': 'kadr-meme-label' }, [ 'Метавселенная жуков' ]), this.memeSub ]), this.switches.bugMeme ]);
+		this.soundRow = E('div', { 'class': 'kadr-opt' }, [ E('span', { 'id': 'kadr-sound-label' }, [ 'Звуки стройки' ]), this.switches.bugSound ]);
 		this.updBox = E('div', { 'class': 'kadr-opt kadr-upd', 'aria-live': 'polite' });
 		this.updTop = E('div', { 'class': 'kadr-upd-top' });
 		this.updBottom = E('div', { 'class': 'kadr-upd-bottom' }, [
@@ -250,6 +263,7 @@ return baseclass.extend({
 				E('div', { 'class': 'kadr-opt' }, [ E('span', { 'id': 'kadr-bugs-label' }, [ 'Бегают по экрану' ]), this.switches.bugs ]),
 				E('div', { 'class': 'kadr-opt' }, [ E('span', { 'id': 'kadr-walk-label' }, [ 'Ходят по кнопкам' ]), this.switches.bugWalk ]),
 				this.memeRow,
+				this.soundRow,
 				this.countRow,
 				this.lookRow
 			]),
@@ -351,6 +365,40 @@ return baseclass.extend({
 		this.lookRow.setAttribute('aria-disabled', state.bugs || state.bugWalk ? 'false' : 'true');
 		this.memeRow.setAttribute('aria-disabled', state.bugs || state.bugWalk ? 'false' : 'true');
 		this.countRow.setAttribute('aria-disabled', state.bugs || state.bugWalk ? 'false' : 'true');
+		this.syncMeta();
+	},
+
+	buildStart() {
+		try {
+			const s = +(JSON.parse(window.localStorage.getItem('kadr-luci-build')) || {}).start;
+			return s > 0 ? s : 0;
+		}
+		catch (e) {
+			return 0;
+		}
+	},
+
+	syncMeta() {
+		if (!this.memeSub)
+			return;
+
+		const state = window.KadrTheme.get();
+		const start = this.buildStart();
+		const p = start ? Math.min(1, (Date.now() - start) / 864e5) : -1;
+		let text = 'Включишь — начнётся стройка турелей ровно на сутки, её не остановить';
+
+		if (p >= 0 && p < 1) {
+			const left = 864e5 - (Date.now() - start);
+			text = 'Стройка турелей: %d%% · ещё %d ч %d мин'.format(Math.floor(p * 100), Math.floor(left / 36e5), Math.floor(left % 36e5 / 6e4));
+			if (!state.bugMeme)
+				text += ' · её не остановить';
+		}
+		else if (p >= 1) {
+			text = state.bugMeme ? 'Турели построены и стреляют по жукам' : 'Турели построены и выключены';
+		}
+
+		this.memeSub.textContent = text;
+		this.soundRow.setAttribute('aria-disabled', (p >= 0 && p < 1) || (p >= 1 && state.bugMeme && (state.bugs || state.bugWalk)) ? 'false' : 'true');
 	},
 
 	loadUpdate() {

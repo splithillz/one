@@ -87,7 +87,8 @@
 			bugWalk: s.bugWalk === true,
 			bugLook: LOOKS.indexOf(s.bugLook) > -1 ? s.bugLook : 'color',
 			bugMeme: s.bugMeme === true,
-			bugCount: COUNTS.indexOf(s.bugCount) > -1 ? s.bugCount : 'normal'
+			bugCount: COUNTS.indexOf(s.bugCount) > -1 ? s.bugCount : 'normal',
+			bugSound: s.bugSound !== false
 		};
 	}
 
@@ -139,12 +140,22 @@
 		return t;
 	}
 
+	function building() {
+		try {
+			var s = +(JSON.parse(g.localStorage.getItem('kadr-luci-build')) || {}).start;
+			return s > 0 && Date.now() - s < 864e5;
+		}
+		catch (e) {
+			return false;
+		}
+	}
+
 	function bugs(state) {
 		if (g.KadrBugs) {
 			g.KadrBugs.update(state);
 			return;
 		}
-		if (!(state.bugs || state.bugWalk) || bugsLoading || !SELF)
+		if (!(state.bugs || state.bugWalk || building()) || bugsLoading || !SELF)
 			return;
 		bugsLoading = true;
 		var s = g.document.createElement('script');

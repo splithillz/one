@@ -9,7 +9,7 @@
 {%
 	import { getuid, getspnam } from 'luci.core';
 
-	const kadr_version = '1.4.0-r1';
+	const kadr_version = '1.5.0-r1';
 
 	const boardinfo = ubus.call('system', 'board');
 	const hostname = striptags(boardinfo?.hostname ?? '?');
