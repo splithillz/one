@@ -7,7 +7,7 @@ import sys
 import tarfile
 import time
 
-VERSION = "1.6.0"
+VERSION = "1.6.1"
 RELEASE = "1"
 EDITIONS = {
     "lite": {
