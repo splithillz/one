@@ -9,7 +9,8 @@
 		},
 		"write": {
 			"file": {
-				"/usr/libexec/kadr-update start": [ "exec" ]
+				"/usr/libexec/kadr-update start": [ "exec" ],
+				"/usr/libexec/kadr-update start full": [ "exec" ]
 			}
 		}
 	}

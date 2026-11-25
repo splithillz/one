@@ -10,7 +10,7 @@
 	import { getuid, getspnam } from 'luci.core';
 	import { access } from 'fs';
 
-	const kadr_version = '1.6.0-r1';
+	const kadr_version = '1.6.1-r1';
 	const kadr_edition = access(`/www${media}/kadr-bugs.js`) ? 'full' : 'lite';
 
 	const boardinfo = ubus.call('system', 'board');

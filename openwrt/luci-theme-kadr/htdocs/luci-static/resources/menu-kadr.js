@@ -32,7 +32,14 @@ const UPDATE_ERRORS = {
 	died: 'Обновление прервалось, попробуй ещё раз',
 	acl: 'Обновления заработают после повторного входа в LuCI',
 	missing: 'Нет скрипта обновления. Поставь тему заново командой из README',
+	same: 'Полная версия уже стоит, обнови страницу',
 	rpc: 'Роутер не ответил, попробуй ещё раз'
+};
+const FULL_STEPS = {
+	check: 'Готовлю…',
+	download: 'Скачиваю полную версию…',
+	verify: 'Проверяю пакет…',
+	install: 'Меняю обычную тему на полную…'
 };
 const UPDATE_STEPS = {
 	check: 'Готовлю обновление…',
@@ -289,8 +296,14 @@ return baseclass.extend({
 				])
 			);
 		}
-		else if (state.bugs || state.bugWalk) {
-			parts.push(E('p', { 'class': 'kadr-sheet-note kadr-moved' }, [ 'Жуки и метавселенная теперь в полной версии темы. ', E('a', { 'href': FULL_URL, 'target': '_blank', 'rel': 'noopener' }, [ 'Как поставить' ]) ]));
+		else {
+			this.fullBox = E('div', { 'class': 'kadr-opt kadr-upd kadr-full', 'aria-live': 'polite' });
+			this.fullMoved = !!(state.bugs || state.bugWalk);
+			parts.push(
+				E('span', { 'class': 'kadr-tiles-group kadr-opts-title' }, [ 'Жуки' ]),
+				E('div', { 'class': 'kadr-opts' }, [ this.fullBox ])
+			);
+			this.renderFull();
 		}
 
 		parts.push(this.updBottom, this.note);
@@ -738,6 +751,110 @@ return baseclass.extend({
 		this.saveUpdate(Object.assign({}, this.upd, { started: 0 }));
 		this.markUpdate();
 		this.renderUpdate({ mode: 'error', error: r.error || 'died', retry: 'update' });
+	},
+
+	renderFull(view) {
+		if (view !== undefined)
+			this.fullView = view;
+
+		if (!this.fullBox)
+			return;
+
+		const v = this.fullView || {};
+		const mode = v.mode || 'idle';
+		let title = 'Полная версия';
+		let sub = [ this.fullMoved ? 'Жуки и метавселенная переехали туда. Там же настройки, общие для всех устройств · ' : 'Жуки, метавселенная и настройки, общие для всех устройств · ',
+			E('a', { 'href': FULL_URL, 'target': '_blank', 'rel': 'noreferrer', 'click': (ev) => ev.stopPropagation() }, [ 'Подробнее' ]) ];
+		let btns = L.env.sessionid ? [ this.updButton('Поставить', () => this.renderFull({ mode: 'ask' }), true) ] : [];
+		let state = 'idle';
+
+		if (mode === 'ask') {
+			title = 'Поставить полную версию?';
+			sub = [ 'Обычная тема заменится на полную, выбор в панели сохранится. Страница перезагрузится.' ];
+			btns = [ this.updButton('Отмена', () => this.renderFull({ mode: 'idle' })), this.updButton('Поставить', () => this.startFull(), true) ];
+			state = 'available';
+		}
+		else if (mode === 'working') {
+			title = 'Ставлю полную версию';
+			sub = [ FULL_STEPS[v.step] || FULL_STEPS.check ];
+			btns = [ this.updButton('Ставлю', null, true) ];
+			state = 'updating';
+		}
+		else if (mode === 'done') {
+			title = 'Полная версия стоит';
+			sub = [ 'Перезагружаю страницу…' ];
+			btns = [];
+			state = 'done';
+		}
+		else if (mode === 'error') {
+			sub = [ UPDATE_ERRORS[v.error] || UPDATE_ERRORS.rpc ];
+			btns = [ this.updButton('Ещё раз', () => this.startFull(), true) ];
+			state = 'error';
+		}
+
+		this.fullBox.setAttribute('data-state', state);
+		L.dom.content(this.fullBox, [
+			E('span', { 'class': 'kadr-upd-ic', 'aria-hidden': 'true' }),
+			E('span', { 'class': 'kadr-upd-tx' }, [ E('strong', {}, [ title ]), E('small', {}, sub) ]),
+			btns.length ? E('span', { 'class': 'kadr-upd-btns' }, btns) : ''
+		]);
+	},
+
+	startFull() {
+		if (this.updBusy)
+			return;
+
+		const since = Date.now();
+
+		this.updBusy = true;
+		this.renderFull({ mode: 'working', step: 'check' });
+
+		fs.exec(UPDATE_TOOL, [ 'start', 'full' ]).then((res) => {
+			const r = parseLines(res.stdout);
+
+			if (r.error)
+				this.finishFull({ state: 'error', error: r.error });
+			else
+				this.pollFull(0, since);
+		}, (err) => this.finishFull({ state: 'error', error: rpcError(err) }));
+	},
+
+	pollFull(misses, since) {
+		window.setTimeout(() => {
+			const slow = new Promise((resolve, reject) => window.setTimeout(() => reject(new Error('slow')), 4000));
+
+			Promise.race([ fs.exec(UPDATE_TOOL, [ 'status' ]), slow ]).then((res) => {
+				const r = parseLines(res.stdout);
+
+				if (r.state === 'running' && !r.dead && Date.now() - since < UPDATE_LIMIT) {
+					this.renderFull({ mode: 'working', step: r.step });
+					this.pollFull(0, since);
+					return;
+				}
+
+				if (r.state !== 'done' && r.state !== 'error')
+					r.error = 'died';
+
+				this.finishFull(r);
+			}, () => {
+				if (misses < 20)
+					this.pollFull(misses + 1, since);
+				else
+					this.finishFull({ state: 'error', error: 'rpc' });
+			});
+		}, 1000);
+	},
+
+	finishFull(r) {
+		this.updBusy = false;
+
+		if (r.state === 'done') {
+			this.renderFull({ mode: 'done' });
+			window.setTimeout(() => window.location.reload(), 1500);
+			return;
+		}
+
+		this.renderFull({ mode: 'error', error: r.error || 'died' });
 	},
 
 	placeUpdate(top) {

@@ -80,6 +80,10 @@ start() {
 		return
 	fi
 	[ -n "$(manager)" ] || { echo "error=pm"; return; }
+	if [ "$1" = full ] && [ "$pkg" != luci-theme-kadr ]; then
+		echo "error=same"
+		return
+	fi
 	if ! cp "$0" "$run/worker" || ! chmod 700 "$run/worker"; then
 		echo "error=tmp"
 		return
@@ -87,17 +91,45 @@ start() {
 	rm -f "$run/pid"
 	put state=running step=check
 	if command -v start-stop-daemon >/dev/null 2>&1; then
-		start-stop-daemon -S -b -m -p "$run/pid" -x /bin/sh -- "$run/worker" work
+		start-stop-daemon -S -b -m -p "$run/pid" -x /bin/sh -- "$run/worker" work ${1:+"$1"}
 	else
-		sh "$run/worker" work </dev/null >/dev/null 2>&1 &
+		sh "$run/worker" work ${1:+"$1"} </dev/null >/dev/null 2>&1 &
 	fi
 	echo "state=running"
 }
 
 fail() {
-	rm -f "$run/pkg" "$run"/*.apk "$run"/*.ipk
+	rm -f "$run/pkg" "$run"/*.apk "$run"/*.ipk "$run"/back.*
 	put state=error error="$1" version="$latest"
 	exit 1
+}
+
+add() {
+	if [ "$pm" = apk ]; then
+		apk add --no-network --allow-untrusted "$1" </dev/null >>"$run/log" 2>&1
+	else
+		opkg install "$1" </dev/null >>"$run/log" 2>&1
+	fi
+}
+
+drop() {
+	if [ "$pm" = apk ]; then
+		apk del --no-network "$1" </dev/null >>"$run/log" 2>&1
+	else
+		opkg remove "$1" </dev/null >>"$run/log" 2>&1
+	fi
+}
+
+backup() {
+	fetch "$base/releases/$pkg.latest" "$run/back.latest" 20 || return 1
+	bfile=$(sed -n "s/^$ext=//p" "$run/back.latest" | head -n 1)
+	bsum=$(sed -n "s/^${ext}_sha256=//p" "$run/back.latest" | head -n 1)
+	case $bfile in
+		'' | */* | .*) return 1 ;;
+	esac
+	fetch "$base/releases/$bfile" "$run/back.pkg" 90 || return 1
+	[ "$(sha256sum "$run/back.pkg" | cut -d ' ' -f 1)" = "$bsum" ] || return 1
+	mv -f "$run/back.pkg" "$run/back.$ext"
 }
 
 work() {
@@ -105,8 +137,11 @@ work() {
 	pm=$(manager)
 	ext=ipk
 	[ "$pm" = apk ] && ext=apk
+	target=$pkg
+	[ "$1" = full ] && target=luci-theme-kadr-full
 	latest=
-	fetch "$base/releases/$pkg.latest" "$run/latest" 20 || fail net
+	: > "$run/log"
+	fetch "$base/releases/$target.latest" "$run/latest" 20 || fail net
 	latest=$(field version)
 	file=$(field "$ext")
 	sum=$(field "${ext}_sha256")
@@ -115,7 +150,7 @@ work() {
 		*/* | .*) fail bad ;;
 	esac
 	cur=$(installed)
-	if ! newer "$latest" "$cur"; then
+	if [ "$target" = "$pkg" ] && ! newer "$latest" "$cur"; then
 		put state=done version="$cur" same=1
 		return
 	fi
@@ -129,12 +164,21 @@ work() {
 	mv -f "$run/pkg" "$run/$file" || fail tmp
 
 	put state=running step=install version="$latest"
-	if [ "$pm" = apk ]; then
-		apk add --no-network --allow-untrusted "$run/$file" </dev/null >"$run/log" 2>&1 || fail install
+	if [ "$target" = "$pkg" ]; then
+		add "$run/$file" || fail install
 	else
-		opkg install "$run/$file" </dev/null >"$run/log" 2>&1 || fail install
+		backup || rm -f "$run"/back.*
+		drop "$pkg" || fail install
+		if ! add "$run/$file"; then
+			[ -f "$run/back.$ext" ] && add "$run/back.$ext"
+			fail install
+		fi
+		uci -q set luci.themes.Kadr=/luci-static/kadr
+		uci -q set luci.main.mediaurlbase=/luci-static/kadr
+		uci -q commit luci
+		rm -rf /tmp/luci-indexcache* /tmp/luci-modulecache
 	fi
-	rm -f "$run/$file" "$run/latest"
+	rm -f "$run/$file" "$run/latest" "$run"/back.*
 	put state=done version="$latest"
 }
 
@@ -151,8 +195,8 @@ status() {
 
 case $1 in
 	check) check ;;
-	start) start ;;
+	start) start "$2" ;;
 	status) status ;;
-	work) work ;;
+	work) work "$2" ;;
 	*) echo "error=usage" ;;
 esac
