@@ -214,6 +214,12 @@
 		var cv = D.createElement('canvas'), c = cv.getContext('2d', { willReadFrequently: true });
 		cv.width = r[2];
 		cv.height = r[3];
+		if (variant === 'red' && SHIELD[name + ':' + key]) {
+			c.beginPath();
+			SHIELD[name + ':' + key].forEach(function (q, n) { c[n ? 'lineTo' : 'moveTo'](q[0], q[1]); });
+			c.closePath();
+			c.clip();
+		}
 		c.drawImage(im, r[0], r[1], r[2], r[3], 0, 0, r[2], r[3]);
 		var d = c.getImageData(0, 0, r[2], r[3]), p = d.data, i, l;
 		for (i = 0; i < p.length; i += 4) {
@@ -252,6 +258,8 @@
 		c.putImageData(d, 0, 0);
 		return (TINT[id] = { src: cv, x: 0, y: 0, w: r[2], h: r[3] });
 	}
+
+	var SHIELD = { 'boss-rkn:shield': [ [ 142, 98 ], [ 175, 77 ], [ 204, 60 ], [ 232, 76 ], [ 259, 96 ], [ 263, 130 ], [ 263, 176 ], [ 257, 201 ], [ 243, 223 ], [ 221, 240 ], [ 190, 222 ], [ 165, 200 ], [ 152, 178 ], [ 145, 140 ] ] };
 
 	function blit(c, s, x, y, h, flip, alpha) {
 		if (!s)
@@ -1635,13 +1643,13 @@
 		c.fill();
 		var wob = b.state === 'rage' ? Math.sin(F.t * 30) * 3 * k : Math.sin(F.t * 3 + b.wob) * 1.5 * k;
 		blit(c, s, b.x + wob, b.y, h, flip);
-		if (rk && b.shield > 0 && b.state !== 'dead') {
+		if (rk && key === 'shield' && b.state !== 'dead') {
 			var pu = .5 + .5 * Math.sin(F.t * 13), rs = sprite(name, key, 'red');
 			if (rs) {
 				c.save();
-				c.shadowColor = 'rgba(255,30,20,' + (.45 + .45 * pu) + ')';
-				c.shadowBlur = (8 + 14 * pu) * k;
-				blit(c, rs, b.x + wob, b.y, h, flip, .1 + .5 * pu);
+				c.shadowColor = 'rgba(255,30,20,' + (.5 + .45 * pu) + ')';
+				c.shadowBlur = (10 + 18 * pu) * k;
+				blit(c, rs, b.x + wob, b.y, h, flip, .18 + .62 * pu);
 				c.restore();
 			}
 		}
@@ -1651,9 +1659,12 @@
 		if (rk && b.state !== 'dead')
 			drones(c, b, k);
 		if (b.shield > 0 && b.state !== 'dead') {
+			var rp = .5 + .5 * Math.sin(F.t * 13);
 			c.save();
-			c.globalAlpha = .35 + .2 * Math.sin(F.t * 9);
-			c.strokeStyle = '#9fd8ff';
+			c.globalAlpha = .3 + .45 * rp;
+			c.strokeStyle = '#ff3a2e';
+			c.shadowColor = 'rgba(255,40,30,.8)';
+			c.shadowBlur = 10 * k * rp;
 			c.lineWidth = 3 * k;
 			c.beginPath();
 			c.ellipse(b.x, b.y - b.h * .5, b.h * .62, b.h * .6, 0, 0, TAU);
@@ -1662,7 +1673,7 @@
 			c.save();
 			c.font = '800 ' + Math.round(11 * Math.max(.8, k)) + 'px Onest, system-ui, sans-serif';
 			c.textAlign = 'center';
-			c.fillStyle = '#d8efff';
+			c.fillStyle = '#ffd6d2';
 			c.fillText('«Суверенный интернет»', b.x, b.y - b.h * 1.14);
 			c.restore();
 		}
