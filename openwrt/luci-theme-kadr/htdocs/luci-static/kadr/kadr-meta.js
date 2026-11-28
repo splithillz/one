@@ -19,7 +19,11 @@
 	var MIN = { hammer: .09, stake: .09, trowel: .3, shovel: .5, brush: .4, wrench: .5, saw: 1.2, torch: 1.4, winch: 1, trolley: 1, clank: .3, thud: .15, shot: .1, hit: .05 };
 
 	var sites = [ null, null ], carriers = [], parts = [], shots = [];
-	var mono = null, monoKey = '', buf = null, bctx = null, gutW = -1, gut = 0, liftAt = -1e9, lift = 0, liftNow = -1;
+	var mono = null, monoKey = '', buf = null, bctx = null, gutW = -1, gut = 0, liftAt = -1e9, lift = 0, liftNow = -1, lastHeads = [], SKINS = {};
+	var SKIN = {
+		tower: { concrete: { brick: '#8f969b', brickDk: '#4a5056', mortar: '#3fe6c0' }, gold: { brick: '#d9a43a', brickDk: '#8a6416', mortar: '#fff1b8' } },
+		gun: { plasma: { steel: '#4a5a7a', steelDk: '#263048', steelLt: '#7fe8ff' }, rocket: { steel: '#7a5240', steelDk: '#3a2418', steelLt: '#ffb070' } }
+	};
 	var A = null, wantSound = false;
 
 	function clamp(v) {
@@ -615,8 +619,49 @@
 		}
 	}
 
-	function turret(c, P, S, st, k, aim, recoil, flash, t, building) {
+	function skinned(P, tv, w) {
+		if (!tv || w.look === 'mono' || (tv.skin.tower === 'brick' && tv.skin.gun === 'steel'))
+			return P;
+		var id = monoKey + '|' + tv.skin.tower + '|' + tv.skin.gun;
+		if (SKINS[id] && SKINS[id].base === P)
+			return SKINS[id];
+		var o = {};
+		Object.keys(P).forEach(function (n) { o[n] = P[n]; });
+		[ SKIN.tower[tv.skin.tower], SKIN.gun[tv.skin.gun] ].forEach(function (m) {
+			Object.keys(m || {}).forEach(function (n) { o[n] = m[n]; });
+		});
+		Object.defineProperty(o, 'base', { value: P });
+		return (SKINS[id] = o);
+	}
+
+	function rubble(c, P, x0, y0, k, t) {
+		[ [ -22, 2, 14, 7 ], [ -8, -4, 16, 8 ], [ 8, 1, 15, 7 ], [ 18, -6, 11, 6 ], [ -14, -10, 12, 6 ], [ 2, -12, 13, 7 ] ].forEach(function (b, i) {
+			c.save();
+			c.translate(x0 + b[0] * k, y0 + b[1] * k);
+			c.rotate((i % 3 - 1) * .35);
+			box(c, -b[2] * k / 2, -b[3] * k / 2, b[2] * k, b[3] * k, i % 2 ? P.brick : P.brickDk);
+			c.restore();
+		});
+		line(c, 4 * k, P.steelDk, [ x0 - 4 * k, y0 - 14 * k, x0 + 22 * k, y0 - 4 * k ]);
+		for (var i = 0; i < 3; i++) {
+			var f = (t * .5 + i / 3) % 1;
+			oval(c, x0 + Math.sin(i * 2 + t) * 5 * k, y0 - 16 * k - f * 34 * k, (5 + f * 10) * k, (5 + f * 10) * k, 'rgba(70,70,74,' + (.4 * (1 - f)) + ')');
+		}
+	}
+
+	function turret(c, P, S, st, k, aim, recoil, flash, t, building, tv) {
 		var x0 = S.x, y0 = S.y, s = S.s, padTop = y0 - PAD * k * st.pad, h = HT * k * st.wall, top = padTop - h;
+		if (tv && tv.dead && !building) {
+			ell(c, x0, y0, 40 * k, 15 * k, 0, Math.PI);
+			c.lineTo(x0 - 40 * k, padTop);
+			c.ellipse(x0, padTop, 40 * k, 15 * k, 0, Math.PI, 0, true);
+			c.closePath();
+			c.fillStyle = P.concreteDk;
+			c.fill();
+			oval(c, x0, padTop, 40 * k, 15 * k, P.concrete);
+			rubble(c, P, x0, padTop, k, t);
+			return { hx: x0, hy: padTop - 14 * k, top: padTop - 20 * k };
+		}
 		if (st.mark > 0 && st.wall < .2) {
 			c.save();
 			c.globalAlpha = st.mark * (1 - clamp(st.wall * 5));
@@ -653,6 +698,17 @@
 			if (st.ring < 1) {
 				oval(c, x0, top, RX * k, RY * k, P.brickDk);
 				oval(c, x0, top + .6 * k, (RX - 3.5) * k, (RY - 2.2) * k, '#1a120d');
+			}
+			if (tv && tv.hp < .6 && !building) {
+				c.strokeStyle = 'rgba(22,12,8,.85)';
+				c.lineWidth = 1.3 * k;
+				c.beginPath();
+				c.moveTo(x0 - 12 * k, top + h * .25);
+				c.lineTo(x0 - 4 * k, top + h * .42);
+				c.lineTo(x0 - 9 * k, top + h * .6);
+				c.moveTo(x0 + 6 * k, top + h * .5);
+				c.lineTo(x0 + 13 * k, top + h * .7);
+				c.stroke();
 			}
 		}
 		if (st.ring > 0) {
@@ -692,14 +748,19 @@
 			c.restore();
 		}
 		if (st.gun > 0) {
-			var a = aim === null ? (s > 0 ? .25 : Math.PI - .25) : aim, len = (42 * st.gun - recoil * 6) * k, pr = -Math.sin(a) * 4 * k, pc = Math.cos(a) * 4 * k;
+			var off = tv && tv.off && !building, rocket = tv && tv.skin.gun === 'rocket', plasma = tv && tv.skin.gun === 'plasma';
+			var a = off ? (s > 0 ? 1.05 : Math.PI - 1.05) : aim === null ? (s > 0 ? .25 : Math.PI - .25) : aim, len = (42 * st.gun - recoil * 6) * k * (rocket ? .82 : 1), pr = -Math.sin(a) * 4 * k, pc = Math.cos(a) * 4 * k;
 			[ -1, 1 ].forEach(function (q) {
-				line(c, 4.2 * k, P.steelDk, [ hx + q * pr, hy - 8 * k + q * pc, hx + q * pr + Math.cos(a) * len, hy - 8 * k + q * pc + Math.sin(a) * len ]);
+				line(c, (rocket ? 7 : 4.2) * k, P.steelDk, [ hx + q * pr, hy - 8 * k + q * pc, hx + q * pr + Math.cos(a) * len, hy - 8 * k + q * pc + Math.sin(a) * len ]);
 				line(c, 1 * k, P.steelLt, [ hx + q * pr, hy - 9 * k + q * pc, hx + q * pr + Math.cos(a) * len * .9, hy - 9 * k + q * pc + Math.sin(a) * len * .9 ]);
+				if (plasma && !off)
+					oval(c, hx + q * pr + Math.cos(a) * len, hy - 8 * k + q * pc + Math.sin(a) * len, 2.6 * k, 2.6 * k, 'rgba(127,232,255,' + (.55 + .45 * Math.sin(t * 9 + q)) + ')');
+				if (rocket)
+					oval(c, hx + q * pr + Math.cos(a) * len, hy - 8 * k + q * pc + Math.sin(a) * len, 3 * k, 3 * k, '#d8442e');
 			});
 			oval(c, hx, hy - 8 * k, 7 * k, 6 * k, P.steelDk);
 			if (st.gun >= 1)
-				oval(c, hx, hy - 24 * k, 2.2 * k, 2.2 * k, cyc(t, 1.4) < .5 ? P.red : '#5a1512');
+				oval(c, hx, hy - 24 * k, 2.2 * k, 2.2 * k, off ? '#3a0c0a' : tv && !tv.online ? '#ff2020' : cyc(t, 1.4) < .5 ? P.red : '#5a1512');
 			if (flash > 0) {
 				var fx = hx + Math.cos(a) * (len + 4 * k), fy = hy - 8 * k + Math.sin(a) * (len + 4 * k);
 				c.save();
@@ -720,6 +781,11 @@
 			for (var r = y0 + 4 * k; r > top + 8 * k; r -= 6 * k)
 				line(c, 1 * k, P.wood, [ lx - 2.5 * k, r, lx + 2.5 * k, r ]);
 		}
+		if (tv && tv.hp < .3 && !building)
+			for (var sm = 0; sm < 3; sm++) {
+				var f = (t * .55 + sm / 3) % 1;
+				oval(c, hx + Math.sin(sm * 2 + t) * 5 * k, hy - 26 * k - f * 30 * k, (4 + f * 9) * k, (4 + f * 9) * k, 'rgba(70,70,74,' + (.38 * (1 - f)) + ')');
+			}
 		return { hx: hx, hy: hy - 8 * k, top: top };
 	}
 
@@ -927,13 +993,37 @@
 		});
 	}
 
-	function stepTurret(w, S, dt, head) {
+	function stepTurret(w, S, dt, head, tv, R) {
 		var T = S.state, k = S.k, best = null, bd = 1e9, cur = null, mine = function (o) { return S.s > 0 ? o.x > head.hx - 20 : o.x < head.hx + 20; };
 		T.cd -= dt;
 		T.flash = Math.max(0, T.flash - dt * 9);
 		T.recoil = Math.max(0, T.recoil - dt * 4);
 		if (T.a === null)
 			T.a = S.s > 0 ? .25 : Math.PI - .25;
+		if (tv && (tv.dead || tv.off)) {
+			T.tgt = null;
+			return;
+		}
+		if (R && tv && tv.fight) {
+			var bt = tv.online ? R.aim() : null, wantB;
+			if (bt) {
+				var dB = Math.hypot(bt.x - head.hx, bt.y - head.hy), leadB = dB / 560;
+				wantB = Math.atan2(bt.y + bt.vy * leadB - head.hy, bt.x + bt.vx * leadB - head.hx);
+			}
+			else {
+				T.sweep += dt * .5;
+				wantB = (S.s > 0 ? 0 : Math.PI) + Math.sin(T.sweep) * .7;
+			}
+			var dfB = Math.atan2(Math.sin(wantB - T.a), Math.cos(wantB - T.a));
+			T.a += Math.max(-4 * dt, Math.min(4 * dt, dfB));
+			if (bt && Math.abs(dfB) < .08 && T.cd <= 0) {
+				T.cd = R.rate() * rand(.85, 1.15);
+				T.recoil = 1;
+				T.flash = 1;
+				shots.push({ x: head.hx + Math.cos(T.a) * 46 * k, y: head.hy + Math.sin(T.a) * 46 * k, vx: Math.cos(T.a) * 560, vy: Math.sin(T.a) * 560, age: 0, site: S.i, boss: true, skin: tv.skin.shot });
+			}
+			return;
+		}
 		w.targets.forEach(function (o) {
 			if (o.ref === T.tgt && !o.ref.dead && mine(o))
 				cur = o;
@@ -965,16 +1055,23 @@
 			T.recoil = 1;
 			T.flash = 1;
 			var len = 46 * k;
-			shots.push({ x: head.hx + Math.cos(T.a) * len, y: head.hy + Math.sin(T.a) * len, vx: Math.cos(T.a) * 560, vy: Math.sin(T.a) * 560, age: 0, site: S.i });
+			shots.push({ x: head.hx + Math.cos(T.a) * len, y: head.hy + Math.sin(T.a) * len, vx: Math.cos(T.a) * 560, vy: Math.sin(T.a) * 560, age: 0, site: S.i, skin: tv ? tv.skin.shot : 'bolt' });
 			play(w, 'shot', S.i);
 		}
 	}
 
-	function stepShots(w, dt) {
+	function stepShots(w, dt, R) {
 		shots = shots.filter(function (s) {
 			s.age += dt;
 			s.x += s.vx * dt;
 			s.y += s.vy * dt;
+			if (s.boss) {
+				if (R && R.shot(s.x, s.y, s.site)) {
+					spark(s.x, s.y, 6, 'spark', 110);
+					return false;
+				}
+				return s.age < 2.5 && s.x > -50 && s.x < w.W + 50 && s.y > -50 && s.y < w.H + 50;
+			}
 			var hit = null;
 			w.targets.forEach(function (o) {
 				if (hit || o.ref.dead)
@@ -995,13 +1092,37 @@
 		});
 	}
 
-	function drawShots(c, P) {
+	function drawShots(c, P, w) {
 		shots.forEach(function (s) {
-			var l = .03;
+			var l = .03, skin = w.look === 'mono' ? 'bolt' : s.skin || 'bolt', a = Math.atan2(s.vy, s.vx);
 			c.save();
 			c.lineCap = 'round';
-			line(c, 3, P.bolt, [ s.x - s.vx * l, s.y - s.vy * l, s.x, s.y ]);
-			line(c, 1.2, P.white, [ s.x - s.vx * l * .5, s.y - s.vy * l * .5, s.x, s.y ]);
+			if (skin === 'noodle') {
+				c.translate(s.x, s.y);
+				c.rotate(a);
+				c.beginPath();
+				for (var q = 0; q <= 12; q++)
+					c.lineTo(-q * 2.2, Math.sin(q * 1.3 + s.age * 30) * 2.4);
+				c.lineWidth = 2.2;
+				c.strokeStyle = '#f2cf6a';
+				c.stroke();
+			}
+			else if (skin === 'plasma') {
+				oval(c, s.x, s.y, 5.5, 5.5, 'rgba(127,232,255,.35)');
+				oval(c, s.x, s.y, 3.2, 3.2, '#bff4ff');
+				line(c, 2, 'rgba(127,232,255,.5)', [ s.x - s.vx * l, s.y - s.vy * l, s.x, s.y ]);
+			}
+			else if (skin === 'rocket') {
+				c.translate(s.x, s.y);
+				c.rotate(a);
+				box(c, -10, -2.2, 10, 4.4, '#d9d9d9');
+				oval(c, 0, 0, 2.6, 2.2, '#d8442e');
+				oval(c, -12 - Math.random() * 3, 0, 4 + Math.random() * 2, 2.6, 'rgba(255,170,60,.85)');
+			}
+			else {
+				line(c, 3, P.bolt, [ s.x - s.vx * l, s.y - s.vy * l, s.x, s.y ]);
+				line(c, 1.2, P.white, [ s.x - s.vx * l * .5, s.y - s.vy * l * .5, s.x, s.y ]);
+			}
 			c.restore();
 		});
 	}
@@ -1011,6 +1132,9 @@
 		var elapsed = p * DAY, remain = (1 - p) * DAY, arrive = clamp(elapsed / 3e4), leave = building ? clamp(remain / 3e4) : 0;
 		c.lineCap = 'round';
 		c.lineJoin = 'round';
+		var R = !building && g.KadrRaid && g.KadrRaid.active() ? g.KadrRaid : null, heads = [];
+		if (R)
+			R.under(c, w, L, P, lastHeads);
 		L.forEach(function (S) {
 			S.state = site(S.i);
 			var k = S.k, i = S.i;
@@ -1031,9 +1155,11 @@
 			var top = topOf(st) * k;
 			if (building)
 				stepCrane(w, S, st, dt, top, J.load);
-			var head = turret(c, P, S, st, k, building ? null : S.state.a, S.state.recoil, S.state.flash, t, building);
+			var tv = R ? R.turret(S.i) : null;
+			var head = turret(c, skinned(P, tv, w), S, st, k, building ? null : S.state.a, S.state.recoil, S.state.flash, t, building, tv);
+			heads[S.i] = head;
 			if (!building && w.armed)
-				stepTurret(w, S, dt, head);
+				stepTurret(w, S, dt, head, tv, R);
 			if (!building)
 				return;
 			var ground = st.wall < .12, alpha = Math.min(arrive < 1 ? arrive * 3 : 1, leave);
@@ -1076,11 +1202,14 @@
 		}
 		else {
 			carriers = [];
-			stepShots(w, dt);
-			drawShots(c, P);
+			stepShots(w, dt, R);
+			drawShots(c, P, w);
 		}
 		stepParts(dt);
 		drawParts(c, P);
+		lastHeads = heads;
+		if (R)
+			R.over(c, w, L, P, dt, heads);
 	}
 
 	function frame(ctx, w) {

@@ -88,6 +88,7 @@
 			bugWalk: s.bugWalk === true,
 			bugLook: LOOKS.indexOf(s.bugLook) > -1 ? s.bugLook : 'color',
 			bugVerse: s.bugVerse === true,
+			bugMode: s.bugMode === 'hard' || s.bugMode === 'normal' ? s.bugMode : '',
 			bugCount: COUNTS.indexOf(s.bugCount) > -1 ? s.bugCount : 'normal',
 			bugSound: s.bugSound !== false
 		};

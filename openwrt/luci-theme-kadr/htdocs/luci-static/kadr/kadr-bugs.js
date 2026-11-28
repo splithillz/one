@@ -1068,9 +1068,9 @@
 		legsSide(c, sp, ph, R, false, G.base);
 	}
 
-	var state = { bugs: false, bugWalk: false, bugLook: 'color', bugVerse: false, bugCount: 'normal', bugSound: true };
+	var state = { bugs: false, bugWalk: false, bugLook: 'color', bugVerse: false, bugMode: '', bugCount: 'normal', bugSound: true };
 	var SELF = D.currentScript && D.currentScript.src ? D.currentScript.src : '';
-	var BUILD_KEY = 'kadr-luci-build', DAY = 864e5, metaLoading = false, kills = 0, squashed = 0;
+	var BUILD_KEY = 'kadr-luci-build', DAY = 864e5, metaLoading = false, raidLoading = false, kills = 0, squashed = 0;
 	var DENSITY = { few: .5, normal: 1, many: 2 };
 	var theme = { acc: [63, 224, 161], light: false, shadows: true };
 	var canvas = null, ctx = null, off = null, octx = null;
@@ -1505,11 +1505,18 @@
 	function onPress(ev) {
 		if (ev.button > 0 || ev.isPrimary === false || !canvas)
 			return;
-		var x = ev.clientX, y = ev.clientY, o = pick(x, y, ev.pointerType === 'mouse' ? 1 : 6);
+		var x = ev.clientX, y = ev.clientY, cov = covered(x, y);
 		pointer.x = x;
 		pointer.y = y;
 		pointer.t = now;
-		if (!o || covered(x, y))
+		if (g.KadrRaid && g.KadrRaid.press(x, y, ev, cov)) {
+			ev.preventDefault();
+			ev.stopPropagation();
+			swallow = { x: x, y: y, t: g.performance.now() };
+			return;
+		}
+		var o = cov ? null : pick(x, y, ev.pointerType === 'mouse' ? 1 : 6);
+		if (!o)
 			return;
 		ev.preventDefault();
 		ev.stopPropagation();
@@ -1554,6 +1561,21 @@
 	function metaWanted() {
 		var p = buildProgress();
 		return p >= 0 && (p < 1 || state.bugVerse);
+	}
+
+	function loadRaid() {
+		if (g.KadrRaid || raidLoading || !SELF)
+			return;
+		raidLoading = true;
+		var s = D.createElement('script');
+		s.src = SELF.replace(/kadr-bugs\.js/, 'kadr-raid.js');
+		s.async = true;
+		s.onload = function () {
+			if (g.KadrRaid)
+				g.KadrRaid.sync(state);
+		};
+		s.onerror = function () { raidLoading = false; };
+		D.head.appendChild(s);
 	}
 
 	function loadMeta() {
@@ -1945,7 +1967,11 @@
 	function update(s) {
 		var first = !booted, memeWas = state.bugVerse;
 		booted = true;
-		state = { bugs: !!s.bugs, bugWalk: !!s.bugWalk, bugLook: s.bugLook || 'color', bugVerse: !!s.bugVerse, bugCount: s.bugCount || 'normal', bugSound: s.bugSound !== false };
+		state = { bugs: !!s.bugs, bugWalk: !!s.bugWalk, bugLook: s.bugLook || 'color', bugVerse: !!s.bugVerse, bugMode: s.bugMode || '', bugCount: s.bugCount || 'normal', bugSound: s.bugSound !== false };
+		if (state.bugVerse && state.bugMode === 'hard')
+			loadRaid();
+		if (g.KadrRaid)
+			g.KadrRaid.sync(state);
 		if (state.bugVerse && (state.bugs || state.bugWalk))
 			beginBuild();
 		readTheme();

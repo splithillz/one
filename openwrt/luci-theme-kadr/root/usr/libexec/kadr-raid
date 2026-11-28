@@ -1,0 +1,198 @@
+#!/bin/sh
+
+run=/var/run/kadr-raid
+max=40
+
+up() {
+	read -r u _ < /proc/uptime
+	echo "${u%.*}"
+}
+
+left() {
+	u=$(cat "$run/until" 2>/dev/null)
+	case $u in
+		'' | *[!0-9]*) u=0 ;;
+	esac
+	l=$(( u - $(up) ))
+	[ "$l" -gt $(( max + 5 )) ] && l=0
+	echo "$l"
+}
+
+mode() {
+	if [ -x /etc/init.d/podkop ] && /etc/init.d/podkop enabled 2>/dev/null; then
+		echo podkop
+	else
+		echo wan
+	fi
+}
+
+devs() {
+	{
+		ip -4 route show default
+		ip -6 route show default
+	} 2>/dev/null | sed -n 's/.* dev \([^ ]*\).*/\1/p'
+	for i in wan wan6; do
+		ubus call "network.interface.$i" status 2>/dev/null | jsonfilter -e '@.l3_device' 2>/dev/null
+	done
+}
+
+wan_on() {
+	els=
+	for d in $(devs | sort -u); do
+		case $d in
+			*[!A-Za-z0-9._-]*) continue ;;
+		esac
+		els="${els:+$els, }\"$d\" timeout ${1}s"
+	done
+	[ -n "$els" ] || return 1
+	nft -f - <<-EOF
+		add table inet kadr_raid
+		delete table inet kadr_raid
+		table inet kadr_raid {
+			set kadr_devs {
+				type ifname
+				flags timeout
+				elements = { $els }
+			}
+			chain kadr_fwd {
+				type filter hook forward priority -5; policy accept;
+				oifname @kadr_devs drop
+			}
+		}
+	EOF
+}
+
+wan_off() {
+	nft delete table inet kadr_raid 2>/dev/null
+	return 0
+}
+
+own() {
+	if mkdir "$run/lock" 2>/dev/null; then
+		echo $$ > "$run/lock/pid"
+		return 0
+	fi
+	p=$(cat "$run/lock/pid" 2>/dev/null)
+	if [ -z "$p" ]; then
+		sleep 1
+		p=$(cat "$run/lock/pid" 2>/dev/null)
+	fi
+	[ -n "$p" ] && kill -0 "$p" 2>/dev/null && return 1
+	rm -rf "$run/lock"
+	mkdir "$run/lock" 2>/dev/null || return 1
+	echo $$ > "$run/lock/pid"
+}
+
+worker() {
+	own || exit 0
+	while [ "$(left)" -gt 0 ]; do
+		if [ ! -f "$run/mode" ]; then
+			if /etc/init.d/podkop stop >/dev/null 2>&1; then
+				echo podkop > "$run/mode"
+			elif wan_on "$(left)"; then
+				echo wan > "$run/mode"
+			fi
+		fi
+		sleep 1
+	done
+	case $(cat "$run/mode" 2>/dev/null) in
+		podkop) /etc/init.d/podkop start >/dev/null 2>&1 ;;
+		wan) wan_off ;;
+	esac
+	rm -f "$run/mode"
+	rm -rf "$run/lock"
+	[ "$(left)" -gt 0 ] && exec /bin/sh "$run/worker" worker
+	exit 0
+}
+
+spawn() {
+	rm -f "$run/spawn.pid"
+	if command -v start-stop-daemon >/dev/null 2>&1; then
+		start-stop-daemon -S -b -m -p "$run/spawn.pid" -x /bin/sh -- "$run/worker" worker
+	else
+		( /bin/sh "$run/worker" worker </dev/null >/dev/null 2>&1 & )
+	fi
+}
+
+prepare() {
+	[ -d "$run" ] || mkdir -m 700 "$run" || return 1
+	[ "$0" = "$run/worker" ] || { cp "$0" "$run/worker" && chmod 700 "$run/worker"; }
+}
+
+do_cut() {
+	case $1 in
+		'' | 0 | *[!0-9]*) echo "error=usage"; return ;;
+	esac
+	n=$1
+	[ "$n" -gt "$max" ] && n=$max
+	prepare || { echo "error=tmp"; return; }
+	echo $(( $(up) + n )) > "$run/until"
+	m=$(cat "$run/mode" 2>/dev/null)
+	[ -n "$m" ] || m=$(mode)
+	if [ "$m" = wan ]; then
+		wan_on "$n" || { echo 0 > "$run/until"; echo "error=nft"; return; }
+		echo wan > "$run/mode"
+		if [ "$(left)" -le 0 ]; then
+			wan_off
+			rm -f "$run/mode"
+		fi
+	else
+		spawn || { echo 0 > "$run/until"; echo "error=tmp"; return; }
+	fi
+	echo "state=cut"
+	echo "mode=$m"
+	echo "left=$n"
+}
+
+do_restore() {
+	[ -d "$run" ] || { echo "state=ok"; return; }
+	echo 0 > "$run/until"
+	case $(cat "$run/mode" 2>/dev/null) in
+		wan)
+			wan_off
+			rm -f "$run/mode"
+			;;
+		podkop)
+			prepare && spawn
+			;;
+	esac
+	echo "state=ok"
+}
+
+do_heal() {
+	m=$(cat "$run/mode" 2>/dev/null)
+	case $m in
+		wan)
+			if [ "$(left)" -le 0 ]; then
+				wan_off
+				rm -f "$run/mode"
+			fi
+			;;
+		podkop)
+			prepare && spawn
+			;;
+	esac
+	echo "state=ok"
+}
+
+do_status() {
+	m=$(cat "$run/mode" 2>/dev/null)
+	l=$(left)
+	if [ "$l" -gt 0 ] || [ "$m" = podkop ]; then
+		echo "state=cut"
+		[ -n "$m" ] && echo "mode=$m"
+		[ "$l" -gt 0 ] && echo "left=$l"
+	else
+		echo "state=ok"
+	fi
+	echo "can=$(mode)"
+}
+
+case $1 in
+	cut) do_cut "$2" ;;
+	restore) do_restore ;;
+	heal) do_heal ;;
+	status) do_status ;;
+	worker) worker ;;
+	*) echo "error=usage" ;;
+esac
