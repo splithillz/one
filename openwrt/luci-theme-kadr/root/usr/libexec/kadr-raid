@@ -126,8 +126,13 @@ do_cut() {
 	n=$1
 	[ "$n" -gt "$max" ] && n=$max
 	prepare || { echo "error=tmp"; return; }
-	echo $(( $(up) + n )) > "$run/until"
 	m=$(cat "$run/mode" 2>/dev/null)
+	if [ "$m" = wan ] && [ "$(left)" -le 0 ]; then
+		wan_off
+		rm -f "$run/mode"
+		m=
+	fi
+	echo $(( $(up) + n )) > "$run/until"
 	[ -n "$m" ] || m=$(mode)
 	if [ "$m" = wan ]; then
 		wan_on "$n" || { echo 0 > "$run/until"; echo "error=nft"; return; }

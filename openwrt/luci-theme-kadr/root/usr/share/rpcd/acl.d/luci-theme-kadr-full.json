@@ -11,13 +11,13 @@
 			"file": {
 				"/etc/kadr-sync.json": [ "write" ],
 				"/usr/libexec/kadr-raid cut 6": [ "exec" ],
-				"/usr/libexec/kadr-raid cut 9": [ "exec" ],
+				"/usr/libexec/kadr-raid cut 8": [ "exec" ],
+				"/usr/libexec/kadr-raid cut 10": [ "exec" ],
 				"/usr/libexec/kadr-raid cut 12": [ "exec" ],
-				"/usr/libexec/kadr-raid cut 15": [ "exec" ],
+				"/usr/libexec/kadr-raid cut 14": [ "exec" ],
+				"/usr/libexec/kadr-raid cut 16": [ "exec" ],
 				"/usr/libexec/kadr-raid cut 18": [ "exec" ],
-				"/usr/libexec/kadr-raid cut 22": [ "exec" ],
-				"/usr/libexec/kadr-raid cut 26": [ "exec" ],
-				"/usr/libexec/kadr-raid cut 30": [ "exec" ],
+				"/usr/libexec/kadr-raid cut 20": [ "exec" ],
 				"/usr/libexec/kadr-raid restore": [ "exec" ],
 				"/usr/libexec/kadr-raid heal": [ "exec" ]
 			}

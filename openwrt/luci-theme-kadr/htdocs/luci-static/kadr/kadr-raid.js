@@ -14,7 +14,7 @@
 	var FR = { 'boss-anus': ART.bosses.anus, 'boss-rkn': ART.bosses.rkn, 'boss-minion': ART.bosses.minion, 'hero-fox': ART.heroes.fox.atlas };
 	var BOSS = { anus: 'Анус', kumys: 'Кумысник', rkn: 'Командир РКН' };
 	var WHO = { fox: [ 'Лис', '1' ], wolf: [ 'Волк', '2' ], timur: [ 'Тимурчик', '3' ], ilkin: [ 'Илькин', '4' ], artem: [ 'Артём', '' ] };
-	var WAVES = [ 6, 9, 12, 15, 18, 22, 26, 30 ];
+	var WAVES = [ 6, 8, 10, 12, 14, 16, 18, 20 ];
 	var MAXDMG = 12;
 	var SHOP = {
 		tower: { title: 'Башни', items: [ [ 'brick', 'Кирпич', 0 ], [ 'concrete', 'Бетон с неоном', 14 ], [ 'gold', 'Золото Буффало', 30 ] ] },
@@ -131,12 +131,13 @@
 
 	var BAL = {
 		lvl: function () { return Math.max(0, raid.wins - Math.floor(raid.losses / 2)); },
-		hp: function (type, l) { return Math.round((240 + 70 * l) * (type === 'kumys' ? .85 : type === 'rkn' ? 1.1 : 1)); },
+		threat: function (l) { return Math.max(0, l - 2 * raid.dmg); },
+		hp: function (type, l) { return Math.round((240 + 45 * l) * (type === 'kumys' ? .85 : type === 'rkn' ? .8 : 1)); },
 		turret: function () { return 1 + .35 * raid.dmg; },
-		tentacle: function (l) { return 6 + 1.6 * l; },
-		ram: function (l) { return 10 + 2 * l; },
-		bite: function (l) { return 1 + .25 * l; },
-		gnaw: function (l) { return 1 + .2 * l; },
+		tentacle: function (g) { return Math.min(26, 6 + g); },
+		ram: function (g) { return Math.min(34, 10 + 1.2 * g); },
+		bite: function (g) { return Math.min(4, 1 + .15 * g); },
+		gnaw: function (g) { return Math.min(3, 1 + .1 * g); },
 		reward: function (type, l, intact) { return 2 + Math.floor(l / 3) + (intact ? 1 : 0) + (type === 'rkn' ? 1 : 0); },
 		penalty: function (l) { return raid.heads > 0 ? Math.max(1, Math.round(raid.heads * Math.min(.35, .2 + l * .01))) : 0; },
 		dmgCost: function (n) { return Math.round(3 * Math.pow(1.45, n)); },
@@ -799,14 +800,14 @@
 
 	function begin(type, saved) {
 		regen();
-		var lvl = saved ? saved.lvl : BAL.lvl(), max = saved ? saved.max : BAL.hp(type, lvl);
 		type = type || (saved && saved.type) || pick();
+		var lvl = saved ? saved.lvl : BAL.lvl(), max = saved ? saved.max : BAL.hp(type, lvl), gap = saved && isFinite(+saved.g) ? +saved.g : BAL.threat(lvl);
 		F = {
-			type: type, lvl: lvl, max: max, hp: saved ? saved.hp : max, t: 0, start: saved ? saved.start : now(),
+			type: type, lvl: lvl, g: gap, max: max, hp: saved ? saved.hp : max, t: 0, start: saved ? saved.start : now(),
 			s: saved ? saved.s : { t0: raid.hp.t0, t1: raid.hp.t1, r: raid.hp.r },
 			boss: { x: 0, y: -999, h: 140, state: 'enter', st: 0, vx: 0, vy: 0, tx: 0, ty: 0, flip: false, hold: null, holdT: 0, hitT: 0, inv: 0, hits3: 0, shield: 0, wob: rand(0, 9) },
 			tent: [], mins: [], swarm: [], fx: [], k: saved ? saved.k : 0, cut: 0, cutLen: 0, mud: 0, pause: false,
-			atk: 2.5, phase: rand(14, 18), shieldT: rand(8, 12), dodge: rand(4, 7), retarget: 0, saveT: 0, drones: [ rand(0, TAU), rand(0, TAU) + Math.PI ]
+			atk: 2.5, phase: rand(18, 24), shieldT: rand(8, 12), dodge: rand(4, 7), retarget: 0, saveT: 0, drones: [ rand(0, TAU), rand(0, TAU) + Math.PI ]
 		};
 		raid.fight = { at: now(), id: fid };
 		save(true);
@@ -874,7 +875,7 @@
 
 	function persist() {
 		try {
-			g.localStorage.setItem(FKEY, JSON.stringify({ type: F.type, lvl: F.lvl, hp: F.hp, max: F.max, s: F.s, k: F.k, start: F.start, at: now() }));
+			g.localStorage.setItem(FKEY, JSON.stringify({ type: F.type, lvl: F.lvl, g: F.g, hp: F.hp, max: F.max, s: F.s, k: F.k, start: F.start, at: now() }));
 		}
 		catch (e) {}
 	}
@@ -909,7 +910,7 @@
 		F.k++;
 		F.boss.hold = 'rage';
 		F.boss.holdT = 2;
-		var n = Math.min(40, 10 + 2 * F.lvl);
+		var n = Math.min(28, 8 + F.g);
 		for (var i = 0; i < n; i++)
 			F.swarm.push(spawnSwarm(G, i * .06));
 		if (raid.buff > 0) {
@@ -939,7 +940,7 @@
 
 	function spawnTent(G, key, delay) {
 		var p = targetPos(G, key);
-		return { key: key, tx: p.x + rand(-8, 8) * G.k, ty: p.y + rand(-8, 8) * G.k, t: -(delay || 0), dur: Math.max(1.5, 2.4 - F.lvl * .04), dead: 0, seed: rand(0, 9) };
+		return { key: key, tx: p.x + rand(-8, 8) * G.k, ty: p.y + rand(-8, 8) * G.k, t: -(delay || 0), dur: Math.max(1.5, 2.4 - F.g * .03), dead: 0, seed: rand(0, 9) };
 	}
 
 	function spawnMin(G, key, b) {
@@ -954,7 +955,7 @@
 	}
 
 	function step(dt, G) {
-		var b = F.boss, k = G.k, lvl = F.lvl, i;
+		var b = F.boss, k = G.k, lvl = F.g, i;
 		F.t += dt;
 		b.h = clamp(G.H * .2, 110, 178);
 		var minY = Math.max(G.H * .22, 70) + b.h, maxY = Math.max(minY + 10, G.H * (G.low ? .58 : .52));
@@ -1046,7 +1047,7 @@
 					b.dash = .5;
 				}
 			}
-			var sp = (34 + lvl * 2) * (F.type === 'kumys' ? 1.35 : F.type === 'rkn' ? .85 : 1) * (b.state === 'rage' ? 3.2 : b.dash > 0 ? 3 : b.state === 'stun' || b.state === 'drink' ? 0 : 1) * Math.max(.7, k);
+			var sp = (34 + Math.min(lvl, 20) * 1.5) * (F.type === 'kumys' ? 1.35 : F.type === 'rkn' ? .85 : 1) * (b.state === 'rage' ? 3.2 : b.dash > 0 ? 3 : b.state === 'stun' || b.state === 'drink' ? 0 : 1) * Math.max(.7, k);
 			b.dash = Math.max(0, (b.dash || 0) - dt);
 			var dx = b.tx - b.x, dy = b.ty - b.y, dd = Math.hypot(dx, dy);
 			if (dd > 1) {
@@ -1062,8 +1063,8 @@
 				F.phase -= dt;
 				if (F.atk <= 0) {
 					if (F.type === 'rkn') {
-						F.atk = Math.max(3.2, 5.2 - lvl * .08);
-						var n = Math.min(10, 2 + Math.floor(lvl / 2));
+						F.atk = Math.max(3.6, 5.6 - lvl * .06);
+						var n = Math.min(6, 1 + Math.floor(lvl / 3));
 						for (i = 0; i < n; i++) {
 							var key = pickTarget();
 							if (key)
@@ -1073,8 +1074,8 @@
 						b.holdT = .9;
 					}
 					else {
-						F.atk = Math.max(1.8, 3.6 - lvl * .06) * (F.type === 'kumys' ? .85 : 1);
-						var m = Math.min(3, 1 + Math.floor(lvl / 5));
+						F.atk = Math.max(2.2, 3.6 - lvl * .05) * (F.type === 'kumys' ? .85 : 1);
+						var m = Math.min(3, 1 + Math.floor(lvl / 6));
 						for (i = 0; i < m; i++) {
 							var kk = pickTarget();
 							if (kk)
@@ -1093,7 +1094,7 @@
 					else if (F.type === 'rkn')
 						cutWave(G);
 					else {
-						var storm = Math.min(12, 5 + Math.floor(lvl / 3));
+						var storm = Math.min(9, 4 + Math.floor(lvl / 3));
 						for (i = 0; i < storm; i++) {
 							var ks = pickTarget();
 							if (ks)
@@ -1916,7 +1917,7 @@
 
 	var shop = null, hbtn = null, scrim = null, booted = false;
 	var TIPS = [
-		'Урон качается по уровням. Каждый следующий дороже, зато турели бьют сильнее.',
+		'Урон качается по уровням. Каждый следующий дороже, зато турели бьют сильнее, а боссы — слабее.',
 		'Башни и ролтон сами чинятся, восемь единиц в час. Ремонт за головы — сразу до целого.',
 		'Кнопка на турелях выключает их. Выключенная турель не злит босса, но и не стреляет.',
 		'Лапша Ролтон вместо снарядов урона не прибавляет. Зато красиво.',
@@ -2029,7 +2030,7 @@
 			need([ 'hero-timur' ]).then(function () {
 				hint('shop', 'timur', [
 					'Здарова, я Тимурчик. Чиню ролтоны, иногда ломаю. Валюта тут одна — головы боссов.',
-					'Урон турелей качается по уровням: каждый дороже прошлого, но и бьют сильнее.',
+					'Урон турелей качается по уровням: каждый дороже прошлого, но турели бьют сильнее, а боссы — слабее. Не качаешься — догонят.',
 					'Ремонт латает башни и ролтон после боссов. Сами они тоже чинятся, но медленно: восемь единиц в час.',
 					'Кнопка на турелях даёт их выключать. Скины башен, стволов, снарядов и ролтона — для красоты, а лапша Ролтон — для души.'
 				], { modal: true });
