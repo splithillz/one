@@ -9,7 +9,7 @@ import sys
 import tarfile
 import time
 
-VERSION = "1.7.0"
+VERSION = "1.7.1"
 RELEASE = "1"
 EDITIONS = {
     "lite": {

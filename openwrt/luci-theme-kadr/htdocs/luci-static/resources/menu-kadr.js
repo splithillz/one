@@ -66,7 +66,7 @@ function isNewer(a, b) {
 }
 
 function verLabel(v) {
-	return String(v || '').replace(/-r\d+$/, '');
+	return String(v || '').replace(/-r[01]$/, '');
 }
 
 function parseLines(text) {
