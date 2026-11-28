@@ -9,8 +9,8 @@ import sys
 import tarfile
 import time
 
-VERSION = "1.7.0"
-RELEASE = "2"
+VERSION = "1.7.1"
+RELEASE = "1"
 EDITIONS = {
     "lite": {
         "name": "luci-theme-kadr",

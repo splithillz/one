@@ -1,5 +1,5 @@
-version=1.7.0-r2
-apk=luci-theme-kadr-1.7.0-r2.apk
-apk_sha256=1908f87c2fa87cd5498107d3126671b27efd60bf0a7af10a0f7b48b3a4c9b3e4
-ipk=luci-theme-kadr_1.7.0-r2_all.ipk
-ipk_sha256=466f702bf01032a9918fe4ac776400a8b08b32b04917344bd97eea43db21de71
+version=1.7.1-r1
+apk=luci-theme-kadr-1.7.1-r1.apk
+apk_sha256=4a1f3d719007f687f777e4da4ce23e4722f23b513916bfbd5c9c0c02bf7e1df4
+ipk=luci-theme-kadr_1.7.1-r1_all.ipk
+ipk_sha256=29cc5c4f0e63a6f2ecaa4354684bd0aa98b808b52c1cc72ba712a67ee153cb24

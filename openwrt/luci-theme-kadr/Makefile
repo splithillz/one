@@ -2,8 +2,8 @@ include $(TOPDIR)/rules.mk
 
 LUCI_TITLE:=Kadr theme (kinoarc style, Kadr palettes, podkop support)
 LUCI_DEPENDS:=+luci-base
-PKG_VERSION:=1.7.0
-PKG_RELEASE:=2
+PKG_VERSION:=1.7.1
+PKG_RELEASE:=1
 PKG_LICENSE:=Apache-2.0
 
 define Package/luci-theme-kadr/postrm
