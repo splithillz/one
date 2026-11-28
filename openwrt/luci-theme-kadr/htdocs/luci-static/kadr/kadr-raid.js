@@ -148,11 +148,17 @@
 		repairCost: function () { return Math.ceil((300 - raid.hp.t0 - raid.hp.t1 - raid.hp.r) / 60); },
 		switchCost: 6,
 		bare: .5,
-		rage: 1.4
+		harm: [ 2, 1.5, 1 ]
 	};
 
+	function working() {
+		if (!F || F.lost)
+			return 0;
+		return (F.s.t0 > 0 && !raid.off.t0 ? 1 : 0) + (F.s.t1 > 0 && !raid.off.t1 ? 1 : 0);
+	}
+
 	function bare() {
-		return !!F && (!!F.lost || (F.s.t0 <= 0 || raid.off.t0) && (F.s.t1 <= 0 || raid.off.t1));
+		return !!F && !working();
 	}
 
 	var IMG = {}, WAIT = {};
@@ -236,6 +242,11 @@
 				p[i] = p[i] + (255 - p[i]) * .65;
 				p[i + 1] = p[i + 1] + (255 - p[i + 1]) * .65;
 				p[i + 2] = p[i + 2] + (255 - p[i + 2]) * .65;
+			}
+			else if (variant === 'red') {
+				p[i] = 150 + 95 * l;
+				p[i + 1] = 8 + 22 * l;
+				p[i + 2] = 6 + 16 * l;
 			}
 		}
 		c.putImageData(d, 0, 0);
@@ -951,8 +962,7 @@
 			return;
 		if (F.nl > F.t)
 			v *= 2;
-		if (bare())
-			v *= BAL.rage;
+		v *= BAL.harm[working()];
 		F.s[key] = Math.max(0, F.s[key] - v);
 		var p = targetPos(G, key);
 		burst(x === undefined ? p.x : x, y === undefined ? p.y : y, 8, key === 'r' ? '#7fd3ff' : '#ffb24a', 140);
@@ -1625,6 +1635,16 @@
 		c.fill();
 		var wob = b.state === 'rage' ? Math.sin(F.t * 30) * 3 * k : Math.sin(F.t * 3 + b.wob) * 1.5 * k;
 		blit(c, s, b.x + wob, b.y, h, flip);
+		if (rk && b.shield > 0 && b.state !== 'dead') {
+			var pu = .5 + .5 * Math.sin(F.t * 13), rs = sprite(name, key, 'red');
+			if (rs) {
+				c.save();
+				c.shadowColor = 'rgba(255,30,20,' + (.45 + .45 * pu) + ')';
+				c.shadowBlur = (8 + 14 * pu) * k;
+				blit(c, rs, b.x + wob, b.y, h, flip, .1 + .5 * pu);
+				c.restore();
+			}
+		}
 		if (F.type === 'kumys' && b.state !== 'dead')
 			bowl(c, b, k);
 		c.restore();
@@ -2268,8 +2288,9 @@
 			chips.push([ 'inv', 'Неуязвим' ]);
 		if (F.boss.state === 'rage' && F.boss.inv <= 0 && F.type === 'kumys')
 			chips.push([ 'hits', 'Попади ещё ' + Math.max(0, 3 - F.boss.hits3) ]);
-		if (bare() && F.boss.state !== 'dead')
-			chips.push([ 'bare', 'Турели молчат · тапы вполсилы, босс звереет' ]);
+		var wk = working();
+		if (wk < 2 && F.boss.state !== 'dead')
+			chips.push([ 'bare', wk ? 'Одна турель · босс бьёт ×1,5' : 'Турели молчат · тапы вполсилы, босс бьёт ×2' ]);
 		if (AC.lockUntil > g.performance.now())
 			chips.push([ 'lock', 'Тапы не считаются: кликер' ]);
 		var html = chips.map(function (c) { return '<span class="' + c[0] + '">' + c[1] + '</span>'; }).join('');
