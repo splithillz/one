@@ -18,6 +18,7 @@
 				"/usr/libexec/kadr-raid cut 16": [ "exec" ],
 				"/usr/libexec/kadr-raid cut 18": [ "exec" ],
 				"/usr/libexec/kadr-raid cut 20": [ "exec" ],
+				"/usr/libexec/kadr-raid hold": [ "exec" ],
 				"/usr/libexec/kadr-raid restore": [ "exec" ],
 				"/usr/libexec/kadr-raid heal": [ "exec" ]
 			}

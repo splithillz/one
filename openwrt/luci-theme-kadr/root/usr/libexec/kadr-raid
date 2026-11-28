@@ -2,6 +2,8 @@
 
 run=/var/run/kadr-raid
 max=40
+lease=30
+hmax=420
 
 up() {
 	read -r u _ < /proc/uptime
@@ -149,8 +151,26 @@ do_cut() {
 	echo "left=$n"
 }
 
+do_hold() {
+	prepare || { echo "error=tmp"; return; }
+	h=$(cat "$run/hold" 2>/dev/null)
+	case $h in
+		'' | *[!0-9]*) h=0 ;;
+	esac
+	if [ "$h" -le 0 ] || [ "$(left)" -le 0 ]; then
+		h=$(up)
+		echo "$h" > "$run/hold"
+	fi
+	if [ $(( $(up) - h )) -gt "$hmax" ]; then
+		echo "error=cap"
+		return
+	fi
+	do_cut "$lease"
+}
+
 do_restore() {
 	[ -d "$run" ] || { echo "state=ok"; return; }
+	rm -f "$run/hold"
 	echo 0 > "$run/until"
 	case $(cat "$run/mode" 2>/dev/null) in
 		wan)
@@ -195,6 +215,7 @@ do_status() {
 
 case $1 in
 	cut) do_cut "$2" ;;
+	hold) do_hold ;;
 	restore) do_restore ;;
 	heal) do_heal ;;
 	status) do_status ;;
