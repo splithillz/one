@@ -101,35 +101,35 @@ wget -q -O - https://raw.githubusercontent.com/splithillz/one/main/openwrt/luci-
 Готовые пакеты лежат в папке [`releases`](../../releases/) в корне репозитория.
 
 Обычная версия:
-- [`luci-theme-kadr-1.7.0-r1.apk`](https://github.com/splithillz/one/raw/main/releases/luci-theme-kadr-1.7.0-r1.apk) — для OpenWrt 25.12;
-- [`luci-theme-kadr_1.7.0-r1_all.ipk`](https://github.com/splithillz/one/raw/main/releases/luci-theme-kadr_1.7.0-r1_all.ipk) — для OpenWrt 24.10.
+- [`luci-theme-kadr-1.7.0-r2.apk`](https://github.com/splithillz/one/raw/main/releases/luci-theme-kadr-1.7.0-r2.apk) — для OpenWrt 25.12;
+- [`luci-theme-kadr_1.7.0-r2_all.ipk`](https://github.com/splithillz/one/raw/main/releases/luci-theme-kadr_1.7.0-r2_all.ipk) — для OpenWrt 24.10.
 
 Полная версия:
-- [`luci-theme-kadr-full-1.7.0-r1.apk`](https://github.com/splithillz/one/raw/main/releases/luci-theme-kadr-full-1.7.0-r1.apk) — для OpenWrt 25.12;
-- [`luci-theme-kadr-full_1.7.0-r1_all.ipk`](https://github.com/splithillz/one/raw/main/releases/luci-theme-kadr-full_1.7.0-r1_all.ipk) — для OpenWrt 24.10.
+- [`luci-theme-kadr-full-1.7.0-r2.apk`](https://github.com/splithillz/one/raw/main/releases/luci-theme-kadr-full-1.7.0-r2.apk) — для OpenWrt 25.12;
+- [`luci-theme-kadr-full_1.7.0-r2_all.ipk`](https://github.com/splithillz/one/raw/main/releases/luci-theme-kadr-full_1.7.0-r2_all.ipk) — для OpenWrt 24.10.
 
 Ниже команды для обычной версии, для полной подставь имя её файла. Поверх другой версии пакет не встанет: apk и opkg напишут о конфликте и ничего не тронут. Сначала удали стоящую версию: `apk del luci-theme-kadr` или `apk del luci-theme-kadr-full`, в 24.10 — `opkg remove` с тем же именем.
 
 #### OpenWrt 25.12 (apk)
 
-1. Скопируй `luci-theme-kadr-1.7.0-r1.apk` на роутер в `/tmp`. С Windows это можно сделать через WinSCP в режиме SCP или из PowerShell:
+1. Скопируй `luci-theme-kadr-1.7.0-r2.apk` на роутер в `/tmp`. С Windows это можно сделать через WinSCP в режиме SCP или из PowerShell:
    ```
-   scp -O luci-theme-kadr-1.7.0-r1.apk root@192.168.1.1:/tmp/
+   scp -O luci-theme-kadr-1.7.0-r2.apk root@192.168.1.1:/tmp/
    ```
 2. Зайди на роутер (`ssh root@192.168.1.1`) и поставь пакет:
    ```
-   apk add --allow-untrusted /tmp/luci-theme-kadr-1.7.0-r1.apk
+   apk add --allow-untrusted /tmp/luci-theme-kadr-1.7.0-r2.apk
    ```
 
 Пакет не подписан ключом OpenWrt, поэтому нужен `--allow-untrusted`. По этой же причине в 25.12 не сработает установка через «Система → Программное обеспечение → Загрузить пакет…»: LuCI не передаёт этот флаг.
 
 #### OpenWrt 24.10 (opkg)
 
-Через веб-интерфейс: «Система → Программное обеспечение → Загрузить пакет…», выбери `luci-theme-kadr_1.7.0-r1_all.ipk` и нажми «Установить».
+Через веб-интерфейс: «Система → Программное обеспечение → Загрузить пакет…», выбери `luci-theme-kadr_1.7.0-r2_all.ipk` и нажми «Установить».
 
 Или по SSH:
 ```
-opkg install /tmp/luci-theme-kadr_1.7.0-r1_all.ipk
+opkg install /tmp/luci-theme-kadr_1.7.0-r2_all.ipk
 ```
 
 ### Обновление
@@ -532,13 +532,17 @@ opkg install /tmp/luci-theme-kadr_1.7.0-r1_all.ipk
 
 ## Что нового
 
+### 1.7.0-r2
+
+- Красным мигает только щит в лапах командира РКН, сам жук больше не подсвечивается. Кольцо «Суверенный интернет» тоже красное и мигает в такт.
+
 ### 1.7.0
 
 - Модели в стиле рисованных боссов: башни, стволы, руины, ролтоны, вышка РКН, дроны, пиала и снаряды отрендерены в Blender, турели и ролтон стоят на земле внизу экрана, провода лежат по земле.
 - Боссы говорят в пузырях — зло и с матом. Командир РКН сам сообщает, что отрубил. Насмешки берутся из колод без повторов и затихают с опытом.
 - Баффы Артёма: «Колядки» замораживают любого босса, VPN-щит держит связь против РКН, но потом выключает VPN до конца боя. После любого баффа у босса neverloose — урон ×2. Редкие, дорогие, по одной штуке.
 - Без турелей бой тяжёлый: с одной турелью босс бьёт ×1,5, без турелей ×2, тапы вполсилы, атаки чаще.
-- Щит командира РКН мигает красным, пока поднят «Суверенный интернет».
+- Командир РКН мигает красным, пока поднят щит «Суверенный интернет».
 - Штаб Буффало на весь экран, на фоне — штаб.
 - Рейд-боссы в полной версии. При первом включении метавселенной Илькин в штабе Буффало предлагает сложность: «Нормальная» или «Хардкор». На «Хардкоре» раз в 12 часов приходит босс: Анус, Кумысник или командир РКН.
 - Командир РКН по-настоящему останавливает podkop или закрывает интернет локальной сети на время атаки. Связь возвращается сама, подробности в разделе «Отключение связи».
