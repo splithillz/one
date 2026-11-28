@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+import json
+import re
 import gzip
 import hashlib
 import io
@@ -7,7 +9,7 @@ import sys
 import tarfile
 import time
 
-VERSION = "1.6.1"
+VERSION = "1.7.0"
 RELEASE = "1"
 EDITIONS = {
     "lite": {
@@ -24,8 +26,11 @@ EDITIONS = {
 FULL_ONLY = {
     "www/luci-static/kadr/kadr-bugs.js",
     "www/luci-static/kadr/kadr-meta.js",
+    "www/luci-static/kadr/kadr-raid.js",
+    "usr/libexec/kadr-raid",
     "usr/share/rpcd/acl.d/luci-theme-kadr-full.json",
 }
+FULL_DIRS = ("www/luci-static/kadr/raid/",)
 URL = "https://github.com/splithillz/one/tree/main/luci-theme-kadr"
 LICENSE = "Apache-2.0"
 DEPENDS = ["luci-base"]
@@ -45,6 +50,7 @@ exit 0
 
 POSTRM = """#!/bin/sh
 [ -n "${IPKG_INSTROOT}" ] && exit 0
+[ -x /usr/libexec/kadr-raid ] || [ ! -f /var/run/kadr-raid/worker ] || /bin/sh /var/run/kadr-raid/worker restore >/dev/null 2>&1
 [ -f /www/luci-static/kadr/kadr-bugs.js ] || rm -f /etc/kadr-sync.json
 [ -f /www/luci-static/kadr/kadr.css ] && exit 0
 uci -q delete luci.themes.Kadr
@@ -76,7 +82,7 @@ def layout(edition):
                 full = os.path.join(dirpath, fn)
                 rel = os.path.relpath(full, base)
                 target = (os.path.join(dst, rel) if dst else rel).replace(os.sep, "/")
-                if edition == "full" or target not in FULL_ONLY:
+                if edition == "full" or not (target in FULL_ONLY or target.startswith(FULL_DIRS)):
                     files.append((target, full))
     return files
 
@@ -255,8 +261,20 @@ def check_versions():
         sys.exit("\n".join(problems))
 
 
+def check_waves():
+    with open(os.path.join(HERE, "htdocs", "luci-static", "kadr", "kadr-raid.js"), encoding="utf-8") as f:
+        m = re.search(r"var WAVES = \[([^\]]*)\]", f.read())
+    with open(os.path.join(HERE, "root", "usr", "share", "rpcd", "acl.d", "luci-theme-kadr-full.json"), encoding="utf-8") as f:
+        acl = json.load(f)
+    waves = sorted(int(x) for x in m.group(1).split(",")) if m else []
+    allowed = sorted(int(k.split()[-1]) for k in acl["luci-theme-kadr-full"]["write"]["file"] if " cut " in k)
+    if not waves or waves != allowed:
+        sys.exit(f"kadr-raid: WAVES {waves} differ from ACL cut entries {allowed}")
+
+
 def main():
     check_versions()
+    check_waves()
     outdir = sys.argv[1] if len(sys.argv) > 1 else os.path.normpath(os.path.join(HERE, "..", "..", "releases"))
     os.makedirs(outdir, exist_ok=True)
     for key, ed in EDITIONS.items():

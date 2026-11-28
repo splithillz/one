@@ -14,6 +14,7 @@ const FULL_URL = 'https://github.com/splithillz/one/tree/main/openwrt/luci-theme
 const SYNC_FILE = '/etc/kadr-sync.json';
 const SYNC_KEY = 'kadr-luci-sync';
 const BUILD_KEY = 'kadr-luci-build';
+const RAID_KEY = 'kadr-luci-raid';
 const NOTES = {
 	lite: 'Всё запоминается в этом браузере.',
 	ok: 'Настройки хранятся на роутере и общие для всех устройств.',
@@ -275,7 +276,7 @@ return baseclass.extend({
 			Object.assign(this.switches, {
 				bugs: this.switcher('kadr-bugs-label', 'bugs'),
 				bugWalk: this.switcher('kadr-walk-label', 'bugWalk'),
-				bugVerse: this.switcher('kadr-meme-label', 'bugVerse'),
+				bugVerse: this.switcher('kadr-meme-label', 'bugVerse', () => this.toggleVerse()),
 				bugSound: this.switcher('kadr-sound-label', 'bugSound')
 			});
 			this.switches.bugVerse.setAttribute('aria-describedby', 'kadr-meme-sub');
@@ -284,12 +285,15 @@ return baseclass.extend({
 			this.soundRow = E('div', { 'class': 'kadr-opt' }, [ E('span', { 'id': 'kadr-sound-label' }, [ 'Звуки стройки' ]), this.switches.bugSound ]);
 			this.lookRow = E('div', { 'class': 'kadr-opt wide' }, [ E('span', { 'id': 'kadr-look-label' }, [ 'Вид жуков' ]), this.segs.bugLook ]);
 			this.countRow = E('div', { 'class': 'kadr-opt wide' }, [ E('span', { 'id': 'kadr-count-label' }, [ 'Сколько жуков' ]), this.segs.bugCount ]);
+			this.segs.bugMode = this.segment('kadr-mode-label', 'bugMode', [ [ 'normal', 'Нормальная' ], [ 'hard', 'Хардкор' ] ], (id) => this.pickMode(id));
+			this.modeRow = E('div', { 'class': 'kadr-opt wide' }, [ E('span', { 'id': 'kadr-mode-label' }, [ 'Сложность' ]), this.segs.bugMode ]);
 			parts.push(
 				E('span', { 'class': 'kadr-tiles-group kadr-opts-title' }, [ 'Жуки' ]),
 				E('div', { 'class': 'kadr-opts' }, [
 					E('div', { 'class': 'kadr-opt' }, [ E('span', { 'id': 'kadr-bugs-label' }, [ 'Бегают по экрану' ]), this.switches.bugs ]),
 					E('div', { 'class': 'kadr-opt' }, [ E('span', { 'id': 'kadr-walk-label' }, [ 'Ходят по кнопкам' ]), this.switches.bugWalk ]),
 					this.memeRow,
+					this.modeRow,
 					this.soundRow,
 					this.countRow,
 					this.lookRow
@@ -365,9 +369,10 @@ return baseclass.extend({
 		this.syncOptions();
 	},
 
-	segment(labelId, key, items) {
+	segment(labelId, key, items, onPick) {
+		const pickIt = (id) => (onPick ? onPick(id) : this.setOption({ [key]: id }));
 		const seg = E('div', { 'class': 'kadr-seg', 'role': 'radiogroup', 'aria-labelledby': labelId },
-			items.map(([ id, label ]) => E('button', { 'type': 'button', 'role': 'radio', 'data-value': id, 'click': () => this.setOption({ [key]: id }) }, [ label ])));
+			items.map(([ id, label ]) => E('button', { 'type': 'button', 'role': 'radio', 'data-value': id, 'click': () => pickIt(id) }, [ label ])));
 
 		seg.addEventListener('keydown', (ev) => {
 			const step = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[ev.key];
@@ -376,16 +381,63 @@ return baseclass.extend({
 			const buttons = Array.from(seg.querySelectorAll('button'));
 			const next = buttons[(buttons.findIndex((b) => b.getAttribute('aria-checked') === 'true') + step + buttons.length) % buttons.length];
 			ev.preventDefault();
-			this.setOption({ [key]: next.getAttribute('data-value') });
+			pickIt(next.getAttribute('data-value'));
 			next.focus();
 		});
 
 		return seg;
 	},
 
-	switcher(labelId, key) {
+	switcher(labelId, key, onClick) {
 		return E('button', { 'class': 'kadr-switch', 'type': 'button', 'role': 'switch', 'aria-labelledby': labelId,
-			'click': () => this.setOption({ [key]: !window.KadrTheme.get()[key] }) });
+			'click': () => (onClick ? onClick() : this.setOption({ [key]: !window.KadrTheme.get()[key] })) });
+	},
+
+	loadRaid() {
+		if (window.KadrRaid)
+			return Promise.resolve(window.KadrRaid);
+		if (this.raidWait)
+			return this.raidWait;
+		const theme = document.querySelector('script[src*="kadr-theme.js"]');
+		if (!theme)
+			return Promise.resolve(null);
+		this.raidWait = new Promise((resolve) => {
+			const s = document.createElement('script');
+			s.src = theme.src.replace('kadr-theme.js', 'kadr-raid.js');
+			s.onload = () => resolve(window.KadrRaid || null);
+			s.onerror = () => {
+				this.raidWait = null;
+				resolve(null);
+			};
+			document.head.appendChild(s);
+		});
+		return this.raidWait;
+	},
+
+	toggleVerse() {
+		const s = window.KadrTheme.get();
+		if (s.bugVerse || s.bugMode) {
+			this.setOption({ bugVerse: !s.bugVerse });
+			return;
+		}
+		this.loadRaid().then((R) => (R ? R.choose() : 'normal')).then((m) => {
+			if (m)
+				this.setOption({ bugVerse: true, bugMode: m });
+		});
+	},
+
+	pickMode(id) {
+		const s = window.KadrTheme.get();
+		if (id === s.bugMode)
+			return;
+		if (id !== 'hard') {
+			this.setOption({ bugMode: 'normal' });
+			return;
+		}
+		this.loadRaid().then((R) => (R ? R.choose('hard') : 'hard')).then((m) => {
+			if (m === 'hard')
+				this.setOption({ bugMode: 'hard' });
+		});
 	},
 
 	syncOptions() {
@@ -409,6 +461,8 @@ return baseclass.extend({
 		this.lookRow.setAttribute('aria-disabled', state.bugs || state.bugWalk ? 'false' : 'true');
 		this.memeRow.setAttribute('aria-disabled', state.bugs || state.bugWalk ? 'false' : 'true');
 		this.countRow.setAttribute('aria-disabled', state.bugs || state.bugWalk ? 'false' : 'true');
+		this.modeRow.hidden = !(state.bugVerse || state.bugMode);
+		this.modeRow.setAttribute('aria-disabled', state.bugs || state.bugWalk ? 'false' : 'true');
 		this.syncMeta();
 	},
 
@@ -433,6 +487,11 @@ return baseclass.extend({
 	},
 
 	initSync() {
+		window.KadrSync = {
+			raidChanged: () => this.raidChanged(),
+			pull: () => FULL && L.env.sessionid ? Promise.resolve(this.syncNow()).catch(() => {}) : Promise.resolve()
+		};
+
 		if (!L.env.sessionid)
 			return;
 
@@ -445,7 +504,17 @@ return baseclass.extend({
 			if (!document.hidden)
 				this.syncNow();
 		}, 60000);
-		this.syncNow();
+		Promise.resolve(this.syncNow()).finally(() => this.offerRaid());
+	},
+
+	offerRaid() {
+		const s = window.KadrTheme.get();
+		if (!FULL || !s.bugVerse || s.bugMode || !(s.bugs || s.bugWalk))
+			return;
+		this.loadRaid().then((R) => (R && R.offer ? R.offer() : null)).then((m) => {
+			if (m && !window.KadrTheme.get().bugMode)
+				this.setOption({ bugMode: m });
+		});
 	},
 
 	syncSoon() {
@@ -456,10 +525,10 @@ return baseclass.extend({
 	syncInfo() {
 		try {
 			const m = JSON.parse(window.localStorage.getItem(SYNC_KEY)) || {};
-			return { rev: +m.rev || 0, dirty: !!m.dirty };
+			return { rev: +m.rev || 0, dirty: !!m.dirty, rrev: +m.rrev || 0, rdirty: !!m.rdirty };
 		}
 		catch (e) {
-			return { rev: 0, dirty: false };
+			return { rev: 0, dirty: false, rrev: 0, rdirty: false };
 		}
 	},
 
@@ -474,20 +543,37 @@ return baseclass.extend({
 		if (!FULL || !L.env.sessionid)
 			return;
 
-		this.saveSyncInfo({ rev: this.syncInfo().rev, dirty: true });
+		this.saveSyncInfo(Object.assign(this.syncInfo(), { dirty: true }));
+		this.syncSoon();
+	},
+
+	raidLocal() {
+		try {
+			const r = JSON.parse(window.localStorage.getItem(RAID_KEY));
+			return r && typeof r === 'object' ? r : null;
+		}
+		catch (e) {
+			return null;
+		}
+	},
+
+	raidChanged() {
+		if (!FULL || !L.env.sessionid)
+			return;
+		this.saveSyncInfo(Object.assign(this.syncInfo(), { rdirty: true }));
 		this.syncSoon();
 	},
 
 	syncNow() {
 		if (this.syncBusy) {
 			this.syncAgain = true;
-			return;
+			return this.syncP;
 		}
 
 		const K = window.KadrTheme;
 
 		this.syncBusy = true;
-		fs.read(SYNC_FILE).then((text) => {
+		this.syncP = fs.read(SYNC_FILE).then((text) => {
 			try {
 				const r = JSON.parse(text);
 				return r && typeof r === 'object' ? r : null;
@@ -527,15 +613,37 @@ return baseclass.extend({
 			if (adopt || build !== lb)
 				this.refreshPalette();
 
+			const rr = remote && remote.raid && typeof remote.raid === 'object' ? remote.raid : null;
+			const rrevRemote = remote ? +remote.rrev || 0 : 0;
+			let raid = this.raidLocal(), qrev = info.rrev;
+
+			if (rr && !info.rdirty) {
+				if (rrevRemote !== info.rrev) {
+					try {
+						window.localStorage.setItem(RAID_KEY, JSON.stringify(rr));
+					}
+					catch (e) {}
+					raid = rr;
+					window.dispatchEvent(new Event('kadr-raid-sync'));
+				}
+				qrev = rrevRemote;
+			}
+			else if (raid && (info.rdirty || !rr)) {
+				qrev = Math.max(info.rrev, rrevRemote) + 1;
+				write = true;
+			}
+
 			const done = () => {
-				this.saveSyncInfo({ rev: rev, dirty: false });
+				this.saveSyncInfo({ rev: rev, dirty: false, rrev: qrev, rdirty: false });
 				this.setNote('ok');
 			};
 
 			if (!write)
 				return done();
 
-			return fs.write(SYNC_FILE, JSON.stringify({ v: 1, rev: rev, settings: K.get(), build: build }) + '\n').then(done);
+			const settings = info.dirty || !remote || !remote.settings || typeof remote.settings !== 'object' ? K.get() : remote.settings;
+
+			return fs.write(SYNC_FILE, JSON.stringify({ v: 1, rev: rev, settings: settings, build: build, rrev: qrev, raid: raid }) + '\n').then(done);
 		}).catch((err) => {
 			this.setNote(err && err.name === 'PermissionError' ? 'acl' : 'off');
 		}).finally(() => {
@@ -543,9 +651,11 @@ return baseclass.extend({
 
 			if (this.syncAgain) {
 				this.syncAgain = false;
-				this.syncNow();
+				return this.syncNow();
 			}
 		});
+
+		return this.syncP;
 	},
 
 	setNote(code) {
@@ -763,7 +873,7 @@ return baseclass.extend({
 		const v = this.fullView || {};
 		const mode = v.mode || 'idle';
 		let title = 'Полная версия';
-		let sub = [ this.fullMoved ? 'Жуки и метавселенная переехали туда. Там же настройки, общие для всех устройств · ' : 'Жуки, метавселенная и настройки, общие для всех устройств · ',
+		let sub = [ this.fullMoved ? 'Жуки, метавселенная и рейд-боссы переехали туда. Там же настройки, общие для всех устройств · ' : 'Жуки, метавселенная, рейд-боссы и настройки, общие для всех устройств · ',
 			E('a', { 'href': FULL_URL, 'target': '_blank', 'rel': 'noreferrer', 'click': (ev) => ev.stopPropagation() }, [ 'Подробнее' ]) ];
 		let btns = L.env.sessionid ? [ this.updButton('Поставить', () => this.renderFull({ mode: 'ask' }), true) ] : [];
 		let state = 'idle';

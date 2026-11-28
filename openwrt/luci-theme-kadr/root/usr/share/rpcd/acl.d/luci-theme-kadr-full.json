@@ -1,14 +1,26 @@
 {
 	"luci-theme-kadr-full": {
-		"description": "Grant access to Kadr settings shared between devices",
+		"description": "Grant access to Kadr shared settings and raid boss network effects",
 		"read": {
 			"file": {
-				"/etc/kadr-sync.json": [ "read" ]
+				"/etc/kadr-sync.json": [ "read" ],
+				"/usr/libexec/kadr-raid status": [ "exec" ]
 			}
 		},
 		"write": {
 			"file": {
-				"/etc/kadr-sync.json": [ "write" ]
+				"/etc/kadr-sync.json": [ "write" ],
+				"/usr/libexec/kadr-raid cut 6": [ "exec" ],
+				"/usr/libexec/kadr-raid cut 8": [ "exec" ],
+				"/usr/libexec/kadr-raid cut 10": [ "exec" ],
+				"/usr/libexec/kadr-raid cut 12": [ "exec" ],
+				"/usr/libexec/kadr-raid cut 14": [ "exec" ],
+				"/usr/libexec/kadr-raid cut 16": [ "exec" ],
+				"/usr/libexec/kadr-raid cut 18": [ "exec" ],
+				"/usr/libexec/kadr-raid cut 20": [ "exec" ],
+				"/usr/libexec/kadr-raid hold": [ "exec" ],
+				"/usr/libexec/kadr-raid restore": [ "exec" ],
+				"/usr/libexec/kadr-raid heal": [ "exec" ]
 			}
 		}
 	}
